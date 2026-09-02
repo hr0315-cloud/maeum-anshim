@@ -95,7 +95,7 @@
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.5</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.5.1</span></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
   <button class="primary big" onclick="go('checkin')">상담 시작</button>
@@ -136,6 +136,10 @@
   <div id="alertCards" style="width:min(720px,94vw); display:flex; flex-direction:column; gap:10px"></div>
   <div id="boardList" style="width:min(720px,94vw); display:flex; flex-direction:column; gap:10px; max-height:40vh; overflow-y:auto"></div>
   <div class="note" id="boardEmpty">진행 중인 상담이 없어요 — 상담이 시작되면 여기에 나타나요</div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; align-items:center">
+    <button class="mid" onclick="testAlarm(this)">소리·알림 테스트</button>
+    <span class="note" id="notifStat">-</span>
+  </div>
   <div class="note">이 화면을 켜두면(PC 브라우저도 가능) 위험 시 소리와 바탕화면 알림으로 알려드려요</div>
   <button class="corner" style="left:24px" onclick="stopBuddy()">대기 종료</button>
 </div>
@@ -323,7 +327,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.5)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.5.1)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0 };
   var analyser = null, audioCtx = null, micStream = null;
   var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
@@ -892,6 +896,44 @@ window.onerror = function (msg) {
       if (Notification.permission === 'granted') new Notification(title, { body: body, requireInteraction: true, tag: 'ma-alert' });
     } catch (e) {}
   }
+  function beep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      var ac = audioCtx, o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square'; o.frequency.value = 740;
+      g.gain.setValueAtTime(0.0001, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.28, ac.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.5);
+      o.connect(g); g.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime + 0.55);
+    } catch (e) {}
+  }
+  function updateNotifStat() {
+    var el = $('notifStat');
+    if (!el) return;
+    if (!('Notification' in window)) { el.textContent = '이 브라우저는 바탕화면 알림 미지원 (소리는 동작)'; return; }
+    if (Notification.permission === 'granted') { el.textContent = '바탕화면 알림: 허용됨 ✓'; el.style.color = '#3E7A52'; }
+    else if (Notification.permission === 'denied') { el.textContent = '알림 차단됨 — 주소창 자물쇠 아이콘 → 알림 → 허용으로 바꿔주세요'; el.style.color = '#B3403A'; }
+    else { el.textContent = '알림 미설정 — 왼쪽 테스트 버튼을 눌러 허용해 주세요'; el.style.color = '#B07A1E'; }
+  }
+  window.testAlarm = function (btn) {
+    beep();
+    try {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          notifyDesktop('테스트 알림 — 마음안심', '소리와 이 알림이 확인되면 준비 완료예요!');
+        } else if (Notification.permission === 'default') {
+          Notification.requestPermission().then(function (p) {
+            updateNotifStat();
+            if (p === 'granted') notifyDesktop('테스트 알림 — 마음안심', '소리와 이 알림이 확인되면 준비 완료예요!');
+          });
+        }
+      }
+    } catch (e) {}
+    updateNotifStat();
+    if (btn) { btn.textContent = '테스트 실행됨 ✓'; setTimeout(function () { btn.textContent = '소리·알림 테스트'; }, 2500); }
+  };
   function startBuddy() {
     var c = linkCfg(); if (!c) return;
     $('buddyCode').textContent = '팀 코드 ' + c.code;
@@ -901,7 +943,8 @@ window.onerror = function (msg) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     try { audioCtx.resume(); } catch (e) {}
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
-    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(updateNotifStat); } catch (e) {}
+    updateNotifStat();
     if (buddyEs) { try { buddyEs.close(); } catch (e) {} }
     liveAt = Date.now() + 3000;
     var t = topic(); if (!t) return;
@@ -926,6 +969,7 @@ window.onerror = function (msg) {
         if (!sessions[k]) sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: Date.now(), last: Date.now() };
         renderBoard();
         if (Date.now() > liveAt) {
+          beep();
           notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과');
           if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
         }
@@ -946,17 +990,9 @@ window.onerror = function (msg) {
     ringingOn = on;
     clearInterval(bRingId);
     if (!on) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var ac = audioCtx;
     function b() {
       if (S.screen !== 'buddy' || !ringingOn) return;
-      var o = ac.createOscillator(), g = ac.createGain();
-      o.type = 'square'; o.frequency.value = 740;
-      g.gain.setValueAtTime(0.0001, ac.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.28, ac.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.5);
-      o.connect(g); g.connect(ac.destination);
-      o.start(); o.stop(ac.currentTime + 0.55);
+      beep();
     }
     b();
     bRingId = setInterval(b, 1400);
