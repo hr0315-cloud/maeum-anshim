@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>마음안심 v0.3</title>
+<title>마음안심 v0.4</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -95,13 +95,56 @@
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.3</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.4</span></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
   <button class="primary big" onclick="go('checkin')">상담 시작</button>
   <div class="banner">상담 중 대화는 자동으로 글로 기록돼요. 대화 기록과 상담기록은 <b>이 기기 안에만</b> 저장되고, 밖으로 나가지 않아요. 원하시면 언제든 지울 수 있어요.</div>
-  <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
+    <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
+    <button class="mid" id="linkBtn" onclick="linkTap()">동료 연결 설정</button>
+  </div>
+  <div class="note" id="linkStat"></div>
   <div id="jsAlive" style="font-size:12.5px; color:#B3A28E">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
+</div>
+
+<!-- 1d 동료 연결 설정 -->
+<div class="screen" id="s-link">
+  <div class="brand"><b>마음안심</b><span>동료 연결</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)">기기를 서로 연결해요</h1>
+  <div class="sub" style="max-width:640px">같은 <b>팀 코드</b>를 넣은 기기끼리 위험 신호가 전달돼요.<br>신호에는 장소·시각·유형만 담기고, <b>대화 내용은 절대 나가지 않아요.</b></div>
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
+    <span style="font-weight:700; color:#6E4326; font-size:15px">이 기기는</span>
+    <span class="pill" data-role="host" onclick="pickRole(this)">상담용 (태블릿)</span>
+    <span class="pill" data-role="buddy" onclick="pickRole(this)">동료용 (알림 받기)</span>
+  </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center">
+    <input class="txt" id="teamCode" placeholder="팀 코드" style="width:210px; text-align:center; letter-spacing:2px">
+    <button class="mid" onclick="genCode()">새 코드 만들기</button>
+  </div>
+  <input class="txt" id="placeName" placeholder="상담 장소 이름 (예: 상담실 2)" style="width:min(420px,80vw)">
+  <button class="primary big" onclick="saveLink()">저장</button>
+  <div class="note" id="linkMsg">코드는 한 번 만들어 두 기기에 똑같이 넣으면 돼요</div>
+  <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
+</div>
+
+<!-- 1e 동료 대기 -->
+<div class="screen" id="s-buddy">
+  <div class="brand"><b>마음안심</b><span>동료 모드</span></div>
+  <div class="recchip" style="background:#E7F0E9"><span class="recdot" style="background:#3E7A52"></span><span style="font-size:16px; font-weight:700; color:#2F5E40">알림 대기 중</span><span style="font-size:13px; color:#8A7663" id="buddyCode">· 팀 코드 -</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.6vw,38px)">동료를 지켜보고 있어요</h1>
+  <div class="sub">이 화면을 켜둔 동안, 위험 신호가 오면 큰 소리로 알려드려요</div>
+  <div id="buddyLog" style="width:min(640px,90vw); display:flex; flex-direction:column; gap:8px"></div>
+  <div class="note">화면이 꺼지면 알림을 받지 못할 수 있어요 — 충전기에 꽂고 화면을 켜두세요</div>
+  <button class="corner" style="left:24px" onclick="stopBuddy()">대기 종료</button>
+</div>
+
+<!-- 1f 동료 수신 -->
+<div class="screen" id="s-buddyalert" style="background:#B3403A">
+  <h1 class="serif" style="color:#FFF6F4; font-size:clamp(30px,5.5vw,54px)">위험 신호!</h1>
+  <div class="sub" style="color:#F7D3CE; font-size:clamp(16px,2.2vw,20px)" id="baInfo">-</div>
+  <button class="big" style="background:#FFF6F4; border-color:#FFF6F4; color:#97302B" onclick="ackAlert()">확인했어요 — 지금 볼게요</button>
+  <div class="note" style="color:#E8B7B1">전화 걸기 → 노크 → 동석 순으로, 부담 적은 개입부터</div>
 </div>
 
 <!-- 1b 상담기록 목록 -->
@@ -243,12 +286,12 @@
   <div class="chip" style="position:absolute; top:20px; right:24px; background:#F7E3E1; color:#97302B"><span class="dot" style="background:#B3403A"></span>위험 신호</div>
   <h1 class="serif" id="alertTitle">동료에게 알렸어요</h1>
   <div class="banner">
-    <b style="color:#8A7663; font-size:12.5px; letter-spacing:0.04em">기록된 신호 — 음성이 아니라 신호만</b><br>
-    <span class="mono" style="color:#B3403A" id="alertTime">--:--</span> · 지속 고성 감지<br>
-    <span style="color:#B07A1E; font-weight:700">이 테스트판(v0.1)은 감지·유예까지만 검증해요 — 동료 폰 전달은 다음 버전(v0.2)에서 연결됩니다</span>
+    <b style="color:#8A7663; font-size:12.5px; letter-spacing:0.04em">전달된 신호 — 음성이 아니라 신호만</b><br>
+    <span class="mono" style="color:#B3403A" id="alertTime">--:--</span> · 위험 신호 감지<br>
+    <span style="color:#55483A" id="ackLine">-</span>
   </div>
   <div style="display:flex; gap:14px">
-    <button class="big" onclick="go('session')">괜찮아요 — 상담 계속</button>
+    <button class="big" onclick="cancelFromAlert()">괜찮아요 — 상담 계속</button>
     <button class="big" style="background:#B07A1E; border-color:#B07A1E; color:#FFF9F0" onclick="playWarning(this)">경고 음성</button>
     <button class="danger big" onclick="endSession()">상담 중단</button>
   </div>
@@ -287,7 +330,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.3)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.4)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0 };
   var analyser = null, audioCtx = null, micStream = null;
   var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
@@ -334,6 +377,7 @@ window.onerror = function (msg) {
       $('mainMsg').innerHTML = '편안하게<br>말씀 나누세요';
     }
     go('session');
+    hostSubscribe();
     clearInterval(timerId);
     timerId = setInterval(tick, 400);
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
@@ -487,11 +531,20 @@ window.onerror = function (msg) {
     S.alerts += 1;
     $('stateChip').className = 'chip warn';
     $('stateTxt').textContent = '감지 ' + S.alerts + '회';
-    $('alertTime').textContent = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
+    var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
+    $('alertTime').textContent = elapsed;
     $('alertTitle').textContent = how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요';
+    var c = linkCfg();
+    if (c && c.role === 'host') {
+      postSig({ type: 'alert', place: c.place || '상담실', who: S.counselor || '', t: elapsed });
+      $('ackLine').textContent = '동료 기기로 신호를 보냈어요 — 응답 대기 중…';
+    } else {
+      $('ackLine').textContent = '동료 연결이 설정되지 않아 이 기기에만 표시돼요 (시작 화면 → 동료 연결 설정)';
+    }
     go('alert');
     if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
   };
+  window.cancelFromAlert = function () { postSig({ type: 'cancel' }); go('session'); };
 
   // ---------- 확인 전화 ----------
   function startRing() {
@@ -531,7 +584,7 @@ window.onerror = function (msg) {
 
   // ---------- 종료 · 관찰 ----------
   window.endSession = function () {
-    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT();
+    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT(); hostUnsubscribe();
     var mins = Math.round((Date.now() - S.startedAt) / 60000);
     $('wrapSummary').textContent = '상담 ' + mins + '분 · 위험 신호 ' + S.alerts + '건 · 음성 저장 없음';
     S.answers = {};
@@ -734,9 +787,137 @@ window.onerror = function (msg) {
     updateObsCount();
     openRecords();
   };
+  // ---------- 동료 연결 (무료 릴레이 ntfy.sh — 신호만, 대화 내용 없음) ----------
+  var esSig = null, buddyEs = null, bRingId = 0, linkRole = '';
+  function linkCfg() { try { return JSON.parse(localStorage.getItem('ma_link') || 'null'); } catch (e) { return null; } }
+  function topic() { var c = linkCfg(); return (c && c.code) ? 'https://ntfy.sh/maeum-anshim-' + c.code : null; }
+  function postSig(o) { var t = topic(); if (!t) return; try { fetch(t, { method: 'POST', body: JSON.stringify(o) }); } catch (e) {} }
+  function openES(h) {
+    var t = topic(); if (!t) return null;
+    var es = new EventSource(t + '/sse');
+    es.onmessage = function (ev) {
+      try {
+        var d = JSON.parse(ev.data);
+        if (!d.message) return;
+        h(JSON.parse(d.message));
+      } catch (e) {}
+    };
+    return es;
+  }
+  window.pickRole = function (el) {
+    el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
+    el.classList.add('on');
+    linkRole = el.getAttribute('data-role');
+  };
+  window.genCode = function () {
+    var s = '', a = 'abcdefghjkmnpqrstuvwxyz23456789';
+    for (var i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)];
+    $('teamCode').value = s;
+  };
+  window.saveLink = function () {
+    var code = ($('teamCode').value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!linkRole) { $('linkMsg').textContent = '이 기기의 역할을 먼저 골라주세요'; return; }
+    if (code.length < 4) { $('linkMsg').textContent = '팀 코드를 입력하거나 새로 만들어주세요'; return; }
+    var cfg = { code: code, role: linkRole, place: ($('placeName').value || '').trim() || '상담실' };
+    try { localStorage.setItem('ma_link', JSON.stringify(cfg)); } catch (e) {}
+    updateLinkStat();
+    if (linkRole === 'buddy') { startBuddy(); }
+    else { $('linkMsg').textContent = '저장됐어요 — 이제 위험 신호가 같은 코드의 동료 기기로 전달돼요'; }
+  };
+  window.openLink = function () {
+    var c = linkCfg();
+    if (c) {
+      $('teamCode').value = c.code || '';
+      $('placeName').value = c.place || '';
+      linkRole = c.role || '';
+      document.querySelectorAll('#s-link .pill').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-role') === linkRole); });
+    }
+    go('link');
+  };
+  window.linkTap = function () {
+    var c = linkCfg();
+    if (c && c.role === 'buddy') startBuddy(); else openLink();
+  };
+  function updateLinkStat() {
+    var c = linkCfg(), el = $('linkStat'), b = $('linkBtn');
+    if (!c) { el.textContent = ''; b.textContent = '동료 연결 설정'; return; }
+    if (c.role === 'buddy') { el.textContent = '동료용 기기 · 팀 코드 ' + c.code; b.textContent = '알림 대기 시작'; }
+    else { el.textContent = '상담용 기기 · ' + c.place + ' · 팀 코드 ' + c.code; b.textContent = '동료 연결 설정'; }
+  }
+  function logBuddy(txt) {
+    var d = document.createElement('div');
+    d.className = 'banner'; d.style.maxWidth = 'none';
+    d.textContent = new Date().toTimeString().slice(0, 5) + ' · ' + txt;
+    var l = $('buddyLog');
+    l.insertBefore(d, l.firstChild);
+    while (l.children.length > 5) l.removeChild(l.lastChild);
+  }
+  function startBuddy() {
+    var c = linkCfg(); if (!c) return;
+    $('buddyCode').textContent = '· 팀 코드 ' + c.code;
+    go('buddy');
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    try { audioCtx.resume(); } catch (e) {}
+    if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
+    if (buddyEs) { try { buddyEs.close(); } catch (e) {} }
+    buddyEs = openES(function (m) {
+      if (m.type === 'alert') {
+        $('baInfo').textContent = (m.place || '상담실') + ' · ' + (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과';
+        go('buddyalert');
+        buddyRing(true);
+        logBuddy('위험 신호 — ' + (m.place || ''));
+      } else if (m.type === 'cancel') {
+        if (S.screen === 'buddyalert') { buddyRing(false); go('buddy'); }
+        logBuddy('오인 취소됨');
+      } else if (m.type === 'ack') { logBuddy('다른 동료가 확인함'); }
+    });
+    logBuddy('대기 시작');
+  }
+  function buddyRing(on) {
+    clearInterval(bRingId);
+    if (!on) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var ac = audioCtx;
+    function b() {
+      if (S.screen !== 'buddyalert') { clearInterval(bRingId); return; }
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square'; o.frequency.value = 740;
+      g.gain.setValueAtTime(0.0001, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.28, ac.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.5);
+      o.connect(g); g.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime + 0.55);
+      if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
+    }
+    b();
+    bRingId = setInterval(b, 1200);
+  }
+  window.stopBuddy = function () {
+    if (buddyEs) { try { buddyEs.close(); } catch (e) {} buddyEs = null; }
+    buddyRing(false);
+    go('start');
+  };
+  window.ackAlert = function () {
+    postSig({ type: 'ack' });
+    buddyRing(false);
+    go('buddy');
+    logBuddy('확인함 — 이동');
+  };
+  function hostSubscribe() {
+    var c = linkCfg();
+    if (!(c && c.role === 'host')) return;
+    if (esSig) { try { esSig.close(); } catch (e) {} }
+    esSig = openES(function (m) {
+      if (m.type === 'ack') { var el = $('ackLine'); if (el) el.textContent = '✓ 동료가 확인했어요 — 오고 있어요 (' + new Date().toTimeString().slice(0, 5) + ')'; }
+    });
+  }
+  function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
+
   updateObsCount();
+  updateLinkStat();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat;
+  window.__hostSub = hostSubscribe; window.__hostUnsub = hostUnsubscribe;
   window.addEventListener('resize', sizeCanvas);
 })();
 </script>
