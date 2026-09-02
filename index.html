@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>마음안심 v0.3</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #FAF5EE; color: #3A2A1C; overflow: hidden;
+    font-family: 'IBM Plex Sans KR', 'Malgun Gothic', sans-serif;
+  }
+  .serif { font-family: 'Gowun Batang', 'Batang', serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 3.2vh; padding: 4vh 5vw; text-align: center; }
+  .screen.on { display: flex; }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 14px;
+    font-weight: 700; color: #6E4326; background: #FFFFFF; border: 1.5px solid #D9C8B2;
+  }
+  button:active { transform: scale(0.98); }
+  .primary { background: #C05A2A !important; border-color: #C05A2A !important; color: #FFF9F3 !important; box-shadow: 0 3px 10px rgba(192,90,42,0.25); }
+  .danger { background: #B3403A !important; border-color: #B3403A !important; color: #FFF6F4 !important; }
+  .big { font-size: clamp(18px, 2.4vw, 23px); padding: 18px 46px; }
+  .mid { font-size: clamp(15px, 1.9vw, 18px); padding: 14px 28px; }
+  .brand { position: absolute; top: 22px; left: 26px; display: flex; align-items: center; gap: 10px; }
+  .brand b { font-family: 'Gowun Batang', serif; font-size: clamp(17px, 2vw, 21px); color: #C05A2A; }
+  .brand span { font-size: 12px; color: #6E4326; background: #F7E6D8; border-radius: 999px; padding: 3px 11px; font-weight: 500; }
+  h1 { margin: 0; font-weight: 700; line-height: 1.35; font-size: clamp(28px, 4.6vw, 50px); }
+  .sub { font-size: clamp(14px, 1.8vw, 17px); color: #8A7663; line-height: 1.7; }
+  .note { font-size: clamp(12px, 1.4vw, 14px); color: #B3A28E; line-height: 1.6; }
+  .cardrow { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .check {
+    display: flex; align-items: center; gap: 14px; width: min(640px, 88vw);
+    background: #FFFFFF; border: 1.5px solid #EADFCE; border-radius: 12px;
+    padding: 15px 20px; font-size: clamp(14px, 1.9vw, 17px); font-weight: 500; text-align: left; cursor: pointer;
+  }
+  .check.ok { border-color: #C05A2A; }
+  .check .box { flex: none; width: 24px; height: 24px; border: 2px solid #D9C8B2; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: transparent; }
+  .check.ok .box { border-color: #C05A2A; background: #C05A2A; color: #FFF9F3; }
+  .pill {
+    padding: 9px 20px; border-radius: 999px; font-size: clamp(13px, 1.7vw, 15px);
+    background: #FFFFFF; border: 1.5px solid #D9C8B2; color: #6E4326; font-weight: 500; cursor: pointer;
+    white-space: nowrap; flex: none;
+  }
+  .pill.on { background: #C05A2A; border-color: #C05A2A; color: #FFF9F3; font-weight: 700; }
+  .chips { position: absolute; top: 20px; right: 24px; display: flex; gap: 10px; align-items: center; }
+  .chip { display: flex; align-items: center; gap: 7px; border-radius: 999px; padding: 7px 15px; font-size: clamp(12px, 1.5vw, 14px); font-weight: 700; }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip.calm { background: #E7F0E9; color: #2F5E40; } .chip.calm .dot { background: #3E7A52; }
+  .chip.warn { background: #F7EDD8; color: #8A5F14; } .chip.warn .dot { background: #B07A1E; }
+  .chip.call { background: #F7E6D8; color: #A34A1E; font-weight: 500; }
+  .recchip { display: flex; align-items: center; gap: 11px; background: #F7E6D8; border-radius: 999px; padding: 9px 24px; }
+  .recdot { width: 13px; height: 13px; border-radius: 50%; background: #C05A2A; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(192,90,42,0.4);} 50% { box-shadow: 0 0 0 11px rgba(192,90,42,0);} }
+  #wave { width: min(700px, 80vw); height: clamp(80px, 14vh, 130px); }
+  .corner { position: absolute; bottom: 18px; font-size: 13.5px; padding: 10px 20px; border-radius: 10px; font-weight: 500; color: #8A7663; }
+  #callScreen { background: #3A2A1C; }
+  #callScreen .sub, #callScreen .note { color: #C8B49C; }
+  .ring { width: clamp(90px, 13vw, 125px); height: clamp(90px, 13vw, 125px); border-radius: 50%; background: #C05A2A; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 16px rgba(192,90,42,0.25), 0 0 0 34px rgba(192,90,42,0.1); animation: pulse 1.2s ease-in-out infinite; }
+  .cd { width: clamp(140px, 17vw, 190px); height: clamp(140px, 17vw, 190px); border-radius: 50%; border: 7px solid #B07A1E; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 0 14px rgba(176,122,30,0.12); }
+  .cd b { font-size: clamp(52px, 7vw, 76px); color: #8A5F14; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
+  .qrow { display: flex; align-items: center; gap: 14px; width: min(720px, 90vw); }
+  .qrow .q { flex: 1; text-align: left; font-size: clamp(14px, 1.9vw, 16.5px); }
+  .banner { background: #FFF; border: 1px solid #EADFCE; border-radius: 14px; padding: 16px 24px; max-width: min(720px, 90vw); font-size: clamp(13px, 1.7vw, 15px); color: #55483A; line-height: 1.7; text-align: left; }
+  @media (max-width: 540px) {
+    .screen { justify-content: flex-start; padding: 78px 4vw 24px; gap: 2.4vh; overflow-y: auto; }
+    .screen > div, .screen > h1 { max-width: 100%; }
+    .screen > div { flex-wrap: wrap; justify-content: center; }
+    h1 { font-size: clamp(22px, 6.6vw, 30px); }
+    .big { font-size: 17px; padding: 15px 26px; }
+    .banner { font-size: 13.5px; padding: 13px 16px; }
+    .brand { left: 14px; top: 14px; }
+    .chips { top: 46px; right: 10px; left: 10px; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+    .qrow { flex-wrap: wrap; row-gap: 8px; }
+    .qrow .q { flex: 1 1 100%; text-align: left; }
+    .qrow .pill { padding: 8px 14px; font-size: 13.5px; }
+    .corner { bottom: 12px; padding: 8px 14px; }
+    #wave { height: 70px; }
+    .check { padding: 13px 14px; font-size: 14.5px; }
+    .nrow { font-size: 15px; padding: 13px 14px; }
+    .cd { border-width: 6px; }
+  }
+  .nrow { display: flex; align-items: center; gap: 16px; background: #FFF; border: 1px solid #EADFCE; border-radius: 12px; padding: 16px 22px; text-align: left; font-size: clamp(15px, 2.1vw, 19px); line-height: 1.6; }
+  .nnum { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #C05A2A; color: #FFF9F3; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+  .txt { font-family: inherit; font-size: 16px; padding: 14px 18px; border: 1.5px solid #D9C8B2; border-radius: 12px; background: #FFF; color: #3A2A1C; }
+  .txt:focus { outline: none; border-color: #C05A2A; box-shadow: 0 0 0 2px rgba(192,90,42,0.2); }
+  .recrow { cursor: pointer; }
+  .recrow:active { background: #F7E6D8; }
+</style>
+</head>
+<body>
+
+<!-- 1 시작 -->
+<div class="screen on" id="s-start">
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.3</span></div>
+  <h1 class="serif">오늘도 곁에 있을게요</h1>
+  <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
+  <button class="primary big" onclick="go('checkin')">상담 시작</button>
+  <div class="banner">상담 중 대화는 자동으로 글로 기록돼요. 대화 기록과 상담기록은 <b>이 기기 안에만</b> 저장되고, 밖으로 나가지 않아요. 원하시면 언제든 지울 수 있어요.</div>
+  <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
+  <div id="jsAlive" style="font-size:12.5px; color:#B3A28E">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
+</div>
+
+<!-- 1b 상담기록 목록 -->
+<div class="screen" id="s-records">
+  <div class="brand"><b>마음안심</b><span>상담기록</span></div>
+  <h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)">상담기록</h1>
+  <div class="note">기록을 누르면 전체 대화 내용을 볼 수 있어요</div>
+  <div id="recList" style="width:min(760px,94vw); max-height:46vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px"></div>
+  <input class="txt" id="clearWhy" placeholder="전체 원문 삭제 사유를 적어주세요 (필수)" style="display:none; width:min(640px,90vw)">
+  <div style="display:flex; gap:12px">
+    <button class="primary mid" id="copyBtn" onclick="copyRecords()">목록 복사하기</button>
+    <button class="mid" id="clearBtn" onclick="clearRecords()" style="border-color:#E7C3BE; color:#97302B">전체 원문 삭제</button>
+  </div>
+  <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
+</div>
+
+<!-- 1c 상담기록 상세 -->
+<div class="screen" id="s-recdetail">
+  <div class="brand"><b>마음안심</b><span>상담기록</span></div>
+  <h1 class="serif" style="font-size:clamp(19px,2.7vw,27px)" id="detTitle">-</h1>
+  <div class="note" id="detMeta">-</div>
+  <div id="detList" style="width:min(780px,94vw); max-height:42vh; overflow-y:auto; display:flex; flex-direction:column; gap:7px; text-align:left; background:#FFF; border:1px solid #EADFCE; border-radius:12px; padding:16px 20px; font-size:14.5px; line-height:1.7"></div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center">
+    <button class="primary mid" id="dCopy1" onclick="copyJournal()">일지 초안 복사</button>
+    <button class="mid" id="dCopy2" onclick="copyForAI()">AI 요약용 복사</button>
+    <button class="mid" id="delBtn" onclick="askDelete()" style="border-color:#E7C3BE; color:#97302B">원문 삭제</button>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center">
+    <input class="txt" id="delWhy" placeholder="삭제 사유 (필수)" style="display:none; width:min(340px,70vw)">
+    <button class="danger mid" id="delGo" onclick="doDelete()" style="display:none">사유 확인 · 삭제</button>
+  </div>
+  <div class="note">AI 요약용을 복사해 쓰시는 AI에 붙여넣으면, 상담일지 서술식 요약을 받아볼 수 있어요.<br>원문을 삭제해도 날짜·이름·시간·위험 신호·한 줄 요약과 삭제 사유는 기록으로 남아요.</div>
+  <button class="corner" style="left:24px" onclick="openRecords()">← 뒤로</button>
+</div>
+
+<!-- 2 안전 확인 -->
+<div class="screen" id="s-checkin">
+  <div class="brand"><b>마음안심</b><span>시작 전</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)">시작 전 30초, 안전 확인</h1>
+  <div style="display:flex; flex-wrap:wrap; gap:12px; width:min(640px,88vw)">
+    <input class="txt" id="counselorName" placeholder="상담자 이름" style="flex:1; min-width:130px">
+    <input class="txt" id="clientName" placeholder="상담받는 분 이름" style="flex:1; min-width:130px">
+  </div>
+  <div class="check" onclick="tgl(this)"><span class="box">✓</span><span>이분과의 지난 기록을 확인했어요</span></div>
+  <div class="check" onclick="tgl(this)"><span class="box">✓</span><span>내 자리에서 문까지 막힘이 없어요</span></div>
+  <div class="check" onclick="tgl(this)"><span class="box">✓</span><span>동료가 내가 상담 중인 걸 알아요</span></div>
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center">
+    <span style="font-size:15px; font-weight:700; color:#6E4326">확인 전화</span>
+    <span class="pill" data-min="1" onclick="pickCall(this)">1분 (테스트)</span>
+    <span class="pill on" data-min="15" onclick="pickCall(this)">15분 후</span>
+    <span class="pill" data-min="30" onclick="pickCall(this)">30분 후</span>
+    <span class="pill" data-min="0" onclick="pickCall(this)">안 받을래요</span>
+  </div>
+  <button class="primary big" onclick="go('notice')">확인 완료 · 다음</button>
+  <div class="note">정한 시각에 이 태블릿이 진짜 전화처럼 울려요</div>
+  <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
+</div>
+
+<!-- 3 고지 -->
+<div class="screen" id="s-notice">
+  <div class="brand"><b>마음안심</b></div>
+  <h1 class="serif">이 상담은 기록됩니다</h1>
+  <div class="sub">상담 선생님과 상담받으시는 분, <b>모두의 안전을 지키기 위한 프로그램</b>이에요</div>
+  <div style="display:flex; flex-direction:column; gap:12px; width:min(660px, 90vw)">
+    <div class="nrow"><span class="nnum">1</span><span>모두가 안전하게 이야기할 수 있도록, 상담을 기록해요</span></div>
+    <div class="nrow"><span class="nnum">2</span><span>기록은 이 기계 안에만 보관되고, 밖으로 나가지 않아요</span></div>
+    <div class="nrow"><span class="nnum">3</span><span>기록은 안전하게 보관되고, 원하시면 언제든 지울 수 있어요</span></div>
+  </div>
+  <button class="primary big" onclick="startSession(true)">네, 확인했습니다</button>
+  <button class="mid" onclick="go('norec')" style="border:none; background:transparent; text-decoration:underline; text-underline-offset:3px; color:#8A7663">기록을 원하지 않아요</button>
+  <button class="corner" style="left:24px" onclick="go('checkin')">← 뒤로</button>
+</div>
+
+<!-- 3b 기록 거부 안내 -->
+<div class="screen" id="s-norec">
+  <div class="brand"><b>마음안심</b></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.6vw,38px)">기록 없이는 오늘 상담을<br>진행하기 어려워요</h1>
+  <div class="sub" style="max-width:640px">기록은 두 분 모두의 안전을 위한 약속이에요.<br>기록을 원하지 않으시면 서비스 이용에 제한이 있을 수 있고,<br>담당자와 상의해 <b>다음 상담 일정을 다시 잡아드려요.</b></div>
+  <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
+    <button class="primary big" onclick="startSession(true)">기록에 동의하고 진행할게요</button>
+    <button class="big" onclick="go('start')">다음에 상담할게요</button>
+  </div>
+  <div class="note">세부 기준은 기관 방침에 따라 정해질 예정이에요</div>
+  <button class="corner" style="left:24px" onclick="go('notice')">← 뒤로</button>
+</div>
+
+<!-- 4 상담 중 -->
+<div class="screen" id="s-session">
+  <div class="brand"><b>마음안심</b></div>
+  <div class="chips">
+    <div class="chip calm" id="stateChip" onpointerdown="secretTap()"><span class="dot"></span><span id="stateTxt">평온</span></div>
+    <div class="chip call mono" id="callChip" style="display:none">확인 전화까지 <span id="callLeft" style="margin-left:5px">--:--</span></div>
+  </div>
+  <div class="recchip"><span class="recdot"></span><span style="font-size:16px; font-weight:700; color:#A34A1E; letter-spacing:0.05em" id="recLabel">기록 중</span><span style="font-size:13px; color:#8A7663">· 이 기기 안에만 저장돼요</span></div>
+  <h1 class="serif" id="mainMsg">이 상담은<br>기록되고 있습니다</h1>
+  <canvas id="wave"></canvas>
+  <div class="mono" id="timer" style="font-size:clamp(28px,4vw,44px); color:#6E4326">00:00</div>
+  <div class="sub">안전한 상담을 위해 함께하고 있어요</div>
+  <button class="corner" style="left:24px" onclick="manualAlert()">동료 호출</button>
+  <button class="corner" style="right:24px" onclick="endSession()">상담 종료</button>
+</div>
+
+<!-- 5 확인 전화 -->
+<div class="screen" id="s-call" style="background:#3A2A1C" >
+  <div class="ring"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFF9F3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div>
+  <h1 class="serif" style="color:#FBF3E9">사무실 · 확인 전화</h1>
+  <div class="sub" style="color:#C8B49C">약속하신 시간이 되었어요</div>
+  <div style="display:flex; gap:18px">
+    <button class="big" style="background:#3E7A52; border-color:#3E7A52; color:#F0F7F1; border-radius:999px" onclick="answerCall()">받기</button>
+    <button class="big" style="background:rgba(251,243,233,0.12); border-color:rgba(200,180,156,0.4); color:#C8B49C; border-radius:999px" onclick="snoozeCall()">지금은 괜찮아요</button>
+  </div>
+  <div class="note" style="color:#A8937B">받으면서 자연스럽게 흐름을 바꿀 수 있어요 · '괜찮아요'는 10분 뒤 한 번 더 울려요</div>
+</div>
+
+<!-- 5b 통화 중 -->
+<div class="screen" id="s-incall" style="background:#3A2A1C">
+  <h1 class="serif" style="color:#FBF3E9; font-size:clamp(24px,3.6vw,38px)">통화 중이에요</h1>
+  <div class="sub" style="color:#C8B49C; max-width:620px">자연스럽게 대화하세요.<br>모두 괜찮다면 — <b style="color:#E0C9AD">"네, 잘 진행되고 있어요"</b><br>도움이 필요하다면 — <b style="color:#E0C9AD">약속한 안전 문장</b>을 말하세요</div>
+  <button class="primary big" onclick="go('session')">통화 마치고 상담으로</button>
+</div>
+
+<!-- 6 유예 카운트다운 -->
+<div class="screen" id="s-countdown">
+  <div class="brand"><b>마음안심</b></div>
+  <div class="chip warn" style="position:absolute; top:20px; right:24px"><span class="dot"></span>위험 신호 감지</div>
+  <div class="cd"><b id="cdNum">10</b><span style="font-size:13px; color:#8A7663">초 후 알림</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.6vw,38px)">잠시 후 동료에게 알려요</h1>
+  <div class="sub" style="max-width:640px"><span id="cdReason">계속되는 큰 소리가</span> 감지됐어요. <b>괜찮으시면 아래를 눌러주세요.</b><br>아무것도 누르지 못하는 상황이라면 — 저희가 대신 알릴게요.</div>
+  <div style="display:flex; gap:14px">
+    <button class="big" style="border:2px solid #C05A2A; color:#A34A1E" onclick="cancelAlert()">괜찮아요 — 보내지 않기</button>
+    <button class="big" style="background:#B07A1E; border-color:#B07A1E; color:#FFF9F0" onclick="playWarning(this)">경고 음성</button>
+    <button class="danger big" onclick="fireAlert('button')">지금 바로 알리기</button>
+  </div>
+</div>
+
+<!-- 7 알림 전달됨 -->
+<div class="screen" id="s-alert">
+  <div class="brand"><b>마음안심</b></div>
+  <div class="chip" style="position:absolute; top:20px; right:24px; background:#F7E3E1; color:#97302B"><span class="dot" style="background:#B3403A"></span>위험 신호</div>
+  <h1 class="serif" id="alertTitle">동료에게 알렸어요</h1>
+  <div class="banner">
+    <b style="color:#8A7663; font-size:12.5px; letter-spacing:0.04em">기록된 신호 — 음성이 아니라 신호만</b><br>
+    <span class="mono" style="color:#B3403A" id="alertTime">--:--</span> · 지속 고성 감지<br>
+    <span style="color:#B07A1E; font-weight:700">이 테스트판(v0.1)은 감지·유예까지만 검증해요 — 동료 폰 전달은 다음 버전(v0.2)에서 연결됩니다</span>
+  </div>
+  <div style="display:flex; gap:14px">
+    <button class="big" onclick="go('session')">괜찮아요 — 상담 계속</button>
+    <button class="big" style="background:#B07A1E; border-color:#B07A1E; color:#FFF9F0" onclick="playWarning(this)">경고 음성</button>
+    <button class="danger big" onclick="endSession()">상담 중단</button>
+  </div>
+  <div class="note">중단은 실패가 아니라 약속된 절차예요</div>
+</div>
+
+<!-- 8 종료 · 관찰 -->
+<div class="screen" id="s-wrap">
+  <div class="brand"><b>마음안심</b><span>상담 종료</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.6vw,36px)">오늘도 수고하셨어요</h1>
+  <div class="chip calm"><span class="dot"></span><span id="wrapSummary">-</span></div>
+  <div id="typeRow" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
+    <span style="font-size:15px; font-weight:700; color:#6E4326">상담 유형</span>
+    <span class="pill" onclick="pickType(this)">초기상담</span>
+    <span class="pill" onclick="pickType(this)">정기상담</span>
+    <span class="pill" onclick="pickType(this)">지원사업 관련</span>
+    <span class="pill" onclick="pickType(this)">안부확인</span>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:14px; background:#FFF; border:1px solid #EADFCE; border-radius:16px; padding:22px 26px">
+    <div style="font-size:14.5px; font-weight:700; color:#6E4326; text-align:left">10초만 — 오늘 상담, 어땠나요?</div>
+    <div class="qrow"><span class="q">클라이언트가 화면을 의식했나요?</span><span class="pill" onclick="ans(this,1,0)">전혀</span><span class="pill" onclick="ans(this,1,1)">조금</span><span class="pill" onclick="ans(this,1,2)">많이</span></div>
+    <div class="qrow"><span class="q">분위기는 평소와 비교하면?</span><span class="pill" onclick="ans(this,2,0)">더 차분</span><span class="pill" onclick="ans(this,2,1)">비슷</span><span class="pill" onclick="ans(this,2,2)">더 격함</span></div>
+    <div class="qrow"><span class="q">선생님 마음은 어땠나요?</span><span class="pill" onclick="ans(this,3,0)">더 안심</span><span class="pill" onclick="ans(this,3,1)">비슷</span><span class="pill" onclick="ans(this,3,2)">더 불편</span></div>
+  </div>
+  <div style="display:flex; gap:14px">
+    <button class="mid" onclick="finish(false)">건너뛰기</button>
+    <button class="primary mid" onclick="finish(true)">기록하고 마치기</button>
+  </div>
+</div>
+
+<script>
+window.onerror = function (msg) {
+  var el = document.getElementById('jsAlive');
+  if (el) { el.style.color = '#B3403A'; el.textContent = '오류: ' + msg + ' — 이 문구를 그대로 전달해 주세요'; }
+};
+(function () {
+  'use strict';
+  var alive = document.getElementById('jsAlive');
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.3)'; }
+  var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0 };
+  var analyser = null, audioCtx = null, micStream = null;
+  var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
+  var canvas = document.getElementById('wave'), ctx = canvas.getContext('2d');
+  var BARS = 40;
+  var baseline = 0.02, loudSince = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function fmt(s) { var m = Math.floor(s/60), r = Math.floor(s%60); return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
+  window.go = function (name) {
+    document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('on'); });
+    $('s-'+name).classList.add('on');
+    S.screen = name;
+    if (name === 'session') sizeCanvas();
+  };
+  window.tgl = function (el) { el.classList.toggle('ok'); };
+  window.pickCall = function (el) {
+    document.querySelectorAll('#s-checkin .pill').forEach(function (p) { p.classList.remove('on'); });
+    el.classList.add('on');
+    S.callMin = parseInt(el.getAttribute('data-min'), 10);
+  };
+
+  // ---------- session ----------
+  window.startSession = function (withRecord) {
+    S.noRecord = !withRecord;
+    S.startedAt = Date.now();
+    S.alerts = 0;
+    S.tr = [];
+    S.counselor = ($('counselorName').value || '').trim() || '-';
+    S.client = ($('clientName').value || '').trim() || '-';
+    try { localStorage.setItem('ma_counselor', S.counselor); } catch (e) {}
+    S.cooldownUntil = Date.now() + 20000;
+    $('stateChip').className = 'chip calm';
+    $('stateTxt').textContent = '평온';
+    if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
+    else { S.callAt = 0; $('callChip').style.display = 'none'; }
+    if (withRecord) {
+      $('recLabel').textContent = '기록 중';
+      $('mainMsg').innerHTML = '이 상담은<br>기록되고 있습니다';
+      initMic();
+      startSTT();
+    } else {
+      $('recLabel').textContent = '기록 없음';
+      $('mainMsg').innerHTML = '편안하게<br>말씀 나누세요';
+    }
+    go('session');
+    clearInterval(timerId);
+    timerId = setInterval(tick, 400);
+    if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
+    draw();
+  };
+
+  function tick() {
+    var el = Math.floor((Date.now() - S.startedAt) / 1000);
+    $('timer').textContent = fmt(el);
+    if (S.callAt && Date.now() >= S.callAt && S.screen === 'session') startRing();
+    if (S.callAt) $('callLeft').textContent = fmt(Math.max(0, Math.ceil((S.callAt - Date.now()) / 1000)));
+  }
+
+  // ---------- 대화 기록 (음성 인식, ko-KR) ----------
+  var stt = null, sttActive = false;
+  function startSTT() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || S.noRecord) return;
+    stt = new SR();
+    stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = false;
+    stt.onresult = function (e) {
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          var x = (e.results[i][0].transcript || '').trim();
+          if (x) {
+            S.tr.push({ t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: x });
+            checkThreat(x);
+          }
+        }
+      }
+    };
+    stt.onend = function () { if (sttActive) setTimeout(function () { try { stt.start(); } catch (e) {} }, 300); };
+    stt.onerror = function (e) { if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) sttActive = false; };
+    sttActive = true;
+    try { stt.start(); } catch (e) {}
+  }
+  function stopSTT() { sttActive = false; if (stt) { try { stt.stop(); } catch (e) {} stt = null; } }
+
+  // ---------- 위협 단어 감지 (기기 안에서 텍스트 매칭) ----------
+  var RX_THREAT = /(가만\s*안|가만히\s*안|죽여|죽인다|죽일|때려\s*버|때린다|패버리|패\s*버릴|칼로|칼\s*들|불\s*지르|불질러|찾아간다|찾아갈|찾아온다|퇴근길\s*조심|밤길\s*조심|조심해라|묻어버리|없애버리|해코지|각오해|부숴버|박살\s*내)/;
+  var RX_ABUSE = /(씨발|시발|씨팔|개새끼|새끼야|이런\s*새끼|이\s*새끼|저\s*새끼|병신|미친놈|미친년|지랄|엿\s*먹|꺼져|닥쳐|등신|또라이|개같은|좆)/;
+  function checkThreat(x) {
+    if (S.screen !== 'session' || Date.now() <= S.cooldownUntil) return;
+    if (RX_THREAT.test(x)) triggerCountdown('위협하는 말이');
+    else if (RX_ABUSE.test(x)) triggerCountdown('심한 말이');
+  }
+
+  // ---------- 경고 음성 (기기 내장 음성합성, 무료) ----------
+  window.playWarning = function (btn) {
+    try {
+      var u = new SpeechSynthesisUtterance('폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.');
+      u.lang = 'ko-KR'; u.rate = 0.95; u.pitch = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+      if (btn) {
+        btn.textContent = '재생 중…';
+        var revert = function () { btn.textContent = '경고 음성'; };
+        u.onend = revert; u.onerror = revert;
+        setTimeout(revert, 8000);
+      }
+      S.tr.push({ t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: '[경고 안내 음성 재생됨]' });
+    } catch (e) {}
+  };
+
+  function initMic() {
+    if (analyser || S.noRecord) return;
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      micStream = stream;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.7;
+      src.connect(analyser);
+    }).catch(function () {});
+  }
+
+  function sizeCanvas() {
+    var dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect();
+    canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+  }
+
+  function rmsNow() {
+    if (!analyser) return null;
+    var d = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(d);
+    var sum = 0;
+    for (var i = 0; i < d.length; i++) { var v = (d[i] - 128) / 128; sum += v * v; }
+    return Math.sqrt(sum / d.length);
+  }
+
+  function draw() {
+    requestAnimationFrame(draw);
+    if (S.screen !== 'session') return;
+    var w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    var rms = rmsNow(), t = performance.now() / 1000;
+    var data = null;
+    if (analyser) { data = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(data); }
+    var gap = w / BARS;
+    for (var i = 0; i < BARS; i++) {
+      var lv = data ? data[Math.floor(i / BARS * data.length * 0.6)] / 255
+                    : 0.16 + 0.12 * Math.abs(Math.sin(t * 1.3 + i * 0.5));
+      var bh = Math.max(h * 0.05, lv * h * 0.9);
+      ctx.fillStyle = lv > 0.62 ? '#A34A1E' : '#E0A57E';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(i * gap + gap * 0.24, (h - bh) / 2, gap * 0.52, bh, 6); else ctx.rect(i * gap + gap * 0.24, (h - bh) / 2, gap * 0.52, bh);
+      ctx.fill();
+    }
+    // 감지 v1: 지속되는 고성 (음량 기반, 100% 로컬)
+    if (rms !== null && Date.now() > S.cooldownUntil) {
+      baseline = baseline * 0.999 + rms * 0.001;
+      var threshold = Math.max(0.10, baseline * 3.2);
+      if (rms > threshold) {
+        if (!loudSince) loudSince = Date.now();
+        if (Date.now() - loudSince > 1500) triggerCountdown('계속되는 큰 소리가');
+      } else if (rms < threshold * 0.7) { loudSince = 0; }
+    }
+  }
+
+  // ---------- 숨은 수동 트리거: 상태 칩 3연타 ----------
+  window.secretTap = function () {
+    var now = Date.now();
+    if (now - S.tapT > 1200) S.taps = [];
+    S.tapT = now; S.taps.push(now);
+    if (S.taps.length >= 3 && S.screen === 'session') { S.taps = []; triggerCountdown(); }
+  };
+  window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
+
+  // ---------- 유예 카운트다운 ----------
+  var cdLeft = 10;
+  function triggerCountdown(reason) {
+    if (S.screen !== 'session') return;
+    loudSince = 0;
+    S.cooldownUntil = Date.now() + 45000;
+    cdLeft = 10; $('cdNum').textContent = '10';
+    $('cdReason').textContent = reason || '계속되는 큰 소리가';
+    go('countdown');
+    if (navigator.vibrate) navigator.vibrate(150);
+    clearInterval(cdId);
+    cdId = setInterval(function () {
+      cdLeft -= 1;
+      $('cdNum').textContent = String(Math.max(0, cdLeft));
+      if (cdLeft <= 0) { clearInterval(cdId); fireAlert('timeout'); }
+    }, 1000);
+  }
+  window.cancelAlert = function () { clearInterval(cdId); go('session'); };
+  window.fireAlert = function (how) {
+    clearInterval(cdId);
+    S.alerts += 1;
+    $('stateChip').className = 'chip warn';
+    $('stateTxt').textContent = '감지 ' + S.alerts + '회';
+    $('alertTime').textContent = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
+    $('alertTitle').textContent = how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요';
+    go('alert');
+    if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+  };
+
+  // ---------- 확인 전화 ----------
+  function startRing() {
+    S.callAt = 0;
+    go('call');
+    playRing(true);
+  }
+  function playRing(on) {
+    clearInterval(ringId);
+    if (ringOsc) { try { ringOsc.stop(); } catch (e) {} ringOsc = null; }
+    if (!on) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var ac = audioCtx;
+    function burst() {
+      if (S.screen !== 'call') { playRing(false); return; }
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.22, ac.currentTime + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.85);
+      o.connect(g); g.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime + 0.9);
+      var o2 = ac.createOscillator(), g2 = ac.createGain();
+      o2.type = 'sine'; o2.frequency.value = 660;
+      g2.gain.setValueAtTime(0.0001, ac.currentTime + 0.45);
+      g2.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + 0.5);
+      g2.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.85);
+      o2.connect(g2); g2.connect(ac.destination);
+      o2.start(ac.currentTime + 0.45); o2.stop(ac.currentTime + 0.9);
+      if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
+    }
+    burst();
+    ringId = setInterval(burst, 2000);
+  }
+  window.answerCall = function () { playRing(false); go('incall'); };
+  window.snoozeCall = function () { playRing(false); S.callAt = Date.now() + 10 * 60000; $('callChip').style.display = 'flex'; go('session'); };
+
+  // ---------- 종료 · 관찰 ----------
+  window.endSession = function () {
+    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT();
+    var mins = Math.round((Date.now() - S.startedAt) / 60000);
+    $('wrapSummary').textContent = '상담 ' + mins + '분 · 위험 신호 ' + S.alerts + '건 · 음성 저장 없음';
+    S.answers = {};
+    document.querySelectorAll('#s-wrap .pill').forEach(function (p) { p.classList.remove('on'); });
+    go('wrap');
+    if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; analyser = null; }
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+  };
+  window.ans = function (el, q, v) {
+    el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
+    el.classList.add('on');
+    S.answers['q' + q] = v;
+  };
+  window.finish = function (save) {
+    if (save) {
+      try {
+        var arr = getObs();
+        arr.push({
+          d: new Date().toISOString().slice(0, 16),
+          min: Math.round((Date.now() - S.startedAt) / 60000),
+          alerts: S.alerts, noRec: S.noRecord, a: S.answers,
+          c1: S.counselor || '-', c2: S.client || '-',
+          one: S.stype || '',
+          tr: S.tr || []
+        });
+        localStorage.setItem('ma_obs', JSON.stringify(arr));
+      } catch (e) {}
+    }
+    S.stype = '';
+    document.querySelectorAll('#typeRow .pill').forEach(function (p) { p.classList.remove('on'); });
+    updateObsCount();
+    go('start');
+  };
+  window.pickType = function (el) {
+    el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
+    el.classList.add('on');
+    S.stype = el.textContent;
+  };
+  function getObs() { try { return JSON.parse(localStorage.getItem('ma_obs') || '[]'); } catch (e) { return []; } }
+  function updateObsCount() {
+    var n = getObs().length;
+    var b = $('recBtn');
+    b.style.display = n > 0 ? 'inline-block' : 'none';
+    b.textContent = '상담기록 ' + n + '건 보기';
+  }
+  var L1 = ['전혀', '조금', '많이'], L2 = ['더 차분', '비슷', '더 격함'], L3 = ['더 안심', '비슷', '더 불편'];
+  function lbl(arr, v) { return (v === 0 || v === 1 || v === 2) ? arr[v] : '-'; }
+  function fmtDate(d) {
+    var m = /^\d{4}-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(d || '');
+    return m ? (parseInt(m[1],10) + '월 ' + parseInt(m[2],10) + '일 ' + m[3]) : (d || '-');
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function recLine(r) {
+    return fmtDate(r.d) + ' · 상담자 ' + (r.c1 || '-') + ' · 내담자 ' + (r.c2 || '-') + ' · ' + r.min + '분 · 위험 신호 ' + r.alerts + '건'
+      + ' | 유형: ' + (r.one || '(미선택)')
+      + ' | 화면 의식: ' + lbl(L1, r.a && r.a.q1) + ' · 분위기: ' + lbl(L2, r.a && r.a.q2) + ' · 마음: ' + lbl(L3, r.a && r.a.q3)
+      + (r.del ? ' | 원문 삭제됨(' + fmtDate(r.del.when) + ', 사유: ' + r.del.why + ')' : '');
+  }
+  window.openRecords = function () {
+    var list = $('recList'); list.innerHTML = '';
+    var arr = getObs();
+    if (arr.length === 0) {
+      list.innerHTML = '<div class="banner" style="max-width:none">아직 기록이 없어요 — 상담을 마치면 여기에 쌓여요</div>';
+    } else {
+      for (var i = arr.length - 1; i >= 0; i--) {
+        (function (idx) {
+          var r = arr[idx];
+          var div = document.createElement('div');
+          div.className = 'banner recrow';
+          div.style.maxWidth = 'none';
+          if (r.del) div.style.opacity = '0.75';
+          div.innerHTML = '<b>' + esc(fmtDate(r.d)) + '</b> · ' + esc(r.c1 || '-') + ' → ' + esc(r.c2 || '-') + ' · ' + r.min + '분 · '
+            + (r.alerts > 0 ? '<span style="color:#B3403A; font-weight:700">위험 신호 ' + r.alerts + '건</span>' : '위험 신호 0건')
+            + '<br><span style="color:#55483A; font-weight:500">' + esc(r.one || '(유형 미선택)') + '</span>'
+            + (r.del
+              ? '<br><span style="color:#97302B; font-size:12.5px">원문 삭제됨 (' + esc(fmtDate(r.del.when)) + ') · 사유: ' + esc(r.del.why) + '</span>'
+              : '<br><span style="color:#B3A28E; font-size:12.5px">누르면 전체 대화 보기 · 대화 ' + ((r.tr && r.tr.length) || 0) + '문장</span>');
+          div.onclick = function () { openDetail(idx); };
+          list.appendChild(div);
+        })(i);
+      }
+    }
+    $('copyBtn').textContent = '목록 복사하기';
+    $('clearBtn').textContent = '전체 원문 삭제';
+    $('clearWhy').style.display = 'none';
+    $('clearWhy').value = '';
+    clearArmed = false;
+    go('records');
+  };
+  var curIdx = -1;
+  window.openDetail = function (idx) {
+    curIdx = idx;
+    var r = getObs()[idx];
+    if (!r) { openRecords(); return; }
+    $('detTitle').textContent = fmtDate(r.d) + ' — ' + (r.c1 || '-') + ' → ' + (r.c2 || '-');
+    $('detMeta').textContent = '상담 ' + r.min + '분 · 위험 신호 ' + r.alerts + '건 · 유형: ' + (r.one || '(미선택)');
+    var list = $('detList'); list.innerHTML = '';
+    if (r.del) {
+      list.innerHTML = '<div style="color:#97302B; font-weight:700">대화 원문은 ' + esc(fmtDate(r.del.when)) + '에 삭제되었어요</div>'
+        + '<div style="color:#55483A">삭제 사유: ' + esc(r.del.why) + '</div>'
+        + '<div style="color:#8A7663; font-size:13px; margin-top:6px">날짜·이름·시간·위험 신호·한 줄 요약은 기록으로 남아 있어요.</div>';
+    } else if (!r.tr || r.tr.length === 0) {
+      list.innerHTML = '<div style="color:#8A7663">저장된 대화 기록이 없어요 — 음성 인식이 꺼져 있었거나 이전 버전의 기록이에요</div>';
+    } else {
+      list.innerHTML = '<div style="color:#B3A28E; font-size:12.5px">화자 구분 없이, 인식된 순서대로 기록돼요</div>';
+      r.tr.forEach(function (l) {
+        var div = document.createElement('div');
+        div.innerHTML = '<span class="mono" style="color:#C05A2A; font-size:12.5px; margin-right:8px">' + esc(l.t) + '</span>' + esc(l.x);
+        list.appendChild(div);
+      });
+    }
+    $('dCopy1').textContent = '일지 초안 복사';
+    $('dCopy2').textContent = 'AI 요약용 복사';
+    $('dCopy2').style.display = (r.del || !r.tr || r.tr.length === 0) ? 'none' : 'inline-block';
+    $('delBtn').style.display = r.del ? 'none' : 'inline-block';
+    $('delWhy').style.display = 'none';
+    $('delWhy').value = '';
+    $('delGo').style.display = 'none';
+    go('recdetail');
+  };
+  function curRecObj() { var a = getObs(); return (curIdx >= 0 && a[curIdx]) ? a[curIdx] : null; }
+  window.askDelete = function () {
+    $('delWhy').style.display = 'inline-block';
+    $('delGo').style.display = 'inline-block';
+    $('delWhy').focus();
+  };
+  window.doDelete = function () {
+    var why = ($('delWhy').value || '').trim();
+    if (!why) { $('delWhy').placeholder = '사유를 적어야 삭제할 수 있어요'; $('delWhy').focus(); return; }
+    try {
+      var arr = getObs();
+      if (arr[curIdx] && !arr[curIdx].del) {
+        arr[curIdx].del = { when: new Date().toISOString().slice(0, 16), why: why };
+        arr[curIdx].tr = [];
+        localStorage.setItem('ma_obs', JSON.stringify(arr));
+      }
+    } catch (e) {}
+    openDetail(curIdx);
+  };
+  function trText(r) {
+    return (r.tr || []).map(function (l) { return '[' + l.t + '] ' + l.x; }).join('\n');
+  }
+  window.copyJournal = function () {
+    var r = curRecObj();
+    if (!r) return;
+    var txt = '[상담일지 초안]\n일시: ' + fmtDate(r.d) + '\n상담자: ' + (r.c1 || '-') + ' / 내담자: ' + (r.c2 || '-')
+      + '\n상담 시간: ' + r.min + '분 / 위험 신호: ' + r.alerts + '건'
+      + '\n상담 유형: ' + (r.one || '(미선택)');
+    if (r.del) txt += '\n※ 대화 원문 ' + fmtDate(r.del.when) + ' 삭제됨 · 사유: ' + r.del.why;
+    else txt += '\n\n--- 대화 기록 ---\n' + (trText(r) || '(없음)');
+    doCopy(txt, 'dCopy1');
+  };
+  window.copyForAI = function () {
+    var r = curRecObj();
+    if (!r) return;
+    var txt = '다음은 사회복지 상담 대화 기록입니다. 상담일지용으로 서술식 요약을 만들어 주세요.\n'
+      + '- 내방 경위 / 상담 내용 / 조치 사항 / 향후 계획 순서로 정리\n'
+      + '- 사실만 담고, 상담사의 주관적 감정 표현은 제외\n'
+      + '- 개인을 특정할 수 있는 정보는 이니셜 처리\n\n'
+      + '일시: ' + fmtDate(r.d) + ' / 상담 ' + r.min + '분 / 위험 신호 ' + r.alerts + '건\n'
+      + '상담 유형: ' + (r.one || '(미선택)') + '\n\n대화 기록:\n' + (trText(r) || '(없음)');
+    doCopy(txt, 'dCopy2');
+  };
+  function doCopy(txt, btnId) {
+    function done() { $(btnId).textContent = '복사됐어요 ✓'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(function () { fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  }
+  window.copyRecords = function () {
+    var txt = '[마음안심 상담기록]\n' + getObs().map(recLine).join('\n');
+    function done() { $('copyBtn').textContent = '복사됐어요 ✓'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(function () { fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  };
+  function fallbackCopy(txt) {
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  var clearArmed = false;
+  window.clearRecords = function () {
+    if (!clearArmed) {
+      clearArmed = true;
+      $('clearWhy').style.display = 'inline-block';
+      $('clearWhy').focus();
+      $('clearBtn').textContent = '사유 입력 후 한 번 더';
+      return;
+    }
+    var why = ($('clearWhy').value || '').trim();
+    if (!why) { $('clearWhy').placeholder = '사유를 적어야 삭제할 수 있어요'; $('clearWhy').focus(); return; }
+    try {
+      var arr = getObs();
+      var when = new Date().toISOString().slice(0, 16);
+      arr.forEach(function (r) { if (!r.del) { r.del = { when: when, why: why }; r.tr = []; } });
+      localStorage.setItem('ma_obs', JSON.stringify(arr));
+    } catch (e) {}
+    updateObsCount();
+    openRecords();
+  };
+  updateObsCount();
+  try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
+  window.__checkThreat = checkThreat;
+  window.addEventListener('resize', sizeCanvas);
+})();
+</script>
+</body>
+</html>
