@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>마음안심 v0.4</title>
+<title>마음안심 v0.5</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -95,7 +95,7 @@
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.4</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.5</span></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
   <button class="primary big" onclick="go('checkin')">상담 시작</button>
@@ -128,23 +128,16 @@
   <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
 </div>
 
-<!-- 1e 동료 대기 -->
+<!-- 1e 팀 상황판 (동료·PC용) -->
 <div class="screen" id="s-buddy">
-  <div class="brand"><b>마음안심</b><span>동료 모드</span></div>
-  <div class="recchip" style="background:#E7F0E9"><span class="recdot" style="background:#3E7A52"></span><span style="font-size:16px; font-weight:700; color:#2F5E40">알림 대기 중</span><span style="font-size:13px; color:#8A7663" id="buddyCode">· 팀 코드 -</span></div>
-  <h1 class="serif" style="font-size:clamp(24px,3.6vw,38px)">동료를 지켜보고 있어요</h1>
-  <div class="sub">이 화면을 켜둔 동안, 위험 신호가 오면 큰 소리로 알려드려요</div>
-  <div id="buddyLog" style="width:min(640px,90vw); display:flex; flex-direction:column; gap:8px"></div>
-  <div class="note">화면이 꺼지면 알림을 받지 못할 수 있어요 — 충전기에 꽂고 화면을 켜두세요</div>
+  <div class="brand"><b>마음안심</b><span>상황판</span></div>
+  <div class="chips"><div class="chip calm"><span class="dot"></span><span id="buddyCode">팀 코드 -</span></div></div>
+  <h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)">우리 팀 상황판</h1>
+  <div id="alertCards" style="width:min(720px,94vw); display:flex; flex-direction:column; gap:10px"></div>
+  <div id="boardList" style="width:min(720px,94vw); display:flex; flex-direction:column; gap:10px; max-height:40vh; overflow-y:auto"></div>
+  <div class="note" id="boardEmpty">진행 중인 상담이 없어요 — 상담이 시작되면 여기에 나타나요</div>
+  <div class="note">이 화면을 켜두면(PC 브라우저도 가능) 위험 시 소리와 바탕화면 알림으로 알려드려요</div>
   <button class="corner" style="left:24px" onclick="stopBuddy()">대기 종료</button>
-</div>
-
-<!-- 1f 동료 수신 -->
-<div class="screen" id="s-buddyalert" style="background:#B3403A">
-  <h1 class="serif" style="color:#FFF6F4; font-size:clamp(30px,5.5vw,54px)">위험 신호!</h1>
-  <div class="sub" style="color:#F7D3CE; font-size:clamp(16px,2.2vw,20px)" id="baInfo">-</div>
-  <button class="big" style="background:#FFF6F4; border-color:#FFF6F4; color:#97302B" onclick="ackAlert()">확인했어요 — 지금 볼게요</button>
-  <div class="note" style="color:#E8B7B1">전화 걸기 → 노크 → 동석 순으로, 부담 적은 개입부터</div>
 </div>
 
 <!-- 1b 상담기록 목록 -->
@@ -330,7 +323,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.4)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.5)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0 };
   var analyser = null, audioCtx = null, micStream = null;
   var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
@@ -378,6 +371,17 @@ window.onerror = function (msg) {
     }
     go('session');
     hostSubscribe();
+    var c0 = linkCfg();
+    if (c0 && c0.role === 'host') {
+      postSig({ type: 'start', place: c0.place, who: S.counselor, at: S.startedAt });
+      clearInterval(hbId);
+      hbId = setInterval(function () {
+        var c1 = linkCfg();
+        if (c1 && c1.role === 'host' && (S.screen === 'session' || S.screen === 'countdown' || S.screen === 'alert' || S.screen === 'call' || S.screen === 'incall')) {
+          postSig({ type: 'hb', place: c1.place, who: S.counselor, at: S.startedAt });
+        }
+      }, 60000);
+    }
     clearInterval(timerId);
     timerId = setInterval(tick, 400);
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
@@ -536,7 +540,7 @@ window.onerror = function (msg) {
     $('alertTitle').textContent = how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요';
     var c = linkCfg();
     if (c && c.role === 'host') {
-      postSig({ type: 'alert', place: c.place || '상담실', who: S.counselor || '', t: elapsed });
+      postSig({ type: 'alert', place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: Date.now() });
       $('ackLine').textContent = '동료 기기로 신호를 보냈어요 — 응답 대기 중…';
     } else {
       $('ackLine').textContent = '동료 연결이 설정되지 않아 이 기기에만 표시돼요 (시작 화면 → 동료 연결 설정)';
@@ -544,7 +548,7 @@ window.onerror = function (msg) {
     go('alert');
     if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
   };
-  window.cancelFromAlert = function () { postSig({ type: 'cancel' }); go('session'); };
+  window.cancelFromAlert = function () { var c = linkCfg(); postSig({ type: 'cancel', place: (c && c.place) || '' }); go('session'); };
 
   // ---------- 확인 전화 ----------
   function startRing() {
@@ -584,7 +588,11 @@ window.onerror = function (msg) {
 
   // ---------- 종료 · 관찰 ----------
   window.endSession = function () {
-    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT(); hostUnsubscribe();
+    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT();
+    var cE = linkCfg();
+    if (cE && cE.role === 'host') postSig({ type: 'end', place: cE.place, who: S.counselor });
+    clearInterval(hbId);
+    hostUnsubscribe();
     var mins = Math.round((Date.now() - S.startedAt) / 60000);
     $('wrapSummary').textContent = '상담 ' + mins + '분 · 위험 신호 ' + S.alerts + '건 · 음성 저장 없음';
     S.answers = {};
@@ -788,7 +796,8 @@ window.onerror = function (msg) {
     openRecords();
   };
   // ---------- 동료 연결 (무료 릴레이 ntfy.sh — 신호만, 대화 내용 없음) ----------
-  var esSig = null, buddyEs = null, bRingId = 0, linkRole = '';
+  var esSig = null, buddyEs = null, bRingId = 0, linkRole = '', hbId = 0, ringingOn = false, liveAt = 0, pruneId = 0;
+  var sessions = {}, alertsMap = {};
   function linkCfg() { try { return JSON.parse(localStorage.getItem('ma_link') || 'null'); } catch (e) { return null; } }
   function topic() { var c = linkCfg(); return (c && c.code) ? 'https://ntfy.sh/maeum-anshim-' + c.code : null; }
   function postSig(o) { var t = topic(); if (!t) return; try { fetch(t, { method: 'POST', body: JSON.stringify(o) }); } catch (e) {} }
@@ -844,42 +853,103 @@ window.onerror = function (msg) {
     if (c.role === 'buddy') { el.textContent = '동료용 기기 · 팀 코드 ' + c.code; b.textContent = '알림 대기 시작'; }
     else { el.textContent = '상담용 기기 · ' + c.place + ' · 팀 코드 ' + c.code; b.textContent = '동료 연결 설정'; }
   }
-  function logBuddy(txt) {
-    var d = document.createElement('div');
-    d.className = 'banner'; d.style.maxWidth = 'none';
-    d.textContent = new Date().toTimeString().slice(0, 5) + ' · ' + txt;
-    var l = $('buddyLog');
-    l.insertBefore(d, l.firstChild);
-    while (l.children.length > 5) l.removeChild(l.lastChild);
+  function skey(m) { return (m.place || '?') + '|' + (m.who || '?'); }
+  function renderBoard() {
+    var bl = $('boardList'), ac = $('alertCards');
+    bl.innerHTML = ''; ac.innerHTML = '';
+    var ak = Object.keys(alertsMap), sk = Object.keys(sessions);
+    ak.forEach(function (k) {
+      var a = alertsMap[k];
+      var d = document.createElement('div');
+      d.className = 'banner';
+      d.style.cssText = 'max-width:none; background:#B3403A; border-color:#B3403A; color:#FFF6F4';
+      d.innerHTML = '<b style="font-size:16px">위험 신호 — ' + esc(a.place) + '</b><br>' + esc(a.who) + ' 선생님 · 상담 ' + esc(a.t || '-') + ' 경과<br><span style="font-size:12px; color:#F0C4BF">전화 걸기 → 노크 → 동석 순으로, 부담 적은 개입부터</span>';
+      var b = document.createElement('button');
+      b.className = 'mid';
+      b.textContent = '확인했어요 — 지금 볼게요';
+      b.style.cssText = 'margin-top:10px; background:#FFF6F4; border-color:#FFF6F4; color:#97302B; display:block';
+      b.onclick = function () { postSig({ type: 'ack', place: a.place }); delete alertsMap[k]; renderBoard(); };
+      d.appendChild(b);
+      ac.appendChild(d);
+    });
+    sk.forEach(function (k) {
+      var s2 = sessions[k];
+      var mins = Math.max(0, Math.round((Date.now() - (s2.at || Date.now())) / 60000));
+      var danger = !!alertsMap[k];
+      var d = document.createElement('div');
+      d.className = 'banner';
+      d.style.maxWidth = 'none';
+      d.innerHTML = '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + (danger ? '#B3403A' : '#3E7A52') + '; margin-right:10px"></span><b>' + esc(s2.place) + '</b> · ' + esc(s2.who) + ' 선생님 · 진행 ' + mins + '분' + (danger ? ' · <span style="color:#B3403A; font-weight:700">위험 신호!</span>' : '');
+      bl.appendChild(d);
+    });
+    $('boardEmpty').style.display = (sk.length === 0 && ak.length === 0) ? 'block' : 'none';
+    buddyRing(ak.length > 0);
+    document.title = ak.length > 0 ? '🔴 위험 신호! — 마음안심' : '마음안심';
+  }
+  function notifyDesktop(title, body) {
+    try {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') new Notification(title, { body: body, requireInteraction: true, tag: 'ma-alert' });
+    } catch (e) {}
   }
   function startBuddy() {
     var c = linkCfg(); if (!c) return;
-    $('buddyCode').textContent = '· 팀 코드 ' + c.code;
+    $('buddyCode').textContent = '팀 코드 ' + c.code;
+    sessions = {}; alertsMap = {};
     go('buddy');
+    renderBoard();
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     try { audioCtx.resume(); } catch (e) {}
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
     if (buddyEs) { try { buddyEs.close(); } catch (e) {} }
-    buddyEs = openES(function (m) {
-      if (m.type === 'alert') {
-        $('baInfo').textContent = (m.place || '상담실') + ' · ' + (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과';
-        go('buddyalert');
-        buddyRing(true);
-        logBuddy('위험 신호 — ' + (m.place || ''));
-      } else if (m.type === 'cancel') {
-        if (S.screen === 'buddyalert') { buddyRing(false); go('buddy'); }
-        logBuddy('오인 취소됨');
-      } else if (m.type === 'ack') { logBuddy('다른 동료가 확인함'); }
-    });
-    logBuddy('대기 시작');
+    liveAt = Date.now() + 3000;
+    var t = topic(); if (!t) return;
+    buddyEs = new EventSource(t + '/sse?since=6h');
+    buddyEs.onmessage = function (ev) {
+      var m;
+      try {
+        var d = JSON.parse(ev.data);
+        if (!d.message) return;
+        m = JSON.parse(d.message);
+      } catch (e) { return; }
+      var k = skey(m);
+      if (m.type === 'start' || m.type === 'hb') {
+        sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: m.at || Date.now(), last: Date.now() };
+        renderBoard();
+      } else if (m.type === 'end') {
+        delete sessions[k]; delete alertsMap[k];
+        renderBoard();
+      } else if (m.type === 'alert') {
+        if (m.ts && Date.now() - m.ts > 600000) return;
+        alertsMap[k] = { place: m.place || '상담실', who: m.who || '-', t: m.t || '' };
+        if (!sessions[k]) sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: Date.now(), last: Date.now() };
+        renderBoard();
+        if (Date.now() > liveAt) {
+          notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과');
+          if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
+        }
+      } else if (m.type === 'cancel' || m.type === 'ack') {
+        Object.keys(alertsMap).forEach(function (k2) { if (!m.place || alertsMap[k2].place === m.place) delete alertsMap[k2]; });
+        renderBoard();
+      }
+    };
+    clearInterval(pruneId);
+    pruneId = setInterval(function () {
+      var now = Date.now(), ch = false;
+      Object.keys(sessions).forEach(function (k) { if (now - sessions[k].last > 200000) { delete sessions[k]; ch = true; } });
+      if (ch || Object.keys(sessions).length > 0) renderBoard();
+    }, 30000);
   }
   function buddyRing(on) {
+    if (on === ringingOn) return;
+    ringingOn = on;
     clearInterval(bRingId);
     if (!on) return;
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     var ac = audioCtx;
     function b() {
-      if (S.screen !== 'buddyalert') { clearInterval(bRingId); return; }
+      if (S.screen !== 'buddy' || !ringingOn) return;
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = 'square'; o.frequency.value = 740;
       g.gain.setValueAtTime(0.0001, ac.currentTime);
@@ -887,28 +957,27 @@ window.onerror = function (msg) {
       g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.5);
       o.connect(g); g.connect(ac.destination);
       o.start(); o.stop(ac.currentTime + 0.55);
-      if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
     }
     b();
-    bRingId = setInterval(b, 1200);
+    bRingId = setInterval(b, 1400);
   }
   window.stopBuddy = function () {
     if (buddyEs) { try { buddyEs.close(); } catch (e) {} buddyEs = null; }
+    clearInterval(pruneId);
     buddyRing(false);
+    document.title = '마음안심';
     go('start');
-  };
-  window.ackAlert = function () {
-    postSig({ type: 'ack' });
-    buddyRing(false);
-    go('buddy');
-    logBuddy('확인함 — 이동');
   };
   function hostSubscribe() {
     var c = linkCfg();
     if (!(c && c.role === 'host')) return;
     if (esSig) { try { esSig.close(); } catch (e) {} }
     esSig = openES(function (m) {
-      if (m.type === 'ack') { var el = $('ackLine'); if (el) el.textContent = '✓ 동료가 확인했어요 — 오고 있어요 (' + new Date().toTimeString().slice(0, 5) + ')'; }
+      var cc = linkCfg();
+      if (m.type === 'ack' && (!m.place || (cc && m.place === cc.place))) {
+        var el = $('ackLine');
+        if (el) el.textContent = '✓ 동료가 확인했어요 — 오고 있어요 (' + new Date().toTimeString().slice(0, 5) + ')';
+      }
     });
   }
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
