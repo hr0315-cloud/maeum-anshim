@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.7)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.8)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -864,7 +864,7 @@ window.onerror = function (msg) {
     if (!c) { el.textContent = ''; b.textContent = '동료 연결 설정'; return; }
     if (c.role === 'board') { el.textContent = '팀 상황판 · 팀 코드 ' + c.code; b.textContent = '상황판 대기 시작'; }
     else if (c.role === 'phone') { var n = phoneName(); el.textContent = '업무폰 · ' + (n || '이름 미등록') + ' · 팀 코드 ' + c.code; b.textContent = n ? '업무폰 대기 시작' : '업무폰 이름 등록'; }
-    else { el.textContent = '상담용 태블릿 · ' + c.place + ' · 팀 코드 ' + c.code; b.textContent = '동료 연결 설정'; }
+    else { el.textContent = '상담용 · ' + c.place + ' · 팀 코드 ' + c.code; b.textContent = '동료 연결 설정'; }
   }
 
   // ---------- 상담용 태블릿: 동료 찾기 · 연결 요청 · 수락 게이트 ----------
@@ -875,7 +875,7 @@ window.onerror = function (msg) {
     go('checkin');
     if (!(c && c.role === 'host')) {
       $('buddyPills').innerHTML = '';
-      $('buddyNote').innerHTML = '동료 연결 설정이 아직 없어요 — <a href="#" onclick="openLink();return false" style="color:#C05A2A; font-weight:700">동료 연결 설정</a>에서 이 기기를 상담용 태블릿으로 저장해 주세요';
+      $('buddyNote').innerHTML = '동료 연결 설정이 아직 없어요 — <a href="#" onclick="openLink();return false" style="color:#C05A2A; font-weight:700">동료 연결 설정</a>에서 이 기기를 상담용으로 저장해 주세요';
       updateReqBtn();
       return;
     }
