@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.8)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.9)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -152,8 +152,11 @@ window.onerror = function (msg) {
   function askAI(provider, key, model, prompt, maxTokens, system) {
     return provider === 'anthropic' ? askClaude(key, model, prompt, maxTokens, system) : askGemini(key, model, prompt, maxTokens, system);
   }
-  function askGemini(key, model, prompt, maxTokens, system) {
-    var body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: Math.max(maxTokens || 256, 1024), temperature: 0.2 } };
+  // Gemini: 생각(thinking) 토큰을 최소로 두고 답 한도를 넉넉히. 생각 옵션을 모르는 모델이면 옵션 없이 한 번 더 시도.
+  function askGemini(key, model, prompt, maxTokens, system, noThink) {
+    var gen = { maxOutputTokens: Math.max(maxTokens || 256, 4096), temperature: 0.2 };
+    if (!noThink) gen.thinkingConfig = { thinkingBudget: 0 };
+    var body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: gen };
     if (system) body.systemInstruction = { parts: [{ text: system }] };
     return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST',
@@ -161,10 +164,18 @@ window.onerror = function (msg) {
       body: JSON.stringify(body)
     }).then(function (r) {
       return r.json().then(function (j) {
-        if (!r.ok) throw new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+        if (!r.ok) {
+          var msg = (j && j.error && j.error.message) || ('HTTP ' + r.status);
+          if (!noThink && r.status === 400 && /thinking/i.test(msg)) return askGemini(key, model, prompt, maxTokens, system, true);
+          throw new Error(msg);
+        }
         var c = (j.candidates && j.candidates[0]) || {};
         var text = ((c.content && c.content.parts) || []).filter(function (p) { return !p.thought; }).map(function (p) { return p.text || ''; }).join('');
         window.__aiLast = { raw: j, text: text };
+        if (!text) {
+          var why = c.finishReason || (j.promptFeedback && j.promptFeedback.blockReason) || '이유 없음';
+          throw new Error('빈 응답 (' + why + ')');
+        }
         return { text: text, stop: c.finishReason };
       });
     });
