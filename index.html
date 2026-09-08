@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.3">
+<link rel="stylesheet" href="style.css?v=0.6.4">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.3</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.4</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -73,11 +73,14 @@
   </div>
   <div class="sec">
     <h2>③ AI 맥락 분석 <span class="pill" id="aiStat">꺼짐 · 키 없음</span></h2>
+    <div class="row"><label style="width:110px">AI 회사</label><span class="pill" data-provider="gemini" onclick="pickProvider(this)">Google Gemini (무료 등급)</span><span class="pill" data-provider="anthropic" onclick="pickProvider(this)">Anthropic Claude (유료)</span></div>
     <div class="row">
-      <input class="txt" id="cfgKey" type="password" placeholder="Anthropic API 키 (sk-ant-…)" autocomplete="off" style="flex:1; min-width:220px">
+      <input class="txt" id="cfgKey" type="password" placeholder="API 키" autocomplete="off" style="flex:1; min-width:220px">
       <button class="mid" id="keyCheck" onclick="checkKey()">연결 확인</button>
     </div>
-    <div class="row"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5 (가장 저렴)</span></div>
+    <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-2.5-flash" onclick="pickModel(this)">Gemini 2.5 Flash</span><span class="pill" data-model="gemini-2.5-flash-lite" onclick="pickModel(this)">2.5 Flash-Lite (더 빠름)</span></div>
+    <div class="row" id="modelRowA"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5</span></div>
+    <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
     <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.</div>
   </div>
   <div class="sec">
@@ -364,18 +367,9 @@
   <div class="brand"><b>마음안심</b><span>상담 종료</span></div>
   <h1 class="serif" style="font-size:clamp(24px,3.6vw,36px)">오늘도 수고하셨어요</h1>
   <div class="chip calm"><span class="dot"></span><span id="wrapSummary">-</span></div>
-  <div id="typeRow2" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
-    <span style="font-size:15px; font-weight:700; color:#6E4326">상담 유형</span>
-    <span class="pill" onclick="pickType(this)">초기상담</span>
-    <span class="pill" onclick="pickType(this)">정기상담</span>
-    <span class="pill" onclick="pickType(this)">지원사업 관련</span>
-    <span class="pill" onclick="pickType(this)">안부확인</span>
-  </div>
   <div style="display:flex; flex-direction:column; gap:14px; background:#FFF; border:1px solid #EADFCE; border-radius:16px; padding:22px 26px">
-    <div style="font-size:14.5px; font-weight:700; color:#6E4326; text-align:left">10초만 — 오늘 상담, 어땠나요?</div>
-    <div class="qrow"><span class="q">클라이언트가 화면을 의식했나요?</span><span class="pill" onclick="ans(this,1,0)">전혀</span><span class="pill" onclick="ans(this,1,1)">조금</span><span class="pill" onclick="ans(this,1,2)">많이</span></div>
-    <div class="qrow"><span class="q">분위기는 평소와 비교하면?</span><span class="pill" onclick="ans(this,2,0)">더 차분</span><span class="pill" onclick="ans(this,2,1)">비슷</span><span class="pill" onclick="ans(this,2,2)">더 격함</span></div>
-    <div class="qrow"><span class="q">선생님 마음은 어땠나요?</span><span class="pill" onclick="ans(this,3,0)">더 안심</span><span class="pill" onclick="ans(this,3,1)">비슷</span><span class="pill" onclick="ans(this,3,2)">더 불편</span></div>
+    <div style="font-size:14.5px; font-weight:700; color:#6E4326; text-align:left">한 번만 — 오늘 상담, 선생님 마음은 어땠나요?</div>
+    <div class="qrow"><span class="pill" onclick="ans(this,3,0)">더 안심</span><span class="pill" onclick="ans(this,3,1)">비슷</span><span class="pill" onclick="ans(this,3,2)">더 불편</span></div>
   </div>
   <div style="display:flex; gap:14px">
     <button class="mid" onclick="finish(false)">건너뛰기</button>
@@ -383,6 +377,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.3"></script>
+<script src="app.js?v=0.6.4"></script>
 </body>
 </html>

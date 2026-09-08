@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.3)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.4)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -28,8 +28,9 @@ window.onerror = function (msg) {
     sens: 'mid',
     threat: '가만 안, 가만히 안, 죽여, 죽인다, 죽일, 때려 버, 때린다, 패버리, 패 버릴, 칼로, 칼 들, 불 지르, 불질러, 찾아간다, 찾아갈, 찾아온다, 퇴근길 조심, 밤길 조심, 조심해라, 묻어버리, 없애버리, 해코지, 각오해, 부숴버, 박살 내',
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹, 꺼져, 닥쳐, 등신, 또라이, 개같은, 좆',
-    key: '',
-    model: 'claude-opus-5',
+    provider: 'gemini',
+    gkey: '', gmodel: 'gemini-2.5-flash',
+    key: '', model: 'claude-opus-5',
     warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
   };
   var CFG = loadCfg();
@@ -52,20 +53,45 @@ window.onerror = function (msg) {
     t.forEach(function (id, i) { var el = $(id); if (el) el.textContent = v[i]; });
     var nr = $('norecTxt'); if (nr) nr.textContent = CFG.refuse;
     document.querySelectorAll('.demoChip, .demoNote').forEach(function (el) { el.style.display = CFG.approved ? 'none' : ''; });
-    var ai = $('aiStat'); if (ai) ai.textContent = CFG.key ? '켜짐 · ' + modelLabel(CFG.model) : '꺼짐 · 키 없음';
+    var ai = $('aiStat'); if (ai) ai.textContent = aiKey() ? '켜짐 · ' + modelLabel(aiModel()) : '꺼짐 · 키 없음';
   }
-  function modelLabel(m) { return m === 'claude-haiku-4-5' ? 'Haiku 4.5' : m === 'claude-sonnet-5' ? 'Sonnet 5' : 'Opus 5'; }
+  // 현재 고른 AI 회사의 키·모델
+  function aiKey() { return CFG.provider === 'anthropic' ? CFG.key : CFG.gkey; }
+  function aiModel() { return CFG.provider === 'anthropic' ? CFG.model : CFG.gmodel; }
+  function modelLabel(m) {
+    return m === 'claude-haiku-4-5' ? 'Claude Haiku 4.5' : m === 'claude-sonnet-5' ? 'Claude Sonnet 5' : m === 'claude-opus-5' ? 'Claude Opus 5'
+      : m === 'gemini-2.5-flash-lite' ? 'Gemini 2.5 Flash-Lite' : 'Gemini 2.5 Flash';
+  }
+  var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
     $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
-    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgWarn').value = CFG.warn; $('cfgKey').value = CFG.key;
+    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgWarn').value = CFG.warn;
+    formKeys = { gemini: CFG.gkey, anthropic: CFG.key };
     $('swApproved').classList.toggle('on', !!CFG.approved);
     $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
     document.querySelectorAll('#s-settings [data-grace]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-grace'), 10) === CFG.grace); });
     document.querySelectorAll('#s-settings [data-sens]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-sens') === CFG.sens); });
-    document.querySelectorAll('#s-settings [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
-    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.';
+    document.querySelectorAll('#modelRowG [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.gmodel); });
+    document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
+    showProvider(CFG.provider || 'gemini');
+    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
     go('settings');
     $('s-settings').scrollTop = 0;
+  };
+  function showProvider(p) {
+    formProvider = p;
+    document.querySelectorAll('#s-settings [data-provider]').forEach(function (el) { el.classList.toggle('on', el.getAttribute('data-provider') === p); });
+    $('modelRowG').style.display = p === 'gemini' ? 'flex' : 'none';
+    $('modelRowA').style.display = p === 'anthropic' ? 'flex' : 'none';
+    $('cfgKey').value = formKeys[p] || '';
+    $('cfgKey').placeholder = p === 'gemini' ? 'Gemini API 키 (AIza…)' : 'Anthropic API 키 (sk-ant-…)';
+    $('keyHelp').textContent = p === 'gemini'
+      ? 'Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.'
+      : 'Anthropic 키: console.anthropic.com에서 발급, 소액 충전 필요. API로 보낸 내용은 학습에 쓰지 않아요.';
+  }
+  window.pickProvider = function (el) {
+    formKeys[formProvider] = $('cfgKey').value.trim();
+    showProvider(el.getAttribute('data-provider'));
   };
   window.toggleApproved = function () {
     var on = !$('swApproved').classList.contains('on');
@@ -77,7 +103,9 @@ window.onerror = function (msg) {
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
   window.pickModel = function (el) { pickOne(el, 'data-model'); };
   function readSettingsForm() {
-    var g = document.querySelector('#s-settings [data-grace].on'), s = document.querySelector('#s-settings [data-sens].on'), m = document.querySelector('#s-settings [data-model].on');
+    formKeys[formProvider] = $('cfgKey').value.trim();
+    var g = document.querySelector('#s-settings [data-grace].on'), s = document.querySelector('#s-settings [data-sens].on');
+    var mg = document.querySelector('#modelRowG [data-model].on'), ma = document.querySelector('#modelRowA [data-model].on');
     return {
       n1: $('cfgN1').value.trim() || DEF.n1, n2: $('cfgN2').value.trim() || DEF.n2, n3: $('cfgN3').value.trim() || DEF.n3,
       refuse: $('cfgRefuse').value.trim() || DEF.refuse,
@@ -85,7 +113,9 @@ window.onerror = function (msg) {
       grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(),
-      key: $('cfgKey').value.trim(), model: m ? m.getAttribute('data-model') : DEF.model,
+      provider: formProvider,
+      gkey: formKeys.gemini || '', gmodel: mg ? mg.getAttribute('data-model') : DEF.gmodel,
+      key: formKeys.anthropic || '', model: ma ? ma.getAttribute('data-model') : DEF.model,
       warn: $('cfgWarn').value.trim() || DEF.warn
     };
   }
@@ -95,24 +125,44 @@ window.onerror = function (msg) {
     setTimeout(function () { if (S.screen === 'settings') go('start'); }, 700);
   };
   window.resetSettings = function () {
-    var keepKey = $('cfgKey').value.trim();
-    CFG = loadCfg(); Object.keys(DEF).forEach(function (k) { CFG[k] = DEF[k]; }); CFG.key = keepKey;
+    formKeys[formProvider] = $('cfgKey').value.trim();
+    var keep = { gkey: formKeys.gemini, key: formKeys.anthropic, provider: formProvider };
+    CFG = loadCfg(); Object.keys(DEF).forEach(function (k) { CFG[k] = DEF[k]; });
+    CFG.gkey = keep.gkey; CFG.key = keep.key; CFG.provider = keep.provider;
     openSettings();
     $('cfgMsg').textContent = '기본값으로 되돌렸어요 — "저장"을 눌러야 적용돼요 (키는 그대로)';
   };
-  // Anthropic API 연결 확인: 브라우저에서 직접 호출 (시연용). 키는 헤더로만 나가고 어디에도 기록되지 않는다.
+  // AI 연결 확인: 브라우저에서 직접 호출 (시연용). 키는 요청 헤더로만 나가고 어디에도 기록되지 않는다.
   window.checkKey = function () {
     var f = readSettingsForm(), b = $('keyCheck'), msg = $('keyMsg');
-    if (!f.key) { msg.textContent = '키를 먼저 넣어 주세요'; return; }
+    var key = f.provider === 'anthropic' ? f.key : f.gkey, model = f.provider === 'anthropic' ? f.model : f.gmodel;
+    if (!key) { msg.textContent = '키를 먼저 넣어 주세요'; msg.style.color = '#B3403A'; return; }
     b.textContent = '확인 중…'; b.disabled = true;
-    askClaude(f.key, f.model, '연결 확인입니다. "확인"이라고만 답하세요.', 16).then(function (r) {
-      msg.textContent = '✓ 연결됐어요 · ' + modelLabel(f.model) + ' · 응답: ' + (r.text || '').slice(0, 20) + ' · 저장을 눌러 주세요';
+    askAI(f.provider, key, model, '연결 확인입니다. "확인"이라고만 답하세요.', 16).then(function (r) {
+      msg.textContent = '✓ 연결됐어요 · ' + modelLabel(model) + ' · 응답: ' + (r.text || '').slice(0, 20) + ' · 저장을 눌러 주세요';
       msg.style.color = '#3E7A52';
     }).catch(function (e) {
       msg.textContent = '연결 실패: ' + (e && e.message ? e.message : e);
       msg.style.color = '#B3403A';
     }).then(function () { b.textContent = '연결 확인'; b.disabled = false; });
   };
+  function askAI(provider, key, model, prompt, maxTokens) {
+    return provider === 'anthropic' ? askClaude(key, model, prompt, maxTokens) : askGemini(key, model, prompt, maxTokens);
+  }
+  function askGemini(key, model, prompt, maxTokens) {
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens || 256 } })
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) throw new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+        var c = (j.candidates && j.candidates[0]) || {};
+        var text = ((c.content && c.content.parts) || []).map(function (p) { return p.text || ''; }).join('');
+        return { text: text, stop: c.finishReason };
+      });
+    });
+  }
   function askClaude(key, model, prompt, maxTokens) {
     return fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -482,7 +532,8 @@ window.onerror = function (msg) {
   function recLine(r) {
     return fmtDate(r.d) + ' · 상담자 ' + (r.c1 || '-') + ' · 내담자 ' + (r.c2 || '-') + ' · ' + r.min + '분 · 위험 신호 ' + r.alerts + '건'
       + ' | 유형: ' + (r.one || '(미선택)')
-      + ' | 화면 의식: ' + lbl(L1, r.a && r.a.q1) + ' · 분위기: ' + lbl(L2, r.a && r.a.q2) + ' · 마음: ' + lbl(L3, r.a && r.a.q3)
+      + ' | 마음: ' + lbl(L3, r.a && r.a.q3)
+      + ((r.a && (r.a.q1 != null || r.a.q2 != null)) ? ' (화면 의식: ' + lbl(L1, r.a.q1) + ' · 분위기: ' + lbl(L2, r.a.q2) + ')' : '')
       + (r.del ? ' | 원문 삭제됨(' + fmtDate(r.del.when) + ', 사유: ' + r.del.why + ')' : '');
   }
   window.openRecords = function () {
