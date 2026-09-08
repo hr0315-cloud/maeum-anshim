@@ -5,21 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.2">
+<link rel="stylesheet" href="style.css?v=0.6.3">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.2</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.3</span></div>
+  <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
   <button class="primary big" onclick="openName()">상담 시작</button>
-  <div class="banner">상담 중 대화는 자동으로 글로 기록돼요. 대화 기록과 상담기록은 <b>이 기기 안에만</b> 저장되고, 밖으로 나가지 않아요. 원하시면 언제든 지울 수 있어요.</div>
+  <div class="banner">상담 중 대화는 글로 기록돼요. 음성은 글로 바뀐 뒤 바로 지워지고, <b>글로 바꾸고 정리하기 위해 외부 음성인식·AI 서비스로 전송</b>돼요. 기록은 이 기기 안에 남고, 원하시면 언제든 지울 수 있어요.</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
     <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
     <button class="mid" id="linkBtn" onclick="linkTap()">동료 연결 설정</button>
     <button class="mid" id="linkEdit" onclick="openLink()" style="display:none; color:#8A7663">연결 설정 바꾸기</button>
+    <button class="mid" onclick="openSettings()">설정</button>
   </div>
   <div class="note" id="linkStat"></div>
   <div id="jsAlive" style="font-size:12.5px; color:#B3A28E">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
@@ -44,6 +46,51 @@
   <button class="primary big" onclick="saveLink()">저장</button>
   <div class="note" id="linkMsg">코드는 한 번 만들어 두 기기에 똑같이 넣으면 돼요 · 업무폰을 고르면 다음 화면에서 이름을 적어요</div>
   <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
+</div>
+
+<!-- 1k 설정 -->
+<div class="screen scroll" id="s-settings">
+  <div class="brand"><b>마음안심</b><span>설정</span></div>
+  <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
+  <h1 class="serif" style="font-size:clamp(22px,3vw,30px)">설정</h1>
+  <div class="note">모든 값은 이 기기 안에만 저장돼요. 저장소나 서버로 나가지 않아요.</div>
+  <div class="sec">
+    <h2>① 내담자에게 보이는 고지 문구
+      <span class="switch" id="swApproved" onclick="toggleApproved()"><span class="knob"></span><span id="swApprovedTxt">기관 승인 전</span></span>
+    </h2>
+    <label>1번 문구</label><textarea class="txt" id="cfgN1" rows="2"></textarea>
+    <label>2번 문구</label><textarea class="txt" id="cfgN2" rows="2"></textarea>
+    <label>3번 문구</label><textarea class="txt" id="cfgN3" rows="2"></textarea>
+    <label>기록 거부 시 안내 ("기록을 원하지 않아요"를 눌렀을 때)</label><textarea class="txt" id="cfgRefuse" rows="2"></textarea>
+    <div class="note">기관이 문구를 확정하고 법률 검토가 끝나면 위 스위치를 켜 주세요. 켜기 전까지는 화면에 "기관 승인 전"이 표시돼요.</div>
+  </div>
+  <div class="sec">
+    <h2>② 감지 기준</h2>
+    <div class="row"><label style="width:110px">유예 시간</label><span class="pill" data-grace="5" onclick="pickGrace(this)">5초</span><span class="pill" data-grace="10" onclick="pickGrace(this)">10초</span><span class="pill" data-grace="15" onclick="pickGrace(this)">15초</span></div>
+    <div class="row"><label style="width:110px">큰 소리 민감도</label><span class="pill" data-sens="low" onclick="pickSens(this)">낮음</span><span class="pill" data-sens="mid" onclick="pickSens(this)">보통</span><span class="pill" data-sens="high" onclick="pickSens(this)">높음</span></div>
+    <label>위협 표현 (쉼표로 구분 · 한 번이라도 나오면 유예 시작)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
+    <label>심한 말 (쉼표로 구분)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
+  </div>
+  <div class="sec">
+    <h2>③ AI 맥락 분석 <span class="pill" id="aiStat">꺼짐 · 키 없음</span></h2>
+    <div class="row">
+      <input class="txt" id="cfgKey" type="password" placeholder="Anthropic API 키 (sk-ant-…)" autocomplete="off" style="flex:1; min-width:220px">
+      <button class="mid" id="keyCheck" onclick="checkKey()">연결 확인</button>
+    </div>
+    <div class="row"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5 (가장 저렴)</span></div>
+    <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.</div>
+  </div>
+  <div class="sec">
+    <h2>④ 경고 음성 문구</h2>
+    <textarea class="txt" id="cfgWarn" rows="2"></textarea>
+    <div class="row"><button class="mid" onclick="playWarning(this)">들어보기</button></div>
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; padding-bottom:40px">
+    <button class="mid" onclick="resetSettings()">기본값으로 되돌리기</button>
+    <button class="primary mid" onclick="saveSettings()">저장</button>
+    <button class="mid" onclick="go('start')">← 저장 안 하고 나가기</button>
+  </div>
+  <div class="note" id="cfgMsg" style="padding-bottom:30px"></div>
 </div>
 
 <!-- 1f 업무폰 · 이름 등록 -->
@@ -219,12 +266,13 @@
 <!-- 3 고지 -->
 <div class="screen" id="s-notice">
   <div class="brand"><b>마음안심</b></div>
+  <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>기관 승인 전</div></div>
   <h1 class="serif">이 상담은 기록됩니다</h1>
   <div class="sub">상담 선생님과 상담받으시는 분, <b>모두의 안전을 지키기 위한 프로그램</b>이에요</div>
   <div style="display:flex; flex-direction:column; gap:12px; width:min(660px, 90vw)">
-    <div class="nrow"><span class="nnum">1</span><span>모두가 안전하게 이야기할 수 있도록, 상담을 기록해요</span></div>
-    <div class="nrow"><span class="nnum">2</span><span>기록은 이 기계 안에만 보관되고, 밖으로 나가지 않아요</span></div>
-    <div class="nrow"><span class="nnum">3</span><span>기록은 안전하게 보관되고, 원하시면 언제든 지울 수 있어요</span></div>
+    <div class="nrow"><span class="nnum">1</span><span id="noticeN1">-</span></div>
+    <div class="nrow"><span class="nnum">2</span><span id="noticeN2">-</span></div>
+    <div class="nrow"><span class="nnum">3</span><span id="noticeN3">-</span></div>
   </div>
   <button class="primary big" onclick="startSession(true)">네, 확인했습니다</button>
   <button class="mid" onclick="go('norec')" style="border:none; background:transparent; text-decoration:underline; text-underline-offset:3px; color:#8A7663">기록을 원하지 않아요</button>
@@ -235,12 +283,12 @@
 <div class="screen" id="s-norec">
   <div class="brand"><b>마음안심</b></div>
   <h1 class="serif" style="font-size:clamp(24px,3.6vw,38px)">기록 없이는 오늘 상담을<br>진행하기 어려워요</h1>
-  <div class="sub" style="max-width:640px">기록은 두 분 모두의 안전을 위한 약속이에요.<br>기록을 원하지 않으시면 서비스 이용에 제한이 있을 수 있고,<br>담당자와 상의해 <b>다음 상담 일정을 다시 잡아드려요.</b></div>
+  <div class="sub" style="max-width:640px" id="norecTxt">-</div>
   <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
     <button class="primary big" onclick="startSession(true)">기록에 동의하고 진행할게요</button>
     <button class="big" onclick="abandonSession()">다음에 상담할게요</button>
   </div>
-  <div class="note">세부 기준은 기관 방침에 따라 정해질 예정이에요</div>
+  <div class="note demoNote">기관 방침 · 법률 검토 중 — 세부 기준은 기관 방침에 따라 정해질 예정이에요</div>
   <button class="corner" style="left:24px" onclick="go('notice')">← 뒤로</button>
 </div>
 
@@ -251,7 +299,7 @@
     <div class="chip calm" id="stateChip" onpointerdown="secretTap()"><span class="dot"></span><span id="stateTxt">연결됨</span></div>
     <div class="chip call mono" id="callChip" style="display:none">확인 전화까지 <span id="callLeft" style="margin-left:5px">--:--</span></div>
   </div>
-  <div class="recchip"><span class="recdot"></span><span style="font-size:16px; font-weight:700; color:#A34A1E; letter-spacing:0.05em" id="recLabel">기록 중</span><span style="font-size:13px; color:#8A7663">· 이 기기 안에만 저장돼요</span></div>
+  <div class="recchip"><span class="recdot"></span><span style="font-size:16px; font-weight:700; color:#A34A1E; letter-spacing:0.05em" id="recLabel">기록 중</span><span style="font-size:13px; color:#8A7663">· 음성은 지워지고 글만 남아요</span></div>
   <h1 class="serif" id="mainMsg">이 상담은<br>기록되고 있습니다</h1>
   <canvas id="wave"></canvas>
   <div class="mono" id="timer" style="font-size:clamp(28px,4vw,44px); color:#6E4326">00:00</div>
@@ -335,6 +383,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.2"></script>
+<script src="app.js?v=0.6.3"></script>
 </body>
 </html>
