@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.12)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.7.0)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -32,6 +32,8 @@ window.onerror = function (msg) {
     gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
     aiEvery: 45,
+    promise: '2분 안에 확인 전화 → 노크 → 동석',
+    escalate: 60,
     warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
   };
   var CFG = loadCfg();
@@ -84,7 +86,8 @@ window.onerror = function (msg) {
   var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
     $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
-    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgWarn').value = CFG.warn;
+    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgWarn').value = CFG.warn; $('cfgPromise').value = CFG.promise;
+    document.querySelectorAll('#s-settings [data-esc]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-esc'), 10) === CFG.escalate); });
     formKeys = { gemini: CFG.gkey, anthropic: CFG.key };
     $('swApproved').classList.toggle('on', !!CFG.approved);
     $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
@@ -124,6 +127,7 @@ window.onerror = function (msg) {
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
   window.pickEvery = function (el) { pickOne(el, 'data-every'); };
+  window.pickEsc = function (el) { pickOne(el, 'data-esc'); };
   window.pickModel = function (el) { var v = pickOne(el, 'data-model'); var g = $('cfgGModel'); if (el.parentElement.id === 'modelRowG') { g.style.display = v === 'custom' ? 'inline-block' : 'none'; if (v === 'custom') g.focus(); } };
   function readSettingsForm() {
     formKeys[formProvider] = $('cfgKey').value.trim();
@@ -137,6 +141,8 @@ window.onerror = function (msg) {
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(),
       provider: formProvider,
+      promise: $('cfgPromise').value.trim() || DEF.promise,
+      escalate: (function () { var e = document.querySelector('#s-settings [data-esc].on'); return e ? parseInt(e.getAttribute('data-esc'), 10) : DEF.escalate; })(),
       aiEvery: (function () { var e = document.querySelector('#s-settings [data-every].on'); return e ? parseInt(e.getAttribute('data-every'), 10) : DEF.aiEvery; })(),
       gkey: formKeys.gemini || '', gmodel: (mg && mg.getAttribute('data-model') === 'custom') ? ($('cfgGModel').value.trim() || DEF.gmodel) : (mg ? mg.getAttribute('data-model') : DEF.gmodel),
       key: formKeys.anthropic || '', model: ma ? ma.getAttribute('data-model') : DEF.model,
@@ -245,7 +251,7 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = '연결됨 · ' + S.acc.name;
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -516,6 +522,42 @@ window.onerror = function (msg) {
   };
   window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
 
+  // ---------- 감지 근거 카드 ----------
+  var KIND = { threat: '위협 표현', abuse: '심한 말', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출' };
+  function buildEv(kind, how) {
+    var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
+    var hit = (kind === 'threat' || kind === 'abuse') ? S.lastHit : null;
+    var idx = lines.length - 1;
+    var around = lines.slice(Math.max(0, idx - 3), idx + 1).map(function (l, i, arr) { return { t: l.t, x: String(l.x).slice(0, 80), v: l.v || 0, hit: !!hit && i === arr.length - 1 }; });
+    S.hitN = (S.hitN || 0) + 1;
+    return { kind: kind, how: how || '', hit: hit ? hit.hit : '', line: hit ? String(hit.x).slice(0, 120) : '', v: hit ? (lines[idx] ? (lines[idx].v || 0) : 0) : (kind === 'loud' ? 2 : 0),
+             n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: S.lastCtx ? String(S.lastCtx.x).slice(0, 140) : '', around: around };
+  }
+  function refreshAround(ev) {
+    // 발송 시점에 뒤따른 문장 한 줄을 더 붙인다
+    var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
+    if (!ev.around.length) return ev;
+    var lastT = ev.around[ev.around.length - 1].t, extra = null;
+    for (var i = lines.length - 1; i >= 0; i--) { if (lines[i].t > lastT) extra = lines[i]; else break; }
+    if (extra) ev.around = ev.around.concat([{ t: extra.t, x: String(extra.x).slice(0, 80), v: extra.v || 0, hit: false }]).slice(-5);
+    return ev;
+  }
+  function evHtml(ev, opts) {
+    opts = opts || {};
+    var head, meta = [];
+    if (ev.kind === 'threat' || ev.kind === 'abuse') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
+    else if (ev.kind === 'loud') { head = KIND.loud; meta.push('1.5초 이상'); }
+    else { head = KIND.manual; }
+    if (ev.n) meta.push('이 상담에서 ' + ev.n + '번째');
+    if (opts.time && ev.t) meta.unshift(ev.t);
+    var s = '<span class="hit">' + head + '</span> <span class="meta">' + (meta.length ? '· ' + meta.join(' · ') : '') + '</span>';
+    if (ev.around && ev.around.length && !opts.noAround) {
+      s += '<div class="ctx">' + ev.around.map(function (l) { var x = esc(l.x); return '<div><span class="t">' + esc(l.t) + '</span>' + (l.hit ? '<b>' + x + '</b>' : x) + '</div>'; }).join('') + '</div>';
+    }
+    if (ev.ctx) s += '<div class="ctx"><b>AI 맥락</b> ' + esc(ev.ctx) + '</div>';
+    return s;
+  }
+
   // ---------- 유예 카운트다운 ----------
   var cdLeft = 10;
   function triggerCountdown(reason) {
@@ -524,6 +566,10 @@ window.onerror = function (msg) {
     S.cooldownUntil = Date.now() + 45000;
     cdLeft = CFG.grace || 10; $('cdNum').textContent = String(cdLeft);
     $('cdReason').textContent = reason || '계속되는 큰 소리가';
+    var kind = (S.lastHit && Date.now() - S.lastHit.at < 3000) ? S.lastHit.kind : 'loud';
+    S.curEv = buildEv(kind, 'auto');
+    $('cdEv').innerHTML = evHtml(S.curEv);
+    $('cdTitle').textContent = S.acc ? '잠시 후 ' + S.acc.name + ' 선생님에게 알려요' : '잠시 후 동료에게 알려요';
     go('countdown');
     aiDirty = true; scheduleAI(true);
     if (navigator.vibrate) navigator.vibrate(150);
@@ -535,27 +581,56 @@ window.onerror = function (msg) {
     }, 1000);
   }
   window.cancelAlert = function () { clearInterval(cdId); go('session'); };
+  var escId = 0, ackTick = 0;
+  function setAck(state, name, sub) {
+    var card = $('ackCard'), chip = $('alertChip'), ct = $('alertChipTxt');
+    card.className = 'ackcard ' + state;
+    $('ackMark').textContent = state === 'ok' ? '✓' : state === 'miss' ? '!' : '…';
+    $('ackName').textContent = name; $('ackSub').textContent = sub;
+    if (state === 'ok') { chip.style.background = '#E7F0E9'; chip.style.color = '#2F5E40'; chip.querySelector('.dot').style.background = '#3E7A52'; ct.textContent = '확인됨 · ' + (S.ackBy || ''); }
+    else { chip.style.background = '#F7E3E1'; chip.style.color = '#97302B'; chip.querySelector('.dot').style.background = '#B3403A'; ct.textContent = '위험 신호'; }
+  }
   window.fireAlert = function (how) {
-    clearInterval(cdId);
-    S.alerts += 1;
+    clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick);
+    S.alerts += 1; S.ackBy = '';
     $('stateChip').className = 'chip warn';
     $('stateTxt').textContent = '감지 ' + S.alerts + '회';
     var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
-    $('alertTime').textContent = elapsed;
-    $('alertTitle').textContent = how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요';
-    var c = linkCfg();
+    var ev = (how === 'manual' || !S.curEv) ? buildEv('manual', 'manual') : refreshAround(S.curEv);
+    ev.t = ev.t || elapsed; S.curEv = null;
+    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: ev.kind, hit: ev.hit, v: ev.v, n: ev.n, how: how, ack: null, esc: false }; S.alertLog.push(logItem);
+    var name = S.acc ? S.acc.name : '';
+    $('alertTitle').textContent = name ? (how === 'manual' ? name + ' 선생님을 호출했어요' : name + ' 선생님에게 알렸어요') : (how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요');
+    $('alertEv').innerHTML = evHtml(ev, { time: true });
+    var c = linkCfg(), sentAt = Date.now();
     if (c && c.role === 'host') {
-      postSig({ type: 'alert', rid: S.acc ? S.acc.rid : '', to: S.acc ? S.acc.name : '', place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: Date.now() }).then(function (ok) {
-        if (S.screen === 'alert' && !ok) $('ackLine').textContent = '신호를 보내지 못했어요 — 인터넷 연결을 확인하고 "동료 호출"을 다시 눌러 주세요';
+      var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: sentAt, ev: ev, promise: CFG.promise };
+      postSig(sig).then(function (ok) {
+        if (S.screen === 'alert' && !ok) { setAck('miss', '신호를 보내지 못했어요', '인터넷 연결을 확인하고 "동료 호출"을 다시 눌러 주세요'); }
       });
-      $('ackLine').textContent = (S.acc ? S.acc.name + ' 선생님 업무폰' : '동료 기기') + '으로 신호를 보냈어요 — 응답 대기 중…';
+      setAck('wait', (name ? name + ' 선생님' : '동료') + ' 확인 기다리는 중', '업무폰으로 보냈어요 · 0초');
+      ackTick = setInterval(function () { if (S.ackBy) return; $('ackSub').textContent = '업무폰으로 보냈어요 · ' + Math.floor((Date.now() - sentAt) / 1000) + '초'; }, 1000);
+      $('ackLine').textContent = '';
+      escId = setTimeout(function () {
+        if (S.ackBy || !(S.screen === 'alert' || S.screen === 'session' || S.screen === 'countdown')) return;
+        clearInterval(ackTick); logItem.esc = true;
+        postSig({ type: 'escalate', rid: sig.rid, to: name, place: sig.place, who: sig.who, t: elapsed, ts: Date.now(), ev: ev });
+        setAck('miss', '아직 확인이 없어요', (name ? name + ' 선생님 업무폰 ' : '') + CFG.escalate + '초 미확인 · 팀 상황판으로 알렸어요');
+      }, (CFG.escalate || 60) * 1000);
     } else {
-      $('ackLine').textContent = '동료 연결이 설정되지 않아 이 기기에만 표시돼요 (시작 화면 → 동료 연결 설정)';
+      setAck('miss', '동료 연결이 없어요', '이 기기에만 표시돼요 · 시작 화면 → 동료 연결 설정');
     }
     go('alert');
     if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
   };
-  window.cancelFromAlert = function () { var c = linkCfg(); postSig({ type: 'cancel', rid: S.acc ? S.acc.rid : '', place: (c && c.place) || '' }); go('session'); };
+  function onAck(m) {
+    S.ackBy = m.by || '동료';
+    clearTimeout(escId); clearInterval(ackTick);
+    var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm() };
+    setAck('ok', S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
+    if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+  }
+  window.cancelFromAlert = function () { var c = linkCfg(); clearTimeout(escId); clearInterval(ackTick); postSig({ type: 'cancel', rid: S.acc ? S.acc.rid : '', place: (c && c.place) || '' }); go('session'); };
 
   // ---------- 확인 전화 ----------
   function startRing() {
@@ -595,7 +670,7 @@ window.onerror = function (msg) {
 
   // ---------- 종료 · 관찰 ----------
   window.endSession = function () {
-    clearInterval(timerId); playRing(false); clearInterval(cdId); stopSTT(); aiStop();
+    clearInterval(timerId); playRing(false); clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick); stopSTT(); aiStop();
     var cE = linkCfg();
     if (cE && cE.role === 'host') postSig({ type: 'end', rid: S.acc ? S.acc.rid : '', place: cE.place, who: S.counselor });
     S.acc = null; S.rid = '';
@@ -626,7 +701,8 @@ window.onerror = function (msg) {
           c1: S.counselor || '-', c2: S.client || '-',
           one: S.stype || '',
           tr: S.tr || [],
-          ctx: S.ctx || []
+          ctx: S.ctx || [],
+          al: S.alertLog || []
         });
         localStorage.setItem('ma_obs', JSON.stringify(arr));
       } catch (e) {}
@@ -1100,22 +1176,26 @@ window.onerror = function (msg) {
     if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; $('pconnState').textContent = '연결됨 · 상담 중'; }
     else if (m.type === 'alert') {
       if (m.ts && Date.now() - m.ts > 600000) return;
-      P.alerts += 1;
-      var a = $('pAlert');
-      a.style.display = 'block';
-      a.innerHTML = '<b style="font-size:16px">위험 신호 — ' + esc(m.place || '상담실') + '</b><br>' + esc(m.who || '') + ' 선생님 · 상담 ' + esc(m.t || '-') + ' 경과<br><span style="font-size:12px; color:#F0C4BF">전화 걸기 → 노크 → 동석 순으로, 부담 적은 개입부터</span>';
-      var b = document.createElement('button');
-      b.className = 'mid'; b.textContent = '확인했어요 — 지금 볼게요';
-      b.style.cssText = 'margin-top:10px; background:#FFF6F4; border-color:#FFF6F4; color:#97302B; display:block';
-      b.onclick = function () { postSig({ type: 'ack', rid: P.conn ? P.conn.rid : '', place: m.place, by: P.name }); a.style.display = 'none'; phoneRing(false); };
-      a.appendChild(b);
+      P.alerts += 1; P.alert = m;
+      $('palertWho').textContent = (m.who || '-') + ' 선생님 · ' + (m.place || '상담실');
+      $('palertTime').textContent = hhmm(m.ts);
+      $('palertEv').innerHTML = m.ev ? evHtml(m.ev, { time: true }) : '<span class="hit">위험 신호</span> <span class="meta">· 상담 ' + esc(m.t || '-') + ' 경과</span>';
+      $('palertPromise').textContent = '기관 약속: ' + (m.promise || CFG.promise || DEF.promise);
+      go('palert');
       phoneRing(true);
-      notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과');
+      notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · ' + (m.ev && m.ev.hit ? '"' + m.ev.hit + '"' : '상담 ' + (m.t || '') + ' 경과'));
       if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
     }
-    else if (m.type === 'cancel') { $('pAlert').style.display = 'none'; phoneRing(false); }
+    else if (m.type === 'cancel') { if (S.screen === 'palert') go('pconn'); P.alert = null; phoneRing(false); var n0 = $('pAckNote'); n0.style.display = 'block'; n0.innerHTML = '<b>' + hhmm() + '</b> 상담자가 "괜찮아요"를 눌렀어요 · 위험 신호 취소'; }
     else if (m.type === 'end') { endConn(''); }
   }
+  window.ackAlert = function () {
+    var m = P.alert; P.alert = null; phoneRing(false);
+    postSig({ type: 'ack', rid: P.conn ? P.conn.rid : (m ? m.rid : ''), place: m ? m.place : '', by: P.name, ts: Date.now() });
+    var n = $('pAckNote'); n.style.display = 'block';
+    n.innerHTML = '<b>' + hhmm() + ' 확인 보냄</b> · ' + (m && m.ev && m.ev.hit ? '위험 신호 “' + esc(m.ev.hit) + '”' : '위험 신호') + '<br><span style="color:#8A7663">상담자 화면에 "' + esc(P.name) + ' 확인 ' + hhmm() + '"이 떴어요</span>';
+    go(P.conn ? 'pconn' : 'pwait');
+  };
   window.acceptReq = function () {
     var r = P.req; if (!r) { startPhone(); return; }
     phoneRing(false);
@@ -1124,7 +1204,7 @@ window.onerror = function (msg) {
     $('pconnWho').textContent = r.who || '-';
     $('pconnState').textContent = '수락함 · 상담 시작 기다리는 중';
     $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(r.client || '-') + '<br><b>장소</b> ' + esc(r.place || '-') + '<br><b>수락</b> ' + hhmm();
-    $('pAlert').style.display = 'none';
+    $('pAckNote').style.display = 'none'; P.alert = null;
     $('pTimer').textContent = '00:00';
     go('pconn');
     clearInterval(pTick);
@@ -1153,7 +1233,7 @@ window.onerror = function (msg) {
     clearInterval(pRingId);
     if (!on) return;
     function b() {
-      if (S.screen !== 'preq' && S.screen !== 'pconn') { clearInterval(pRingId); return; }
+      if (S.screen !== 'preq' && S.screen !== 'pconn' && S.screen !== 'palert') { clearInterval(pRingId); return; }
       beep();
       if (navigator.vibrate) navigator.vibrate(200);
     }
@@ -1170,7 +1250,7 @@ window.onerror = function (msg) {
       var d = document.createElement('div');
       d.className = 'banner';
       d.style.cssText = 'max-width:none; background:#B3403A; border-color:#B3403A; color:#FFF6F4';
-      d.innerHTML = '<b style="font-size:16px">위험 신호 — ' + esc(a.place) + '</b><br>' + esc(a.who) + ' 선생님 · 상담 ' + esc(a.t || '-') + ' 경과<br><span style="font-size:12px; color:#F0C4BF">전화 걸기 → 노크 → 동석 순으로, 부담 적은 개입부터</span>';
+      d.innerHTML = '<b style="font-size:16px">위험 신호 — ' + esc(a.place) + (a.esc ? ' · 업무폰(' + esc(a.phone) + ') 미확인' : '') + '</b><br>' + esc(a.who) + ' 선생님 · 상담 ' + esc(a.t || '-') + ' 경과' + (a.ev ? '<div class="ev red" style="width:auto; margin-top:8px; padding:8px 12px; border-color:rgba(255,246,244,0.4)">' + evHtml(a.ev) + '</div>' : '') + '<br><span style="font-size:12px; color:#F0C4BF">기관 약속: ' + esc(CFG.promise || DEF.promise) + '</span>';
       var b = document.createElement('button');
       b.className = 'mid';
       b.textContent = '확인했어요 — 지금 볼게요';
@@ -1186,7 +1266,7 @@ window.onerror = function (msg) {
       var d = document.createElement('div');
       d.className = 'banner';
       d.style.maxWidth = 'none';
-      d.innerHTML = '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + (danger ? '#B3403A' : '#3E7A52') + '; margin-right:10px"></span><b>' + esc(s2.place) + '</b> · ' + esc(s2.who) + ' 선생님 · 진행 ' + mins + '분' + (danger ? ' · <span style="color:#B3403A; font-weight:700">위험 신호!</span>' : '');
+      d.innerHTML = '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + (danger || s2.pending ? '#B3403A' : '#3E7A52') + '; margin-right:10px"></span><b>' + esc(s2.place) + '</b> · ' + esc(s2.who) + ' 선생님 · 진행 ' + mins + '분' + (s2.phone ? ' · 업무폰 ' + esc(s2.phone) : '') + (danger ? ' · <span style="color:#B3403A; font-weight:700">위험 신호!</span>' : s2.pending ? ' · <span style="color:#B07A1E; font-weight:700">위험 신호 · 업무폰 확인 대기</span>' : '');
       bl.appendChild(d);
     });
     $('boardEmpty').style.display = (sk.length === 0 && ak.length === 0) ? 'block' : 'none';
@@ -1266,17 +1346,23 @@ window.onerror = function (msg) {
       } else if (m.type === 'end') {
         delete sessions[k]; delete alertsMap[k];
         renderBoard();
-      } else if (m.type === 'alert') {
+      } else if (m.type === 'alert' || m.type === 'escalate') {
         if (m.ts && Date.now() - m.ts > 600000) return;
-        alertsMap[k] = { place: m.place || '상담실', who: m.who || '-', t: m.t || '' };
         if (!sessions[k]) sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: Date.now(), last: Date.now() };
-        renderBoard();
-        if (Date.now() > liveAt) {
-          beep();
-          notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · 상담 ' + (m.t || '') + ' 경과');
-          if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
-        }
+        sessions[k].phone = m.to || ''; sessions[k].pending = (m.type === 'alert' && !!m.to);
+        // 업무폰이 맡은 상담은 업무폰이 확인하지 않았을 때(escalate)만 카드·소리. 업무폰 없는 상담은 바로.
+        if (m.type === 'escalate' || !m.to) {
+          alertsMap[k] = { place: m.place || '상담실', who: m.who || '-', t: m.t || '', ev: m.ev || null, phone: m.to || '', esc: m.type === 'escalate' };
+          sessions[k].pending = false;
+          renderBoard();
+          if (Date.now() > liveAt) {
+            beep();
+            notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · ' + (m.to ? '업무폰(' + m.to + ') 미확인' : '상담 ' + (m.t || '') + ' 경과'));
+            if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
+          }
+        } else renderBoard();
       } else if (m.type === 'cancel' || m.type === 'ack') {
+        Object.keys(sessions).forEach(function (k2) { if (!m.place || sessions[k2].place === m.place) sessions[k2].pending = false; });
         Object.keys(alertsMap).forEach(function (k2) { if (!m.place || alertsMap[k2].place === m.place) delete alertsMap[k2]; });
         renderBoard();
       }
@@ -1318,8 +1404,7 @@ window.onerror = function (msg) {
       else if (m.type === 'decline') { if (S.rid && m.rid === S.rid && S.screen === 'wait') { clearTimeout(reqTimer); setWait('declined'); } }
       else if (m.type === 'ack') {
         if (S.acc && m.rid && m.rid !== S.acc.rid) return;
-        var el = $('ackLine');
-        if (el) el.textContent = '✓ ' + (m.by ? m.by + ' 선생님이' : '동료가') + ' 확인했어요 — 오고 있어요 (' + hhmm() + ')';
+        onAck(m);
       }
     });
   }
