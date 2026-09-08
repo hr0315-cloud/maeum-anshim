@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.10)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.11)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -31,6 +31,7 @@ window.onerror = function (msg) {
     provider: 'gemini',
     gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
+    aiEvery: 45,
     warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
   };
   var CFG = loadCfg();
@@ -72,6 +73,7 @@ window.onerror = function (msg) {
     $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
     document.querySelectorAll('#s-settings [data-grace]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-grace'), 10) === CFG.grace); });
     document.querySelectorAll('#s-settings [data-sens]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-sens') === CFG.sens); });
+    document.querySelectorAll('#s-settings [data-every]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-every'), 10) === CFG.aiEvery); });
     var known = ['gemini-3.6-flash', 'gemini-3.6-flash-lite'].indexOf(CFG.gmodel) >= 0;
     document.querySelectorAll('#modelRowG [data-model]').forEach(function (p) { var v = p.getAttribute('data-model'); p.classList.toggle('on', known ? v === CFG.gmodel : v === 'custom'); });
     $('cfgGModel').value = known ? '' : (CFG.gmodel || ''); $('cfgGModel').style.display = known ? 'none' : 'inline-block';
@@ -104,6 +106,7 @@ window.onerror = function (msg) {
   function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); return el.getAttribute(attr); }
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
+  window.pickEvery = function (el) { pickOne(el, 'data-every'); };
   window.pickModel = function (el) { var v = pickOne(el, 'data-model'); var g = $('cfgGModel'); if (el.parentElement.id === 'modelRowG') { g.style.display = v === 'custom' ? 'inline-block' : 'none'; if (v === 'custom') g.focus(); } };
   function readSettingsForm() {
     formKeys[formProvider] = $('cfgKey').value.trim();
@@ -117,6 +120,7 @@ window.onerror = function (msg) {
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(),
       provider: formProvider,
+      aiEvery: (function () { var e = document.querySelector('#s-settings [data-every].on'); return e ? parseInt(e.getAttribute('data-every'), 10) : DEF.aiEvery; })(),
       gkey: formKeys.gemini || '', gmodel: (mg && mg.getAttribute('data-model') === 'custom') ? ($('cfgGModel').value.trim() || DEF.gmodel) : (mg ? mg.getAttribute('data-model') : DEF.gmodel),
       key: formKeys.anthropic || '', model: ma ? ma.getAttribute('data-model') : DEF.model,
       warn: $('cfgWarn').value.trim() || DEF.warn
@@ -323,7 +327,8 @@ window.onerror = function (msg) {
 
   // ---------- AI 맥락 분석: 사실만 한두 문장, 판단·제안 금지 ----------
   var aiDirty = false, aiTimer = 0, aiLastAt = 0, aiBusy = false, aiFails = 0;
-  var AI_GAP = 20000, AI_WINDOW = 180, aiCoolUntil = 0;
+  var AI_WINDOW = 180, aiCoolUntil = 0;
+  function aiGap() { return Math.max(20, CFG.aiEvery || 45) * 1000; }
   function aiReset() {
     clearTimeout(aiTimer); aiDirty = false; aiLastAt = 0; aiBusy = false; aiFails = 0;
     var chip = $('aiChip'), line = $('aiLine');
@@ -332,7 +337,8 @@ window.onerror = function (msg) {
   }
   function scheduleAI(force) {
     if (!aiKey() || S.noRecord) return;
-    var wait = Math.max(0, aiLastAt + (force ? 5000 : AI_GAP) - Date.now(), aiCoolUntil - Date.now());
+    if (!force && CFG.aiEvery === 0) return;   // '감지 때만' 모드
+    var wait = Math.max(0, aiLastAt + (force ? 5000 : aiGap()) - Date.now(), aiCoolUntil - Date.now());
     clearTimeout(aiTimer);
     aiTimer = setTimeout(function () { runAI(force); }, wait);
   }
@@ -370,7 +376,12 @@ window.onerror = function (msg) {
       var msg = String((e && e.message) || e);
       var quota = /quota|429|RESOURCE_EXHAUSTED|rate/i.test(msg);
       var chip = $('aiChip'), line = $('aiLine');
-      if (quota) {
+      if (quota && /free_tier_requests|per_day|PerDay|daily/i.test(msg)) {
+        aiCoolUntil = Date.now() + 6 * 3600000;
+        var lim = (msg.match(/limit:s*(d+)/) || [])[1];
+        chip.className = 'chip off'; chip.textContent = 'AI 오늘 한도 소진';
+        line.className = 'ai off'; line.textContent = 'AI 맥락 · 이 모델의 무료 하루 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요. 설정 ③에서 다른 모델(Flash-Lite)로 바꾸거나 내일 다시 열려요. 자막·감지·알림은 그대로예요.';
+      } else if (quota) {
         aiCoolUntil = Date.now() + 65000;
         chip.className = 'chip off'; chip.textContent = 'AI 한도 대기';
         line.className = 'ai off'; line.textContent = 'AI 맥락 · 무료 등급 분당 한도에 걸려 1분 쉬었다 이어가요 (자막·감지·알림은 그대로)';
@@ -381,7 +392,7 @@ window.onerror = function (msg) {
       aiDirty = true;
     }).then(function () {
       aiBusy = false;
-      if (aiDirty && inSession()) { clearTimeout(aiTimer); aiTimer = setTimeout(function () { runAI(false); }, Math.max(aiFails >= 3 ? 60000 : AI_GAP, aiCoolUntil - Date.now())); }
+      if (aiDirty && inSession() && CFG.aiEvery !== 0 && aiCoolUntil - Date.now() < 600000) { clearTimeout(aiTimer); aiTimer = setTimeout(function () { runAI(false); }, Math.max(aiFails >= 3 ? 60000 : aiGap(), aiCoolUntil - Date.now())); }
     });
   }
   function aiStop() { clearTimeout(aiTimer); aiBusy = false; aiDirty = false; }
