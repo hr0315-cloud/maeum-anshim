@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.5">
+<link rel="stylesheet" href="style.css?v=0.6.6">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.5</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.6</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -300,13 +300,16 @@
   <div class="brand"><b>마음안심</b></div>
   <div class="chips">
     <div class="chip calm" id="stateChip" onpointerdown="secretTap()"><span class="dot"></span><span id="stateTxt">연결됨</span></div>
+    <div class="chip rec" id="recChip"><span class="dot"></span><span id="recLabel">기록 중</span></div>
+    <div class="chip off" id="aiChip">AI 꺼짐</div>
     <div class="chip call mono" id="callChip" style="display:none">확인 전화까지 <span id="callLeft" style="margin-left:5px">--:--</span></div>
   </div>
-  <div class="recchip"><span class="recdot"></span><span style="font-size:16px; font-weight:700; color:#A34A1E; letter-spacing:0.05em" id="recLabel">기록 중</span><span style="font-size:13px; color:#8A7663">· 음성은 지워지고 글만 남아요</span></div>
-  <h1 class="serif" id="mainMsg">이 상담은<br>기록되고 있습니다</h1>
-  <canvas id="wave"></canvas>
-  <div class="mono" id="timer" style="font-size:clamp(28px,4vw,44px); color:#6E4326">00:00</div>
-  <div class="sub">안전한 상담을 위해 함께하고 있어요</div>
+  <div class="toprow">
+    <div class="mono" id="timer" style="font-size:clamp(26px,3.6vw,40px); color:#6E4326">00:00</div>
+    <canvas id="wave"></canvas>
+  </div>
+  <div class="tl" id="tl"><div class="note" id="tlEmpty">말씀이 시작되면 여기에 글로 나타나요 · 음성은 글로 바뀐 뒤 바로 지워져요</div></div>
+  <div class="ai off" id="aiLine">AI 맥락 분석 꺼짐 · 설정 ③에 키를 넣으면 켜져요</div>
   <button class="corner" style="left:24px" onclick="manualAlert()">동료 호출</button>
   <button class="corner" style="right:24px" onclick="endSession()">상담 종료</button>
 </div>
@@ -377,6 +380,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.5"></script>
+<script src="app.js?v=0.6.6"></script>
 </body>
 </html>
