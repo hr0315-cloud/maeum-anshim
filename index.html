@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.7">
+<link rel="stylesheet" href="style.css?v=0.6.8">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.7</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.8</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -34,7 +34,7 @@
   <div class="sub" style="max-width:640px">같은 <b>팀 코드</b>를 넣은 기기끼리 위험 신호가 전달돼요.<br>신호에는 장소·시각·유형만 담기고, <b>대화 내용은 절대 나가지 않아요.</b></div>
   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
     <span style="font-weight:700; color:#6E4326; font-size:15px">이 기기는</span>
-    <span class="pill" data-role="host" onclick="pickRole(this)">상담용 태블릿</span>
+    <span class="pill" data-role="host" onclick="pickRole(this)">상담용 (상담하는 기기)</span>
     <span class="pill" data-role="phone" onclick="pickRole(this)">업무폰</span>
     <span class="pill" data-role="board" onclick="pickRole(this)">팀 상황판 (PC)</span>
   </div>
@@ -248,7 +248,7 @@
     <span class="pill" data-min="0" onclick="pickCall(this)">안 받을래요</span>
   </div>
   <button class="primary big" id="reqBtn" onclick="sendRequest()">연결 요청</button>
-  <div class="note">정한 시각에 이 태블릿이 진짜 전화처럼 울려요</div>
+  <div class="note">정한 시각에 이 기기가 진짜 전화처럼 울려요</div>
   <button class="corner" style="left:24px" onclick="go('name')">← 뒤로</button>
 </div>
 
@@ -380,6 +380,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.7"></script>
+<script src="app.js?v=0.6.8"></script>
 </body>
 </html>
