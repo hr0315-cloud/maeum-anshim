@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.2)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.3)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -16,6 +16,116 @@ window.onerror = function (msg) {
 
   function $(id) { return document.getElementById(id); }
   function fmt(s) { var m = Math.floor(s/60), r = Math.floor(s%60); return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
+
+  // ---------- 설정 (기기 안에만 저장) ----------
+  var DEF = {
+    n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
+    n2: '글로 바꾸고 정리하기 위해 대화 내용이 외부 음성인식·AI 서비스로 전송됩니다.',
+    n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
+    refuse: '기록에 동의하지 않으시면 오늘 상담 진행이 어렵습니다. 담당자와 상의해 다음 상담 일정을 다시 잡아드립니다.',
+    approved: false,
+    grace: 10,
+    sens: 'mid',
+    threat: '가만 안, 가만히 안, 죽여, 죽인다, 죽일, 때려 버, 때린다, 패버리, 패 버릴, 칼로, 칼 들, 불 지르, 불질러, 찾아간다, 찾아갈, 찾아온다, 퇴근길 조심, 밤길 조심, 조심해라, 묻어버리, 없애버리, 해코지, 각오해, 부숴버, 박살 내',
+    abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹, 꺼져, 닥쳐, 등신, 또라이, 개같은, 좆',
+    key: '',
+    model: 'claude-opus-5',
+    warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
+  };
+  var CFG = loadCfg();
+  function loadCfg() {
+    var c = {}; try { c = JSON.parse(localStorage.getItem('ma_cfg') || '{}') || {}; } catch (e) { c = {}; }
+    var out = {}; Object.keys(DEF).forEach(function (k) { out[k] = (k in c) ? c[k] : DEF[k]; });
+    return out;
+  }
+  function saveCfg() { try { localStorage.setItem('ma_cfg', JSON.stringify(CFG)); } catch (e) {} }
+  function listToRx(s) {
+    var parts = String(s || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!parts.length) return null;
+    var alts = parts.map(function (p) { return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*'); });
+    return new RegExp('(' + alts.join('|') + ')');
+  }
+  var RX_THREAT = null, RX_ABUSE = null;
+  function applyCfg() {
+    RX_THREAT = listToRx(CFG.threat); RX_ABUSE = listToRx(CFG.abuse);
+    var t = ['noticeN1', 'noticeN2', 'noticeN3'], v = [CFG.n1, CFG.n2, CFG.n3];
+    t.forEach(function (id, i) { var el = $(id); if (el) el.textContent = v[i]; });
+    var nr = $('norecTxt'); if (nr) nr.textContent = CFG.refuse;
+    document.querySelectorAll('.demoChip, .demoNote').forEach(function (el) { el.style.display = CFG.approved ? 'none' : ''; });
+    var ai = $('aiStat'); if (ai) ai.textContent = CFG.key ? '켜짐 · ' + modelLabel(CFG.model) : '꺼짐 · 키 없음';
+  }
+  function modelLabel(m) { return m === 'claude-haiku-4-5' ? 'Haiku 4.5' : m === 'claude-sonnet-5' ? 'Sonnet 5' : 'Opus 5'; }
+  window.openSettings = function () {
+    $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
+    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgWarn').value = CFG.warn; $('cfgKey').value = CFG.key;
+    $('swApproved').classList.toggle('on', !!CFG.approved);
+    $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
+    document.querySelectorAll('#s-settings [data-grace]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-grace'), 10) === CFG.grace); });
+    document.querySelectorAll('#s-settings [data-sens]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-sens') === CFG.sens); });
+    document.querySelectorAll('#s-settings [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
+    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.';
+    go('settings');
+    $('s-settings').scrollTop = 0;
+  };
+  window.toggleApproved = function () {
+    var on = !$('swApproved').classList.contains('on');
+    $('swApproved').classList.toggle('on', on);
+    $('swApprovedTxt').textContent = on ? '기관 승인 완료' : '기관 승인 전';
+  };
+  function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); return el.getAttribute(attr); }
+  window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
+  window.pickSens = function (el) { pickOne(el, 'data-sens'); };
+  window.pickModel = function (el) { pickOne(el, 'data-model'); };
+  function readSettingsForm() {
+    var g = document.querySelector('#s-settings [data-grace].on'), s = document.querySelector('#s-settings [data-sens].on'), m = document.querySelector('#s-settings [data-model].on');
+    return {
+      n1: $('cfgN1').value.trim() || DEF.n1, n2: $('cfgN2').value.trim() || DEF.n2, n3: $('cfgN3').value.trim() || DEF.n3,
+      refuse: $('cfgRefuse').value.trim() || DEF.refuse,
+      approved: $('swApproved').classList.contains('on'),
+      grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
+      sens: s ? s.getAttribute('data-sens') : DEF.sens,
+      threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(),
+      key: $('cfgKey').value.trim(), model: m ? m.getAttribute('data-model') : DEF.model,
+      warn: $('cfgWarn').value.trim() || DEF.warn
+    };
+  }
+  window.saveSettings = function () {
+    CFG = readSettingsForm(); saveCfg(); applyCfg();
+    $('cfgMsg').textContent = '저장됐어요 (' + hhmm() + ')';
+    setTimeout(function () { if (S.screen === 'settings') go('start'); }, 700);
+  };
+  window.resetSettings = function () {
+    var keepKey = $('cfgKey').value.trim();
+    CFG = loadCfg(); Object.keys(DEF).forEach(function (k) { CFG[k] = DEF[k]; }); CFG.key = keepKey;
+    openSettings();
+    $('cfgMsg').textContent = '기본값으로 되돌렸어요 — "저장"을 눌러야 적용돼요 (키는 그대로)';
+  };
+  // Anthropic API 연결 확인: 브라우저에서 직접 호출 (시연용). 키는 헤더로만 나가고 어디에도 기록되지 않는다.
+  window.checkKey = function () {
+    var f = readSettingsForm(), b = $('keyCheck'), msg = $('keyMsg');
+    if (!f.key) { msg.textContent = '키를 먼저 넣어 주세요'; return; }
+    b.textContent = '확인 중…'; b.disabled = true;
+    askClaude(f.key, f.model, '연결 확인입니다. "확인"이라고만 답하세요.', 16).then(function (r) {
+      msg.textContent = '✓ 연결됐어요 · ' + modelLabel(f.model) + ' · 응답: ' + (r.text || '').slice(0, 20) + ' · 저장을 눌러 주세요';
+      msg.style.color = '#3E7A52';
+    }).catch(function (e) {
+      msg.textContent = '연결 실패: ' + (e && e.message ? e.message : e);
+      msg.style.color = '#B3403A';
+    }).then(function () { b.textContent = '연결 확인'; b.disabled = false; });
+  };
+  function askClaude(key, model, prompt, maxTokens) {
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: model, max_tokens: maxTokens || 256, messages: [{ role: 'user', content: prompt }] })
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) throw new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+        var text = (j.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('');
+        return { text: text, stop: j.stop_reason };
+      });
+    });
+  }
   window.go = function (name) {
     document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('on'); });
     $('s-'+name).classList.add('on');
@@ -106,28 +216,30 @@ window.onerror = function (msg) {
   function stopSTT() { sttActive = false; if (stt) { try { stt.stop(); } catch (e) {} stt = null; } }
 
   // ---------- 위협 단어 감지 (기기 안에서 텍스트 매칭) ----------
-  var RX_THREAT = /(가만\s*안|가만히\s*안|죽여|죽인다|죽일|때려\s*버|때린다|패버리|패\s*버릴|칼로|칼\s*들|불\s*지르|불질러|찾아간다|찾아갈|찾아온다|퇴근길\s*조심|밤길\s*조심|조심해라|묻어버리|없애버리|해코지|각오해|부숴버|박살\s*내)/;
-  var RX_ABUSE = /(씨발|시발|씨팔|개새끼|새끼야|이런\s*새끼|이\s*새끼|저\s*새끼|병신|미친놈|미친년|지랄|엿\s*먹|꺼져|닥쳐|등신|또라이|개같은|좆)/;
+  // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
   function checkThreat(x) {
     if (S.screen !== 'session' || Date.now() <= S.cooldownUntil) return;
-    if (RX_THREAT.test(x)) triggerCountdown('위협하는 말이');
-    else if (RX_ABUSE.test(x)) triggerCountdown('심한 말이');
+    if (RX_THREAT && RX_THREAT.test(x)) triggerCountdown('위협하는 말이');
+    else if (RX_ABUSE && RX_ABUSE.test(x)) triggerCountdown('심한 말이');
   }
 
   // ---------- 경고 음성 (기기 내장 음성합성, 무료) ----------
   window.playWarning = function (btn) {
     try {
-      var u = new SpeechSynthesisUtterance('폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.');
+      var text = (S.screen === 'settings' && $('cfgWarn').value.trim()) || CFG.warn || DEF.warn;
+      var u = new SpeechSynthesisUtterance(text);
       u.lang = 'ko-KR'; u.rate = 0.95; u.pitch = 1;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
       if (btn) {
         btn.textContent = '재생 중…';
-        var revert = function () { btn.textContent = '경고 음성'; };
+        var label = btn.textContent === '들어보기' || btn.textContent === '재생 중…' && S.screen === 'settings' ? '들어보기' : '경고 음성';
+        btn.textContent = '재생 중…';
+        var revert = function () { btn.textContent = label; };
         u.onend = revert; u.onerror = revert;
         setTimeout(revert, 8000);
       }
-      S.tr.push({ t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: '[경고 안내 음성 재생됨]' });
+      if (S.screen !== 'settings') S.tr.push({ t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: '[경고 안내 음성 재생됨]' });
     } catch (e) {}
   };
 
@@ -180,7 +292,8 @@ window.onerror = function (msg) {
     // 감지 v1: 지속되는 고성 (음량 기반, 100% 로컬)
     if (rms !== null && Date.now() > S.cooldownUntil) {
       baseline = baseline * 0.999 + rms * 0.001;
-      var threshold = Math.max(0.10, baseline * 3.2);
+      var sens = CFG.sens === 'low' ? [0.13, 4.0] : CFG.sens === 'high' ? [0.08, 2.5] : [0.10, 3.2];
+      var threshold = Math.max(sens[0], baseline * sens[1]);
       if (rms > threshold) {
         if (!loudSince) loudSince = Date.now();
         if (Date.now() - loudSince > 1500) triggerCountdown('계속되는 큰 소리가');
@@ -203,7 +316,7 @@ window.onerror = function (msg) {
     if (S.screen !== 'session') return;
     loudSince = 0;
     S.cooldownUntil = Date.now() + 45000;
-    cdLeft = 10; $('cdNum').textContent = '10';
+    cdLeft = CFG.grace || 10; $('cdNum').textContent = String(cdLeft);
     $('cdReason').textContent = reason || '계속되는 큰 소리가';
     go('countdown');
     if (navigator.vibrate) navigator.vibrate(150);
@@ -999,6 +1112,7 @@ window.onerror = function (msg) {
   }
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
+  applyCfg();
   updateObsCount();
   updateLinkStat();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
