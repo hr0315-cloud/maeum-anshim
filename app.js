@@ -401,7 +401,7 @@ window.onerror = function (msg) {
       var chip = $('aiChip'), line = $('aiLine');
       if (quota && /free_tier_requests|per_day|PerDay|daily/i.test(msg)) {
         aiCoolUntil = Date.now() + 6 * 3600000;
-        var lim = (msg.match(/limit:s*(d+)/) || [])[1];
+        var lim = (msg.match(/limit:\s*(\d+)/) || [])[1];
         chip.className = 'chip off'; chip.textContent = 'AI 오늘 한도 소진';
         line.className = 'ai off'; line.textContent = 'AI 맥락 · 이 모델의 무료 하루 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요. 설정 ③에서 다른 모델(Flash-Lite)로 바꾸거나 내일 다시 열려요. 자막·감지·알림은 그대로예요.';
       } else if (quota) {
@@ -440,8 +440,7 @@ window.onerror = function (msg) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
       if (btn) {
-        btn.textContent = '재생 중…';
-        var label = btn.textContent === '들어보기' || btn.textContent === '재생 중…' && S.screen === 'settings' ? '들어보기' : '경고 음성';
+        var label = S.screen === 'settings' ? '들어보기' : '경고 음성';
         btn.textContent = '재생 중…';
         var revert = function () { btn.textContent = label; };
         u.onend = revert; u.onerror = revert;
@@ -627,7 +626,7 @@ window.onerror = function (msg) {
     S.ackBy = m.by || '동료';
     clearTimeout(escId); clearInterval(ackTick);
     var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm() };
-    setAck('ok', S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
+    setAck('ok', S.ackBy === '팀 상황판' ? '팀 상황판에서 확인했어요' : S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
   }
   window.cancelFromAlert = function () { var c = linkCfg(); clearTimeout(escId); clearInterval(ackTick); postSig({ type: 'cancel', rid: S.acc ? S.acc.rid : '', place: (c && c.place) || '' }); go('session'); };
@@ -1172,6 +1171,15 @@ window.onerror = function (msg) {
       else if (P.conn && m.rid === P.conn.rid) { endConn('상담이 시작되지 않고 취소됐어요'); }
       return;
     }
+    if (m.type === 'ack') {
+      // 다른 곳(팀 상황판 등)이 먼저 확인한 경우: 벨을 멈추고 알려준다. 상황판 신호에는 요청 번호가 없어 장소로 맞춘다.
+      if (!P.alert || !m.by || m.by === P.name) return;
+      if (m.rid ? m.rid !== P.alert.rid : m.place !== P.alert.place) return;
+      if (S.screen === 'palert') go(P.conn ? 'pconn' : 'pwait');
+      P.alert = null; phoneRing(false);
+      var n1 = $('pAckNote'); n1.style.display = 'block'; n1.innerHTML = '<b>' + hhmm() + '</b> ' + esc(m.by) + '에서 먼저 확인했어요 · 그래도 상담실 상황을 살펴 주세요';
+      return;
+    }
     if (!P.conn || m.rid !== P.conn.rid) return;
     if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; $('pconnState').textContent = '연결됨 · 상담 중'; }
     else if (m.type === 'alert') {
@@ -1186,8 +1194,7 @@ window.onerror = function (msg) {
       notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · ' + (m.ev && m.ev.hit ? '"' + m.ev.hit + '"' : '상담 ' + (m.t || '') + ' 경과'));
       if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
     }
-    else if (m.type === 'cancel') { if (S.screen === 'palert') go('pconn'); P.alert = null; phoneRing(false); var n0 = $('pAckNote'); n0.style.display = 'block'; n0.innerHTML = '<b>' + hhmm() + '</b> 상담자가 "괜찮아요"를 눌렀어요 · 위험 신호 취소'; }
-    else if (m.type === 'end') { endConn(''); }
+    else if (m.type === 'cancel') { if (S.screen === 'palert') go('pconn'); P.alert = null; phoneRing(false); var n0 = $('pAckNote'); n0.style.display = 'block'; n0.innerHTML = '<b>' + hhmm() + '</b> 상담자가 "괜찮아요"를 눌렀어요 · 위험 신호 취소'; }    else if (m.type === 'end') { endConn(''); }
   }
   window.ackAlert = function () {
     var m = P.alert; P.alert = null; phoneRing(false);
@@ -1255,7 +1262,7 @@ window.onerror = function (msg) {
       b.className = 'mid';
       b.textContent = '확인했어요 — 지금 볼게요';
       b.style.cssText = 'margin-top:10px; background:#FFF6F4; border-color:#FFF6F4; color:#97302B; display:block';
-      b.onclick = function () { postSig({ type: 'ack', place: a.place }); delete alertsMap[k]; renderBoard(); };
+      b.onclick = function () { postSig({ type: 'ack', place: a.place, by: '팀 상황판', ts: Date.now() }); delete alertsMap[k]; renderBoard(); };
       d.appendChild(b);
       ac.appendChild(d);
     });
@@ -1341,7 +1348,8 @@ window.onerror = function (msg) {
       } catch (e) { return; }
       var k = skey(m);
       if (m.type === 'start' || m.type === 'hb') {
-        sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: m.at || Date.now(), last: Date.now() };
+        var prev = sessions[k] || {};
+        sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: m.at || Date.now(), last: Date.now(), phone: m.to || prev.phone || '', pending: m.type === 'hb' ? !!prev.pending : false };
         renderBoard();
       } else if (m.type === 'end') {
         delete sessions[k]; delete alertsMap[k];
