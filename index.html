@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.4">
+<link rel="stylesheet" href="style.css?v=0.6.5">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.4</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.5</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -78,9 +78,9 @@
       <input class="txt" id="cfgKey" type="password" placeholder="API 키" autocomplete="off" style="flex:1; min-width:220px">
       <button class="mid" id="keyCheck" onclick="checkKey()">연결 확인</button>
     </div>
-    <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-2.5-flash" onclick="pickModel(this)">Gemini 2.5 Flash</span><span class="pill" data-model="gemini-2.5-flash-lite" onclick="pickModel(this)">2.5 Flash-Lite (더 빠름)</span></div>
+    <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-3.6-flash" onclick="pickModel(this)">Gemini 3.6 Flash</span><span class="pill" data-model="gemini-3.6-flash-lite" onclick="pickModel(this)">3.6 Flash-Lite</span><span class="pill" data-model="custom" onclick="pickModel(this)">직접 입력</span><input class="txt" id="cfgGModel" placeholder="모델 이름 (예: gemini-3.6-flash)" autocomplete="off" style="display:none; width:260px; padding:8px 12px; font-size:13px"></div>
     <div class="row" id="modelRowA"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5</span></div>
-    <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
+    <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료, AQ. 또는 AIza로 시작). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
     <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.</div>
   </div>
   <div class="sec">
@@ -377,6 +377,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.4"></script>
+<script src="app.js?v=0.6.5"></script>
 </body>
 </html>

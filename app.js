@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.4)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.5)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -29,7 +29,7 @@ window.onerror = function (msg) {
     threat: '가만 안, 가만히 안, 죽여, 죽인다, 죽일, 때려 버, 때린다, 패버리, 패 버릴, 칼로, 칼 들, 불 지르, 불질러, 찾아간다, 찾아갈, 찾아온다, 퇴근길 조심, 밤길 조심, 조심해라, 묻어버리, 없애버리, 해코지, 각오해, 부숴버, 박살 내',
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹, 꺼져, 닥쳐, 등신, 또라이, 개같은, 좆',
     provider: 'gemini',
-    gkey: '', gmodel: 'gemini-2.5-flash',
+    gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
     warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
   };
@@ -37,6 +37,7 @@ window.onerror = function (msg) {
   function loadCfg() {
     var c = {}; try { c = JSON.parse(localStorage.getItem('ma_cfg') || '{}') || {}; } catch (e) { c = {}; }
     var out = {}; Object.keys(DEF).forEach(function (k) { out[k] = (k in c) ? c[k] : DEF[k]; });
+    if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
     return out;
   }
   function saveCfg() { try { localStorage.setItem('ma_cfg', JSON.stringify(CFG)); } catch (e) {} }
@@ -60,7 +61,7 @@ window.onerror = function (msg) {
   function aiModel() { return CFG.provider === 'anthropic' ? CFG.model : CFG.gmodel; }
   function modelLabel(m) {
     return m === 'claude-haiku-4-5' ? 'Claude Haiku 4.5' : m === 'claude-sonnet-5' ? 'Claude Sonnet 5' : m === 'claude-opus-5' ? 'Claude Opus 5'
-      : m === 'gemini-2.5-flash-lite' ? 'Gemini 2.5 Flash-Lite' : 'Gemini 2.5 Flash';
+      : m === 'gemini-3.6-flash-lite' ? 'Gemini 3.6 Flash-Lite' : m === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : m;
   }
   var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
@@ -71,7 +72,9 @@ window.onerror = function (msg) {
     $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
     document.querySelectorAll('#s-settings [data-grace]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-grace'), 10) === CFG.grace); });
     document.querySelectorAll('#s-settings [data-sens]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-sens') === CFG.sens); });
-    document.querySelectorAll('#modelRowG [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.gmodel); });
+    var known = ['gemini-3.6-flash', 'gemini-3.6-flash-lite'].indexOf(CFG.gmodel) >= 0;
+    document.querySelectorAll('#modelRowG [data-model]').forEach(function (p) { var v = p.getAttribute('data-model'); p.classList.toggle('on', known ? v === CFG.gmodel : v === 'custom'); });
+    $('cfgGModel').value = known ? '' : (CFG.gmodel || ''); $('cfgGModel').style.display = known ? 'none' : 'inline-block';
     document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
     showProvider(CFG.provider || 'gemini');
     $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
@@ -101,7 +104,7 @@ window.onerror = function (msg) {
   function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); return el.getAttribute(attr); }
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
-  window.pickModel = function (el) { pickOne(el, 'data-model'); };
+  window.pickModel = function (el) { var v = pickOne(el, 'data-model'); var g = $('cfgGModel'); if (el.parentElement.id === 'modelRowG') { g.style.display = v === 'custom' ? 'inline-block' : 'none'; if (v === 'custom') g.focus(); } };
   function readSettingsForm() {
     formKeys[formProvider] = $('cfgKey').value.trim();
     var g = document.querySelector('#s-settings [data-grace].on'), s = document.querySelector('#s-settings [data-sens].on');
@@ -114,7 +117,7 @@ window.onerror = function (msg) {
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(),
       provider: formProvider,
-      gkey: formKeys.gemini || '', gmodel: mg ? mg.getAttribute('data-model') : DEF.gmodel,
+      gkey: formKeys.gemini || '', gmodel: (mg && mg.getAttribute('data-model') === 'custom') ? ($('cfgGModel').value.trim() || DEF.gmodel) : (mg ? mg.getAttribute('data-model') : DEF.gmodel),
       key: formKeys.anthropic || '', model: ma ? ma.getAttribute('data-model') : DEF.model,
       warn: $('cfgWarn').value.trim() || DEF.warn
     };
