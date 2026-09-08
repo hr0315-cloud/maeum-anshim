@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.1)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.2)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -284,7 +284,8 @@ window.onerror = function (msg) {
     var mins = Math.round((Date.now() - S.startedAt) / 60000);
     $('wrapSummary').textContent = '상담 ' + mins + '분 · 위험 신호 ' + S.alerts + '건 · 음성 저장 없음';
     S.answers = {};
-    document.querySelectorAll('#s-wrap .pill').forEach(function (p) { p.classList.remove('on'); });
+    document.querySelectorAll('#s-wrap .qrow .pill').forEach(function (p) { p.classList.remove('on'); });
+    syncTypePills();
     go('wrap');
     if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; analyser = null; }
     if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
@@ -309,15 +310,47 @@ window.onerror = function (msg) {
         localStorage.setItem('ma_obs', JSON.stringify(arr));
       } catch (e) {}
     }
-    S.stype = '';
-    document.querySelectorAll('#typeRow .pill').forEach(function (p) { p.classList.remove('on'); });
     updateObsCount();
     go('start');
   };
+  // 상담 유형: 시작 화면(이름 입력)과 종료 화면 양쪽에 같은 4종. 고른 값은 다음 상담의 기본값이 된다.
   window.pickType = function (el) {
-    el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); });
-    el.classList.add('on');
     S.stype = el.textContent;
+    try { localStorage.setItem('ma_stype', S.stype); } catch (e) {}
+    syncTypePills();
+  };
+  function syncTypePills() {
+    document.querySelectorAll('#typeRow .pill, #typeRow2 .pill').forEach(function (p) { p.classList.toggle('on', p.textContent === S.stype); });
+    var t = $('lastType'); if (t) t.textContent = S.stype || '유형 미선택';
+  }
+  // ---------- 2a 이름 입력 ----------
+  window.openName = function () {
+    var c = linkCfg();
+    try { S.stype = localStorage.getItem('ma_stype') || ''; } catch (e) { S.stype = ''; }
+    var who = ($('counselorName').value || '').trim();
+    $('clientName').value = '';
+    $('lastCounselor').textContent = who || '이름 없음';
+    $('lastPlace').textContent = (c && c.place) || '장소 미설정';
+    syncTypePills();
+    $('lastEdit').style.display = (who && S.stype) ? 'none' : 'block';
+    nameChanged();
+    go('name');
+    setTimeout(function () { try { $('clientName').focus(); } catch (e) {} }, 50);
+  };
+  window.toggleLast = function () { var e = $('lastEdit'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
+  window.nameChanged = function () {
+    var ok = !!($('clientName').value || '').trim();
+    $('nameNext').classList.toggle('off', !ok);
+    var who = ($('counselorName').value || '').trim();
+    $('lastCounselor').textContent = who || '이름 없음';
+    try { if (who) localStorage.setItem('ma_counselor', who); } catch (e) {}
+  };
+  window.nextFromName = function () {
+    var client = ($('clientName').value || '').trim();
+    if (!client) { $('clientName').focus(); return; }
+    var who = ($('counselorName').value || '').trim() || '-', c = linkCfg();
+    $('checkWho').textContent = '상담자 ' + who + ' · ' + client + ' 님 · ' + ((c && c.place) || '장소 미설정') + (S.stype ? ' · ' + S.stype : '');
+    openCheckin();
   };
   function getObs() { try { return JSON.parse(localStorage.getItem('ma_obs') || '[]'); } catch (e) { return []; } }
   function updateObsCount() {
@@ -574,7 +607,6 @@ window.onerror = function (msg) {
     hostSubscribe();
     findBuddies();
   };
-  window.leaveCheckin = function () { go('start'); };
   function findBuddies() {
     $('buddyNote').textContent = '대기 중인 업무폰을 찾는 중…';
     renderBuddies(true);

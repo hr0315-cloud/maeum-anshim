@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.1">
+<link rel="stylesheet" href="style.css?v=0.6.2">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.1</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.6.2</span></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
-  <button class="primary big" onclick="openCheckin()">상담 시작</button>
+  <button class="primary big" onclick="openName()">상담 시작</button>
   <div class="banner">상담 중 대화는 자동으로 글로 기록돼요. 대화 기록과 상담기록은 <b>이 기기 안에만</b> 저장되고, 밖으로 나가지 않아요. 원하시면 언제든 지울 수 있어요.</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
     <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
@@ -153,14 +153,35 @@
   <button class="corner" style="left:24px" onclick="openRecords()">← 뒤로</button>
 </div>
 
+<!-- 2a 이름 입력 -->
+<div class="screen" id="s-name">
+  <div class="brand"><b>마음안심</b><span>시작 전 · 1/2</span></div>
+  <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)">오늘 만나는 분의 이름</h1>
+  <input class="txt" id="clientName" placeholder="내담자 이름" autocomplete="off" style="width:min(420px,86vw); font-size:clamp(18px,2.4vw,22px); text-align:center; padding:16px 20px" oninput="nameChanged()">
+  <div class="sub" id="lastLine">상담자 <b id="lastCounselor">-</b> · <span id="lastPlace">-</span> · <span id="lastType">-</span> &nbsp;<a href="#" onclick="toggleLast();return false" style="color:#C05A2A; font-weight:700; text-underline-offset:3px">바꾸기</a></div>
+  <div class="banner" id="lastEdit" style="display:none; width:min(640px,88vw); max-width:none">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px">
+      <span style="font-size:14px; font-weight:700; color:#6E4326">상담자</span>
+      <input class="txt" id="counselorName" placeholder="상담자 이름" style="width:180px" oninput="nameChanged()">
+    </div>
+    <div id="typeRow" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <span style="font-size:14px; font-weight:700; color:#6E4326">유형</span>
+      <span class="pill" onclick="pickType(this)">초기상담</span>
+      <span class="pill" onclick="pickType(this)">정기상담</span>
+      <span class="pill" onclick="pickType(this)">지원사업 관련</span>
+      <span class="pill" onclick="pickType(this)">안부확인</span>
+    </div>
+  </div>
+  <button class="primary big" id="nameNext" onclick="nextFromName()">다음 · 안전확인</button>
+  <div class="note">생년월일·주소·연락처는 상담이 끝난 뒤에 적어요</div>
+  <button class="corner" style="left:24px" onclick="go('start')">← 뒤로</button>
+</div>
+
 <!-- 2 안전 확인 -->
 <div class="screen" id="s-checkin">
-  <div class="brand"><b>마음안심</b><span>시작 전</span></div>
+  <div class="brand"><b>마음안심</b><span>시작 전 · 2/2</span></div>
   <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)">시작 전 30초, 안전 확인</h1>
-  <div style="display:flex; flex-wrap:wrap; gap:12px; width:min(640px,88vw)">
-    <input class="txt" id="counselorName" placeholder="상담자 이름" style="flex:1; min-width:130px">
-    <input class="txt" id="clientName" placeholder="상담받는 분 이름" style="flex:1; min-width:130px">
-  </div>
+  <div class="note" id="checkWho" style="font-size:clamp(13px,1.7vw,15px); color:#6E4326">-</div>
   <div class="check" onclick="tgl(this)"><span class="box">✓</span><span>이분과의 지난 기록을 확인했어요</span></div>
   <div class="check" onclick="tgl(this)"><span class="box">✓</span><span>내 자리에서 문까지 막힘이 없어요</span></div>
   <div class="banner" id="buddyBox" style="width:min(640px,88vw); max-width:none; border:1.5px solid #C05A2A; background:#FFF9F3; padding:14px 20px">
@@ -178,7 +199,7 @@
   </div>
   <button class="primary big" id="reqBtn" onclick="sendRequest()">연결 요청</button>
   <div class="note">정한 시각에 이 태블릿이 진짜 전화처럼 울려요</div>
-  <button class="corner" style="left:24px" onclick="leaveCheckin()">← 뒤로</button>
+  <button class="corner" style="left:24px" onclick="go('name')">← 뒤로</button>
 </div>
 
 <!-- 2b 연결 대기 (수락 게이트) -->
@@ -295,7 +316,7 @@
   <div class="brand"><b>마음안심</b><span>상담 종료</span></div>
   <h1 class="serif" style="font-size:clamp(24px,3.6vw,36px)">오늘도 수고하셨어요</h1>
   <div class="chip calm"><span class="dot"></span><span id="wrapSummary">-</span></div>
-  <div id="typeRow" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
+  <div id="typeRow2" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
     <span style="font-size:15px; font-weight:700; color:#6E4326">상담 유형</span>
     <span class="pill" onclick="pickType(this)">초기상담</span>
     <span class="pill" onclick="pickType(this)">정기상담</span>
@@ -314,6 +335,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.6.1"></script>
+<script src="app.js?v=0.6.2"></script>
 </body>
 </html>
