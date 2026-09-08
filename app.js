@@ -5,14 +5,14 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.11)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.12)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
   var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
   var canvas = document.getElementById('wave'), ctx = canvas.getContext('2d');
   var BARS = 40;
-  var baseline = 0.02, loudSince = 0;
+  var baseline = 0.02, loudSince = 0, loudUntil = 0;
 
   function $(id) { return document.getElementById(id); }
   function fmt(s) { var m = Math.floor(s/60), r = Math.floor(s%60); return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
@@ -42,12 +42,29 @@ window.onerror = function (msg) {
     return out;
   }
   function saveCfg() { try { localStorage.setItem('ma_cfg', JSON.stringify(CFG)); } catch (e) {} }
+  // 목록의 표현과 자막 모두 띄어쓰기를 전부 지우고 비교한다 (음성인식이 띄어쓰기를 다르게 적어도 잡히도록)
   function listToRx(s) {
-    var parts = String(s || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    var parts = String(s || '').split(',').map(function (x) { return x.replace(/\s+/g, ''); }).filter(Boolean);
     if (!parts.length) return null;
-    var alts = parts.map(function (p) { return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*'); });
+    var alts = parts.map(function (p) { return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
     return new RegExp('(' + alts.join('|') + ')');
   }
+  function matchThreat(x) {
+    var t = String(x || '').replace(/\s+/g, '');
+    var m = RX_THREAT && RX_THREAT.exec(t); if (m) return { kind: 'threat', hit: m[1] };
+    m = RX_ABUSE && RX_ABUSE.exec(t); if (m) return { kind: 'abuse', hit: m[1] };
+    return null;
+  }
+  window.testThreat = function () {
+    var x = ($('cfgTest').value || '').trim(), out = $('cfgTestOut');
+    if (!x) { out.textContent = '문장을 적고 눌러 주세요'; return; }
+    var saved = { t: RX_THREAT, a: RX_ABUSE };
+    RX_THREAT = listToRx($('cfgThreat').value); RX_ABUSE = listToRx($('cfgAbuse').value);
+    var m = matchThreat(x);
+    RX_THREAT = saved.t; RX_ABUSE = saved.a;
+    out.textContent = m ? ('감지됨 · ' + (m.kind === 'threat' ? '위협 표현' : '심한 말') + ' "' + m.hit + '"') : '감지 안 됨 · 목록에 없는 표현이에요';
+    out.style.color = m ? '#B3403A' : '#8A7663';
+  };
   var RX_THREAT = null, RX_ABUSE = null;
   function applyCfg() {
     RX_THREAT = listToRx(CFG.threat); RX_ABUSE = listToRx(CFG.abuse);
@@ -223,7 +240,7 @@ window.onerror = function (msg) {
     S.counselor = ($('counselorName').value || '').trim() || '-';
     S.client = ($('clientName').value || '').trim() || '-';
     try { localStorage.setItem('ma_counselor', S.counselor); } catch (e) {}
-    S.cooldownUntil = Date.now() + 20000;
+    S.cooldownUntil = 0; loudUntil = Date.now() + 20000;   // 큰 소리 감지만 시작 뒤 20초 대기 (마이크 기준 잡는 시간)
     $('stateChip').className = 'chip calm';
     $('stateTxt').textContent = '연결됨 · ' + S.acc.name;
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
@@ -399,10 +416,13 @@ window.onerror = function (msg) {
 
   // ---------- 위협 단어 감지 (기기 안에서 텍스트 매칭) ----------
   // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
+  // 말 감지: 시작 직후 대기 없이 바로 잡는다. 한 번 감지된 뒤 45초(S.cooldownUntil)만 쉰다.
   function checkThreat(x) {
     if (S.screen !== 'session' || Date.now() <= S.cooldownUntil) return;
-    if (RX_THREAT && RX_THREAT.test(x)) triggerCountdown('위협하는 말이');
-    else if (RX_ABUSE && RX_ABUSE.test(x)) triggerCountdown('심한 말이');
+    var m = matchThreat(x);
+    if (!m) return;
+    S.lastHit = { kind: m.kind, hit: m.hit, x: x, at: Date.now() };
+    triggerCountdown(m.kind === 'threat' ? '위협하는 말("' + m.hit + '")이' : '심한 말("' + m.hit + '")이');
   }
 
   // ---------- 경고 음성 (기기 내장 음성합성, 무료) ----------
@@ -476,7 +496,7 @@ window.onerror = function (msg) {
     }
     if (rms !== null && rms > utterPeak) utterPeak = rms;
     // 감지 v1: 지속되는 고성 (음량 기반, 100% 로컬)
-    if (rms !== null && Date.now() > S.cooldownUntil) {
+    if (rms !== null && Date.now() > S.cooldownUntil && Date.now() > loudUntil) {
       baseline = baseline * 0.999 + rms * 0.001;
       var sens = CFG.sens === 'low' ? [0.13, 4.0] : CFG.sens === 'high' ? [0.08, 2.5] : [0.10, 3.2];
       var threshold = Math.max(sens[0], baseline * sens[1]);
