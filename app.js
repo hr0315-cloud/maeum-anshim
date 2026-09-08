@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.9)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.6.10)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -323,7 +323,7 @@ window.onerror = function (msg) {
 
   // ---------- AI 맥락 분석: 사실만 한두 문장, 판단·제안 금지 ----------
   var aiDirty = false, aiTimer = 0, aiLastAt = 0, aiBusy = false, aiFails = 0;
-  var AI_GAP = 10000, AI_WINDOW = 180;
+  var AI_GAP = 20000, AI_WINDOW = 180, aiCoolUntil = 0;
   function aiReset() {
     clearTimeout(aiTimer); aiDirty = false; aiLastAt = 0; aiBusy = false; aiFails = 0;
     var chip = $('aiChip'), line = $('aiLine');
@@ -332,7 +332,7 @@ window.onerror = function (msg) {
   }
   function scheduleAI(force) {
     if (!aiKey() || S.noRecord) return;
-    var wait = Math.max(0, aiLastAt + (force ? 3000 : AI_GAP) - Date.now());
+    var wait = Math.max(0, aiLastAt + (force ? 5000 : AI_GAP) - Date.now(), aiCoolUntil - Date.now());
     clearTimeout(aiTimer);
     aiTimer = setTimeout(function () { runAI(force); }, wait);
   }
@@ -367,12 +367,21 @@ window.onerror = function (msg) {
       }
     }).catch(function (e) {
       aiFails += 1;
-      var chip = $('aiChip'); chip.className = 'chip off'; chip.textContent = 'AI 오류';
-      var line = $('aiLine'); line.className = 'ai off'; line.textContent = 'AI 맥락 분석 실패: ' + ((e && e.message) || e) + (aiFails >= 3 ? ' · 잠시 뒤 다시 시도' : '');
+      var msg = String((e && e.message) || e);
+      var quota = /quota|429|RESOURCE_EXHAUSTED|rate/i.test(msg);
+      var chip = $('aiChip'), line = $('aiLine');
+      if (quota) {
+        aiCoolUntil = Date.now() + 65000;
+        chip.className = 'chip off'; chip.textContent = 'AI 한도 대기';
+        line.className = 'ai off'; line.textContent = 'AI 맥락 · 무료 등급 분당 한도에 걸려 1분 쉬었다 이어가요 (자막·감지·알림은 그대로)';
+      } else {
+        chip.className = 'chip off'; chip.textContent = 'AI 오류';
+        line.className = 'ai off'; line.textContent = 'AI 맥락 분석 실패: ' + msg + (aiFails >= 3 ? ' · 잠시 뒤 다시 시도' : '');
+      }
       aiDirty = true;
     }).then(function () {
       aiBusy = false;
-      if (aiDirty && inSession()) { clearTimeout(aiTimer); aiTimer = setTimeout(function () { runAI(false); }, aiFails >= 3 ? 60000 : AI_GAP); }
+      if (aiDirty && inSession()) { clearTimeout(aiTimer); aiTimer = setTimeout(function () { runAI(false); }, Math.max(aiFails >= 3 ? 60000 : AI_GAP, aiCoolUntil - Date.now())); }
     });
   }
   function aiStop() { clearTimeout(aiTimer); aiBusy = false; aiDirty = false; }
