@@ -1631,8 +1631,8 @@ window.onerror = function (msg) {
     updateLinkStat(); $('counselorName').value = '박지우';
     var ub = $('updBar'); if (ub) ub.style.display = 'none';
     var NOW = Date.now();
-    function lines() { S.cooldownUntil = Date.now() + 60000; __addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); __addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); __addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); __addLine('선생님 잠시만요 다른 지원도 같이 볼게요', 0); var ts = ['17:31', '17:38', '17:52', '17:58']; S.tr.forEach(function (l, i) { if (ts[i]) l.t = ts[i]; }); renderTL(); S.cooldownUntil = 0; }
-    function session() { S.acc = { name: '김서연', rid: 'x', at: NOW }; S.buddyName = '김서연 (수락 14:02)'; S.callMin = 15; startSession(true); S.startedAt = NOW - 18 * 60000 - 4000; S.callAt = NOW + 4 * 60000 + 18000; tick(); S.cooldownUntil = 0; lines(); }
+    function lines(noTail) { S.cooldownUntil = Date.now() + 60000; __addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); __addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); __addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); if (!noTail) __addLine('선생님 잠시만요 다른 지원도 같이 볼게요', 0); var ts = ['17:31', '17:38', '17:52', '17:58']; S.tr.forEach(function (l, i) { if (ts[i]) l.t = ts[i]; }); renderTL(); S.cooldownUntil = 0; }
+    function session(noTail) { S.acc = { name: '김서연', rid: 'x', at: NOW }; S.buddyName = '김서연 (수락 14:02)'; S.callMin = 15; startSession(true); S.startedAt = NOW - 18 * 60000 - 4000; S.callAt = NOW + 4 * 60000 + 18000; tick(); S.cooldownUntil = 0; lines(noTail); }
     function sampleRecord() {
       var rec = { d: '2026-09-09T14:02', min: 41, alerts: 1, noRec: false, a: { q3: 1 }, c1: '박지우', c2: '홍길동', one: '정기상담', place: '2층 상담실', buddy: '김서연 (수락 14:02)', callAns: '14:22 받음',
         tr: [{ t: '14:31', x: '지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', v: 0 }, { t: '14:32', x: '아니 왜 나만 안 되냐고 옆집은 받았잖아', v: 1 }, { t: '14:32', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2 }, { t: '14:33', x: '선생님 잠시만요 다른 지원도 같이 볼게요', v: 0 }],
@@ -1653,10 +1653,10 @@ window.onerror = function (msg) {
       notice: function () { S.acc = { name: '김서연', rid: 'x' }; go('notice'); M = [['#noticeN1', '고지 문구 3줄'], ['#s-notice .chips', '승인 전 표시'], ['#s-notice .primary', '확인'], ['#s-notice button[onclick="go(\'norec\')"]', '기록 거부']]; },
       session: function () { session(); M = [['#stateChip', '연결됨 · 동료 이름'], ['#recChip', '기록 중'], ['#callChip', '확인 전화'], ['#tl', '자막 · 큰 소리는 크게'], ['#aiLine', 'AI 맥락(꺼짐)'], ['#s-session .corner:first-of-type', '동료 호출'], ['#s-session .corner:last-of-type', '상담 종료']]; },
       accum: function () { S.acc = { name: '김서연', rid: 'x', at: NOW }; startSession(true); S.startedAt = NOW - 8 * 60000 - 14000; S.cooldownUntil = 0; __addLine('지난번에 말씀드린 대로 이번 지원은 기준이 안 맞아요', 0); __addLine('돈 좀 해주세요 저 진짜 급해요', 0); __addLine('그거 언제 해줄 건데요', 0); M = [['#accChip', '쌓이는 신호 (점)'], ['#tl', '요구 표현이 쌓임']]; },
-      countdown: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; triggerCountdown('위협하는 말("퇴근길조심")이'); clearInterval(cdId); $('cdNum').textContent = '7'; M = [['.cd', '남은 초'], ['#cdEv', '근거 카드'], ['#s-countdown button:first-of-type', '괜찮아요'], ['#s-countdown .danger', '지금 바로 알리기']]; },
-      alert: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); $('ackSub').textContent = '업무폰으로 보냈어요 · 12초'; M = [['#ackCard', '확인 기다리는 중'], ['#alertEv', '보낸 근거'], ['#s-alert button:first-of-type', '괜찮아요 · 상담 계속'], ['#s-alert .danger', '상담 중단']]; },
+      countdown: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; triggerCountdown('위협하는 말("퇴근길조심")이'); clearInterval(cdId); $('cdNum').textContent = '7'; M = [['.cd', '남은 초'], ['#cdEv', '근거 카드'], ['#s-countdown button:first-of-type', '괜찮아요'], ['#s-countdown .danger', '지금 바로 알리기']]; },
+      alert: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); $('ackSub').textContent = '업무폰으로 보냈어요 · 12초'; M = [['#ackCard', '확인 기다리는 중'], ['#alertEv', '보낸 근거'], ['#s-alert button:first-of-type', '괜찮아요 · 상담 계속'], ['#s-alert .danger', '상담 중단']]; },
       alert2: function () { SC.alert(); onAck({ by: '김서연' }); M = [['#ackCard', '확인 카드'], ['#alertChip', '확인됨 칩']]; },
-      wrap: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); onAck({ by: '김서연' }); cancelFromAlert(); endSession(); M = [['#wrapSummary', '한 줄 요약 (펼치기)'], ['#fbSec', '되짚기 버튼 하나'], ['#s-wrap .qrow', '선생님 마음'], ['#wrapSkip', '건너뛰기'], ['#wrapFinal', '검토 후 확정']]; },
+      wrap: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); onAck({ by: '김서연' }); cancelFromAlert(); endSession(); M = [['#wrapSummary', '한 줄 요약 (펼치기)'], ['#fbSec', '되짚기 버튼 하나'], ['#s-wrap .qrow', '선생님 마음'], ['#wrapSkip', '건너뛰기'], ['#wrapFinal', '검토 후 확정']]; },
       records: function () { sampleRecord(); openRecords(); M = [['#recList', '기록 목록 · 확정/초안'], ['#copyBtn', '목록 복사'], ['#clearBtn', '전체 원문 삭제']]; },
       recdetail: function () { sampleRecord(); openDetail(0); M = [['#detMeta', '확정 · 음성 삭제됨'], ['#detList', '대화록 · 위험 신호 · 메모'], ['#dTxt', 'TXT 내보내기'], ['#dEdit', '기록 고치기'], ['#delBtn', '원문 삭제']]; },
       pstart: function () { go('start'); M = [['#linkBtn', '업무폰 대기 시작'], ['#linkEdit', '연결 설정 바꾸기']]; },
@@ -1671,7 +1671,8 @@ window.onerror = function (msg) {
     window.__shot = s; window.__shotReady = false;
     setTimeout(function () {
       try { (SC[s] || SC.start)(); } catch (e) { document.title = 'SHOT ERROR ' + e.message; }
-      setTimeout(function () {
+      var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      fontsReady.then(function () { return new Promise(function (res) { setTimeout(res, 1500); }); }).then(function () {
         if (q.get('marks') !== '0') {
           var n = 0;
           (M || []).forEach(function (m) {
@@ -1686,7 +1687,7 @@ window.onerror = function (msg) {
           });
         }
         window.__shotReady = true; document.title = 'SHOT READY ' + s;
-      }, 900);
+      });
     }, 400);
   })();
 
