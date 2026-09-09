@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.7.1)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.7.2)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -81,9 +81,9 @@ window.onerror = function (msg) {
     var m = matchThreat(x);
     RX_THREAT = saved.t; RX_ABUSE = saved.a; RX_DEMAND = savedD;
     if (!m) { out.textContent = '해당 없음 · 위협·심한 말·요구 표현 목록에 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#8A7663'; return; }
-    if (m.kind === 'threat') { out.textContent = '즉시 감지 · 위협 표현 "' + m.hit + '" — 한 번이면 바로 유예가 시작돼요'; out.style.color = '#B3403A'; return; }
-    var pts = m.kind === 'abuse' ? 2 : 1;
-    out.textContent = (m.kind === 'abuse' ? '심한 말' : '요구 표현') + ' "' + m.hit + '" · ' + pts + '점 (매우 큰 목소리면 +1) · 2분 안에 ' + (parseInt((document.querySelector('#s-settings [data-score].on') || {}).getAttribute ? document.querySelector('#s-settings [data-score].on').getAttribute('data-score') : CFG.score, 10) || CFG.score) + '점이 되면 유예 시작';
+    if (m.kind === 'threat' || m.kind === 'abuse') { out.textContent = '즉시 감지 · ' + (m.kind === 'threat' ? '위협 표현' : '심한 말') + ' "' + m.hit + '" — 한 번이면 바로 유예가 시작돼요'; out.style.color = '#B3403A'; return; }
+    var pts = 1;
+    out.textContent = '요구 표현 "' + m.hit + '" · ' + pts + '점 (매우 큰 목소리면 +1) · 2분 안에 ' + (parseInt((document.querySelector('#s-settings [data-score].on') || {}).getAttribute ? document.querySelector('#s-settings [data-score].on').getAttribute('data-score') : CFG.score, 10) || CFG.score) + '점이 되면 유예 시작';
     out.style.color = '#8A5F14';
   };
   var RX_THREAT = null, RX_ABUSE = null, RX_DEMAND = null;
@@ -446,7 +446,7 @@ window.onerror = function (msg) {
   // ---------- 위협 단어 감지 (기기 안에서 텍스트 매칭) ----------
   // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
   // 말 감지: 시작 직후 대기 없이 바로 잡는다. 한 번 감지된 뒤 45초(S.cooldownUntil)만 쉰다.
-  // 점수 누적 (2분 창): 심한 말 2점 · 요구 표현 1점 · 같은 말 반복 1점 · 매우 큰 목소리 +1점 → 기준 점수면 유예. 위협 표현은 점수와 무관하게 즉시.
+  // 점수 누적 (2분 창): 요구 표현 1점 · 같은 말 반복 1점 · 매우 큰 목소리 +1점 → 기준 점수면 유예. 위협 표현·심한 말은 점수와 무관하게 1회 즉시.
   var SCORE_WIN = 120000, SIG = { abuse: '심한 말', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리' };
   function pruneScore() { var now = Date.now(); S.sc = (S.sc || []).filter(function (e) { return now - e.at < SCORE_WIN; }); return S.sc; }
   function scoreTotal() { return pruneScore().reduce(function (s, e) { return s + e.p; }, 0); }
@@ -464,15 +464,14 @@ window.onerror = function (msg) {
   function checkThreat(x, v) {
     if (S.screen !== 'session' || Date.now() <= S.cooldownUntil) return;
     var m = matchThreat(x);
-    if (m && m.kind === 'threat') {
-      S.lastHit = { kind: 'threat', hit: m.hit, x: x, at: Date.now() };
-      triggerCountdown('위협하는 말("' + m.hit + '")이');
+    if (m && (m.kind === 'threat' || m.kind === 'abuse')) {
+      S.lastHit = { kind: m.kind, hit: m.hit, x: x, at: Date.now() };
+      triggerCountdown((m.kind === 'threat' ? '위협하는 말("' : '심한 말("') + m.hit + '")이');
       return;
     }
     var now = Date.now(), added = [];
     var prev = (S.tr || []).slice(0, -1).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).slice(-12);
-    if (m && m.kind === 'abuse') added.push({ k: 'abuse', p: 2, hit: m.hit });
-    else if (m && m.kind === 'demand') added.push({ k: 'demand', p: 1, hit: m.hit });
+    if (m && m.kind === 'demand') added.push({ k: 'demand', p: 1, hit: m.hit });
     if (isRepeat(x, prev)) added.push({ k: 'repeat', p: 1, hit: '' });
     if (v === 2) added.push({ k: 'loud', p: 1, hit: '' });
     if (!added.length) { renderAcc(); return; }
