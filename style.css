@@ -53,6 +53,10 @@
   .ackcard.wait { background: #F7EDD8; border-color: #B07A1E; animation: none; } .ackcard.wait .ackmark { background: #B07A1E; box-shadow: 0 0 0 8px rgba(176,122,30,0.15); font-size: 22px; } .ackcard.wait .ackname { color: #8A5F14; } .ackcard.wait .acksub { color: #8A5F14; }
   .ackcard.miss { background: #F7E3E1; border-color: #B3403A; animation: none; } .ackcard.miss .ackmark { background: #B3403A; font-size: 24px; } .ackcard.miss .ackname { color: #97302B; } .ackcard.miss .acksub { color: #97302B; }
   @media (max-width: 540px) { .ackcard { gap: 12px; padding: 12px 14px; } .ackcard .ackmark { width: 44px; height: 44px; font-size: 24px; } }
+  .fact { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: clamp(12.5px, 1.5vw, 14px); margin-top: 6px; }
+  .fact span:nth-child(odd) { color: #8A7663; }
+  .fbrow { background: #FFF6F0; border: 1.5px solid #E0A57E; border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .fbrow b { color: #97302B; }
   .screen.scroll { justify-content: flex-start; overflow-y: auto; padding-top: 72px; gap: 14px; }
   .sec { width: min(720px, 92vw); background: #FFF; border: 1.5px solid #EADFCE; border-radius: 14px; padding: 16px 20px; text-align: left; font-size: clamp(13px, 1.6vw, 14.5px); color: #55483A; line-height: 1.6; display: flex; flex-direction: column; gap: 8px; }
   .sec h2 { margin: 0; font-size: clamp(14px, 1.8vw, 16px); color: #6E4326; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
