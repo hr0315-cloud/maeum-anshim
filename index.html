@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.7.0">
+<link rel="stylesheet" href="style.css?v=0.7.1">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.7.0</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.7.1</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -68,8 +68,11 @@
     <h2>② 감지 기준</h2>
     <div class="row"><label style="width:110px">유예 시간</label><span class="pill" data-grace="5" onclick="pickGrace(this)">5초</span><span class="pill" data-grace="10" onclick="pickGrace(this)">10초</span><span class="pill" data-grace="15" onclick="pickGrace(this)">15초</span></div>
     <div class="row"><label style="width:110px">큰 소리 민감도</label><span class="pill" data-sens="low" onclick="pickSens(this)">낮음</span><span class="pill" data-sens="mid" onclick="pickSens(this)">보통</span><span class="pill" data-sens="high" onclick="pickSens(this)">높음</span></div>
-    <label>위협 표현 (쉼표로 구분 · 한 번이라도 나오면 유예 시작)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
-    <label>심한 말 (쉼표로 구분)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
+    <label>위협 표현 (쉼표로 구분 · 한 번이면 바로 유예 시작)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
+    <label>심한 말 (쉼표로 구분 · 1회 2점)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
+    <label>요구 표현 (쉼표로 구분 · 1회 1점 · 말이 바뀌어도 "달라"는 형태를 셈)</label><textarea class="txt" id="cfgDemand" rows="2"></textarea>
+    <div class="row"><label style="width:150px">알림 기준 점수</label><span class="pill" data-score="2" onclick="pickScore(this)">2점</span><span class="pill" data-score="3" onclick="pickScore(this)">3점</span><span class="pill" data-score="4" onclick="pickScore(this)">4점</span></div>
+    <div class="note">2분 안에 점수를 더해요: 심한 말 2점 · 요구 표현 1점 · 같은 말 되풀이 1점 · 매우 큰 목소리 +1점. 위협 표현은 점수와 상관없이 한 번이면 바로 유예가 시작돼요. 쌓이는 동안 상담 화면 위에 점(● ● ○)이 차요.</div>
     <label>이 문장이 감지되나요? (위 목록 기준으로 바로 확인)</label>
     <div class="row"><input class="txt" id="cfgTest" placeholder="예: 퇴근길 조심해라" autocomplete="off" style="flex:1; min-width:200px; padding:8px 12px; font-size:14px"><button class="mid" onclick="testThreat()">확인</button></div>
     <div class="note" id="cfgTestOut">띄어쓰기는 무시하고 비교해요 · 상담 중 한 번 감지되면 45초 동안은 다시 감지하지 않아요</div>
@@ -323,6 +326,7 @@
   <div class="chips">
     <div class="chip calm" id="stateChip" onpointerdown="secretTap()"><span class="dot"></span><span id="stateTxt">연결됨</span></div>
     <div class="chip rec" id="recChip"><span class="dot"></span><span id="recLabel">기록 중</span></div>
+    <div class="chip warn" id="accChip" style="display:none; letter-spacing:2px; font-family:'IBM Plex Mono',monospace" title="쌓인 신호">○ ○ ○</div>
     <div class="chip off" id="aiChip">AI 꺼짐</div>
     <div class="chip call mono" id="callChip" style="display:none">확인 전화까지 <span id="callLeft" style="margin-left:5px">--:--</span></div>
   </div>
@@ -402,6 +406,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.7.0"></script>
+<script src="app.js?v=0.7.1"></script>
 </body>
 </html>
