@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.3)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.4)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -1600,11 +1600,11 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.8.3';
+  var APP_VER = '0.8.4';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
-        var m = /(v([0-9.]+))/.exec(t); if (!m || m[1] === APP_VER) return;
+        var m = /\(v([0-9.]+)\)/.exec(t); if (!m || m[1] === APP_VER || window.__shot) return;
         var bar = $('updBar'); if (!bar) return;
         bar.style.display = 'flex'; $('updTxt').textContent = '새 버전 v' + m[1] + '이 있어요 (지금 v' + APP_VER + ')';
       }).catch(function () {});
@@ -1617,6 +1617,79 @@ window.onerror = function (msg) {
   (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat; window.__addLine = addLine;
+  // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
+  (function () {
+    var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
+    var role = /^p/.test(s) ? 'phone' : s === 'board' ? 'board' : 'host';
+    try {
+      localStorage.setItem('ma_link', JSON.stringify({ code: 'h7k2m9pq', role: role, place: '2층 상담실' }));
+      localStorage.setItem('ma_counselor', '박지우'); localStorage.setItem('ma_stype', '정기상담'); localStorage.setItem('ma_phone_name', '김서연');
+    } catch (e) {}
+    postSig = function () { return Promise.resolve(true); }; openES = function () { return null; };
+    notifyHuman = function () { return Promise.resolve(true); };
+    window.EventSource = function () { return { close: function () {} }; };
+    updateLinkStat(); $('counselorName').value = '박지우';
+    var ub = $('updBar'); if (ub) ub.style.display = 'none';
+    var NOW = Date.now();
+    function lines() { S.cooldownUntil = Date.now() + 60000; __addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); __addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); __addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); __addLine('선생님 잠시만요 다른 지원도 같이 볼게요', 0); var ts = ['17:31', '17:38', '17:52', '17:58']; S.tr.forEach(function (l, i) { if (ts[i]) l.t = ts[i]; }); renderTL(); S.cooldownUntil = 0; }
+    function session() { S.acc = { name: '김서연', rid: 'x', at: NOW }; S.buddyName = '김서연 (수락 14:02)'; S.callMin = 15; startSession(true); S.startedAt = NOW - 18 * 60000 - 4000; S.callAt = NOW + 4 * 60000 + 18000; tick(); S.cooldownUntil = 0; lines(); }
+    function sampleRecord() {
+      var rec = { d: '2026-09-09T14:02', min: 41, alerts: 1, noRec: false, a: { q3: 1 }, c1: '박지우', c2: '홍길동', one: '정기상담', place: '2층 상담실', buddy: '김서연 (수락 14:02)', callAns: '14:22 받음',
+        tr: [{ t: '14:31', x: '지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', v: 0 }, { t: '14:32', x: '아니 왜 나만 안 되냐고 옆집은 받았잖아', v: 1 }, { t: '14:32', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2 }, { t: '14:33', x: '선생님 잠시만요 다른 지원도 같이 볼게요', v: 0 }],
+        ctx: [], al: [{ t: '14:32', kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, how: 'timeout', ack: { by: '김서연', t: '14:33' }, esc: false, fb: 0 }],
+        memo: '생계지원 소득 기준 안내, 신청 불가 통보. 타 지원 안내. 후속: 다음 주 연락.', basic: { dob: '1961-03-15', addr: '○○구 ○○동', tel: '' }, status: 'final', finalAt: '2026-09-09T14:50' };
+      try { localStorage.setItem('ma_obs', JSON.stringify([rec])); } catch (e) {}
+      updateObsCount();
+    }
+    var M = {};
+    var SC = {
+      start: function () { sampleRecord(); go('start'); M = [['#s-start .primary', '상담 시작'], ['#s-start .chips', 'DEMO 표시'], ['#recBtn', '상담기록'], ['#linkBtn', '동료 연결 설정'], ['#s-start button[onclick="openSettings()"]', '설정']]; },
+      link: function () { openLink(); M = [['#s-link [data-role="host"]', '역할 고르기'], ['#teamCode', '팀 코드'], ['#placeName', '장소'], ['#s-link .primary', '저장']]; },
+      settings: function () { openSettings(); M = [['#swApproved', '기관 승인 스위치'], ['#cfgN1', '고지 문구'], ['#cfgThreat', '위협 표현 목록'], ['#cfgTest', '감지 시험 칸']]; },
+      name: function () { openName(); $('clientName').value = '홍길동'; nameChanged(); M = [['#clientName', '내담자 이름'], ['#lastLine', '지난 값 · 바꾸기'], ['#nameNext', '다음']]; },
+      checkin: function () { openName(); $('clientName').value = '홍길동'; nameChanged(); nextFromName(); buddies['김서연'] = NOW; S.buddy = '김서연'; renderBuddies(false); M = [['#checkWho', '오늘 상담 한 줄'], ['#s-checkin .check', '체크 2개'], ['#buddyBox', '업무폰을 건넨 동료'], ['#s-checkin .pill[data-min="15"]', '확인 전화'], ['#reqBtn', '연결 요청']]; },
+      wait: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('waiting'); go('wait'); M = [['#waitTitle', '기다리는 중'], ['#waitCard', '수락 전엔 시작 안 됨'], ['#waitCancel', '요청 취소']]; },
+      wait2: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('declined'); go('wait'); M = [['#waitTitle', '받을 수 없음'], ['#waitPick', '다른 동료 고르기'], ['#waitRetry', '다시 요청']]; },
+      notice: function () { S.acc = { name: '김서연', rid: 'x' }; go('notice'); M = [['#noticeN1', '고지 문구 3줄'], ['#s-notice .chips', '승인 전 표시'], ['#s-notice .primary', '확인'], ['#s-notice button[onclick="go(\'norec\')"]', '기록 거부']]; },
+      session: function () { session(); M = [['#stateChip', '연결됨 · 동료 이름'], ['#recChip', '기록 중'], ['#callChip', '확인 전화'], ['#tl', '자막 · 큰 소리는 크게'], ['#aiLine', 'AI 맥락(꺼짐)'], ['#s-session .corner:first-of-type', '동료 호출'], ['#s-session .corner:last-of-type', '상담 종료']]; },
+      accum: function () { S.acc = { name: '김서연', rid: 'x', at: NOW }; startSession(true); S.startedAt = NOW - 8 * 60000 - 14000; S.cooldownUntil = 0; __addLine('지난번에 말씀드린 대로 이번 지원은 기준이 안 맞아요', 0); __addLine('돈 좀 해주세요 저 진짜 급해요', 0); __addLine('그거 언제 해줄 건데요', 0); M = [['#accChip', '쌓이는 신호 (점)'], ['#tl', '요구 표현이 쌓임']]; },
+      countdown: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; triggerCountdown('위협하는 말("퇴근길조심")이'); clearInterval(cdId); $('cdNum').textContent = '7'; M = [['.cd', '남은 초'], ['#cdEv', '근거 카드'], ['#s-countdown button:first-of-type', '괜찮아요'], ['#s-countdown .danger', '지금 바로 알리기']]; },
+      alert: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); $('ackSub').textContent = '업무폰으로 보냈어요 · 12초'; M = [['#ackCard', '확인 기다리는 중'], ['#alertEv', '보낸 근거'], ['#s-alert button:first-of-type', '괜찮아요 · 상담 계속'], ['#s-alert .danger', '상담 중단']]; },
+      alert2: function () { SC.alert(); onAck({ by: '김서연' }); M = [['#ackCard', '확인 카드'], ['#alertChip', '확인됨 칩']]; },
+      wrap: function () { session(); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); onAck({ by: '김서연' }); cancelFromAlert(); endSession(); M = [['#wrapSummary', '한 줄 요약 (펼치기)'], ['#fbSec', '되짚기 버튼 하나'], ['#s-wrap .qrow', '선생님 마음'], ['#wrapSkip', '건너뛰기'], ['#wrapFinal', '검토 후 확정']]; },
+      records: function () { sampleRecord(); openRecords(); M = [['#recList', '기록 목록 · 확정/초안'], ['#copyBtn', '목록 복사'], ['#clearBtn', '전체 원문 삭제']]; },
+      recdetail: function () { sampleRecord(); openDetail(0); M = [['#detMeta', '확정 · 음성 삭제됨'], ['#detList', '대화록 · 위험 신호 · 메모'], ['#dTxt', 'TXT 내보내기'], ['#dEdit', '기록 고치기'], ['#delBtn', '원문 삭제']]; },
+      pstart: function () { go('start'); M = [['#linkBtn', '업무폰 대기 시작'], ['#linkEdit', '연결 설정 바꾸기']]; },
+      pname: function () { $('phoneName').value = '김서연'; go('pname'); M = [['#phoneName', '이름'], ['#s-pname .primary', '저장 · 대기 시작']]; },
+      pwait: function () { startPhone(); $('pwaitMsg').textContent = '상담자 화면에 "김서연" 이름이 보여요 (14:00)'; M = [['#pwaitName', '내 이름'], ['#pwaitAlim', 'ntfy 구독 이름'], ['#s-pwait button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; },
+      preq: function () { startPhone(); onPhoneMsg({ type: 'request', to: '김서연', rid: 'x', who: '박지우', client: '홍길동', place: '2층 상담실', ts: NOW }); phoneRing(false); M = [['#preqInfo', '누가 · 어디서'], ['#s-preq .primary', '연결 수락'], ['#s-preq button:last-of-type', '지금 받을 수 없음']]; },
+      pconn: function () { SC.preq(); acceptReq(); onPhoneMsg({ type: 'start', rid: 'x', at: NOW - 18 * 60000 - 4000, who: '박지우', place: '2층 상담실' }); M = [['#pconnState', '연결 상태'], ['#pconnInfo', '내담자 · 장소'], ['#pTimer', '경과 시간']]; },
+      palert: function () { SC.pconn(); onPhoneMsg({ type: 'alert', rid: 'x', to: '김서연', who: '박지우', place: '2층 상담실', t: '18:04', ts: NOW, promise: CFG.promise, ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, t: '18:04', around: [{ t: '17:31', x: '지원 기준은 소득 조건이 있어서요', v: 0 }, { t: '17:38', x: '아니 왜 나만 안 되냐고', v: 1 }, { t: '18:04', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2, hit: true }], ctx: '' } }); phoneRing(false); M = [['#palertEv', '근거 · 앞뒤 대화'], ['#palertPromise', '기관 약속'], ['#s-palert .primary', '확인했어요']]; },
+      pend: function () { SC.pconn(); P.alerts = 1; endConn(''); clearTimeout(pendId); M = [['#pendSum', '요약'], ['#s-pend button', '지금 대기로']]; },
+      board: function () { startBuddy(); sessions['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', at: NOW - 18 * 60000, last: NOW, phone: '김서연', pending: false }; alertsMap['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', t: '18:04', esc: true, phone: '김서연', ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, around: [] } }; renderBoard(); buddyRing(false); M = [['#alertCards', '미확인 확산 카드'], ['#boardList', '진행 중 상담'], ['#s-buddy button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; }
+    };
+    window.__shot = s; window.__shotReady = false;
+    setTimeout(function () {
+      try { (SC[s] || SC.start)(); } catch (e) { document.title = 'SHOT ERROR ' + e.message; }
+      setTimeout(function () {
+        if (q.get('marks') !== '0') {
+          var n = 0;
+          (M || []).forEach(function (m) {
+            var el = document.querySelector(m[0]); if (!el) return;
+            var r = el.getBoundingClientRect(); if (!r.width) return; n += 1;
+            var b = document.createElement('div');
+            b.textContent = String(n);
+            b.style.cssText = 'position:fixed; z-index:999; left:' + Math.max(4, r.left - 14) + 'px; top:' + Math.max(4, r.top - 14) + 'px; width:30px; height:30px; border-radius:50%; background:#1F5FBF; color:#FFF; font:700 16px/30px IBM Plex Sans KR, sans-serif; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.35); border:2px solid #FFF';
+            document.body.appendChild(b);
+            var o = document.createElement('div'); o.style.cssText = 'position:fixed; z-index:998; left:' + (r.left - 4) + 'px; top:' + (r.top - 4) + 'px; width:' + (r.width + 8) + 'px; height:' + (r.height + 8) + 'px; border:2.5px dashed #1F5FBF; border-radius:12px; pointer-events:none';
+            document.body.appendChild(o);
+          });
+        }
+        window.__shotReady = true; document.title = 'SHOT READY ' + s;
+      }, 900);
+    }, 400);
+  })();
+
   window.__hostSub = hostSubscribe; window.__hostUnsub = hostUnsubscribe;
   window.addEventListener('resize', sizeCanvas);
 })();
