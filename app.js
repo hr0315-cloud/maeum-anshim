@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.1)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.2)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -1267,11 +1267,21 @@ window.onerror = function (msg) {
   window.startPhone = function () {
     var c = linkCfg(); if (!(c && c.role === 'phone')) { openLink(); return; }
     var n = phoneName(); if (!n) { $('phoneName').value = ''; go('pname'); return; }
-    P.name = n; P.req = null; P.conn = null; P.alerts = 0;
+    P.name = n; P.req = null; P.alerts = 0;
     clearTimeout(pendId); phoneRing(false); clearInterval(pTick);
     $('pwaitName').textContent = n; $('pwaitCode').textContent = '팀 코드 ' + c.code;
     $('pwaitMsg').textContent = '';
-    go('pwait');
+    // 다시 열었을 때: 3시간 안에 수락한 연결이 있으면 이어받는다 (알림을 눌러 열었을 때 벨·화면이 이어지도록)
+    var saved = null; try { saved = JSON.parse(localStorage.getItem('ma_pconn') || 'null'); } catch (e) {}
+    if (saved && saved.rid && Date.now() - (saved.at || 0) < 3 * 3600000) {
+      P.conn = saved;
+      $('pconnWho').textContent = saved.who || '-';
+      $('pconnState').textContent = saved.started ? '연결됨 · 상담 중' : '수락함 · 상담 시작 기다리는 중';
+      $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(saved.client || '-') + '<br><b>장소</b> ' + esc(saved.place || '-') + '<br><b>수락</b> ' + hhmm(saved.at);
+      $('pAckNote').style.display = 'none';
+      clearInterval(pTick); pTick = setInterval(function () { if (P.conn) $('pTimer').textContent = fmt(Math.max(0, Math.floor((Date.now() - P.conn.at) / 1000))); }, 1000);
+      go('pconn');
+    } else { P.conn = null; go('pwait'); }
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     try { audioCtx.resume(); } catch (e) {}
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
@@ -1309,7 +1319,7 @@ window.onerror = function (msg) {
   window.stopPhone = function () {
     if (phoneEs) { try { phoneEs.close(); } catch (e) {} phoneEs = null; }
     phoneRing(false); clearInterval(pTick); clearTimeout(pendId);
-    P.req = null; P.conn = null;
+    P.req = null; P.conn = null; saveConn();
     go('start');
   };
   function onPhoneMsg(m) {
@@ -1341,8 +1351,14 @@ window.onerror = function (msg) {
       var n1 = $('pAckNote'); n1.style.display = 'block'; n1.innerHTML = '<b>' + hhmm() + '</b> ' + esc(m.by) + '에서 먼저 확인했어요 · 그래도 상담실 상황을 살펴 주세요';
       return;
     }
+    if ((m.type === 'alert' || m.type === 'start') && m.to === P.name && (!P.conn || m.rid !== P.conn.rid) && m.rid) {
+      // 연결 정보를 잃었어도 내 이름으로 온 신호면 이어받는다
+      P.conn = { rid: m.rid, who: m.who, client: '', place: m.place, at: m.at || Date.now(), started: m.type === 'start' }; saveConn();
+      $('pconnWho').textContent = m.who || '-'; $('pconnInfo').innerHTML = '<b>장소</b> ' + esc(m.place || '-'); $('pconnState').textContent = '연결됨 · 상담 중';
+      clearInterval(pTick); pTick = setInterval(function () { if (P.conn) $('pTimer').textContent = fmt(Math.max(0, Math.floor((Date.now() - P.conn.at) / 1000))); }, 1000);
+    }
     if (!P.conn || m.rid !== P.conn.rid) return;
-    if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; $('pconnState').textContent = '연결됨 · 상담 중'; }
+    if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; saveConn(); $('pconnState').textContent = '연결됨 · 상담 중'; }
     else if (m.type === 'alert') {
       if (m.ts && Date.now() - m.ts > 600000) return;
       P.alerts += 1; P.alert = m;
@@ -1369,6 +1385,7 @@ window.onerror = function (msg) {
     phoneRing(false);
     P.req = null; P.alerts = 0;
     P.conn = { rid: r.rid, who: r.who, client: r.client, place: r.place, at: Date.now(), started: false };
+    saveConn();
     $('pconnWho').textContent = r.who || '-';
     $('pconnState').textContent = '수락함 · 상담 시작 기다리는 중';
     $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(r.client || '-') + '<br><b>장소</b> ' + esc(r.place || '-') + '<br><b>수락</b> ' + hhmm();
@@ -1387,8 +1404,9 @@ window.onerror = function (msg) {
     startPhone();
     $('pwaitMsg').textContent = '지금 받을 수 없다고 알렸어요 (' + hhmm() + ')';
   };
+  function saveConn() { try { if (P.conn) localStorage.setItem('ma_pconn', JSON.stringify(P.conn)); else localStorage.removeItem('ma_pconn'); } catch (e) {} }
   function endConn(note) {
-    var c = P.conn; P.conn = null; phoneRing(false); clearInterval(pTick);
+    var c = P.conn; P.conn = null; saveConn(); phoneRing(false); clearInterval(pTick);
     if (!c) return;
     var mins = Math.max(0, Math.round((Date.now() - c.at) / 60000));
     $('pendWho').textContent = c.who || '-';
