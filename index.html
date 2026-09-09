@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심 v0.6</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.8.0">
+<link rel="stylesheet" href="style.css?v=0.8.1">
 </head>
 <body>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.8.0</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.8.1</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -126,7 +126,8 @@
   <div class="brand"><b>마음안심</b><span>업무폰</span></div>
   <div class="chips"><div class="chip calm"><span class="dot"></span>대기 중</div></div>
   <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)"><span id="pwaitName">-</span> 님,<br>안전 연결 대기 중</h1>
-  <div class="banner"><b id="pwaitCode">팀 코드 -</b><br>상담자가 연결을 요청하면 이 폰이 울려요.<br><span style="color:#B3A28E; font-size:12.5px">지금은 이 화면을 켜 두세요. 화면이 꺼져도 울리는 기능은 준비 중이에요.</span></div>
+  <div class="banner"><b id="pwaitCode">팀 코드 -</b><br>상담자가 연결을 요청하면 이 폰이 울려요.</div>
+  <div class="banner"><b>화면이 꺼져도 받으려면</b> — ntfy 앱에서 이 이름을 구독하세요<br><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0"><span class="mono" id="pwaitAlim" style="background:#FAF5EE; border:1.5px dashed #C05A2A; border-radius:8px; padding:5px 10px; font-size:13.5px">-</span><button class="mid" style="padding:7px 12px; font-size:13px" onclick="copyAlim(this)">복사</button></div><span style="color:#8A7663; font-size:12.5px">앱스토어 "ntfy" · 무료 · 계정 없음 · 알림 허용 · "소리·알림 테스트"를 누르면 잠금화면 알림도 같이 와요</span></div>
   <div class="note" id="pwaitMsg">-</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
     <button class="mid" onclick="go('pname')">이름 바꾸기</button>
@@ -156,7 +157,7 @@
   <div class="banner" id="pconnInfo">-</div>
   <div class="mono" id="pTimer" style="font-size:clamp(28px,4vw,44px); color:#6E4326">00:00</div>
   <div class="sub">대화 내용은 이 폰에 보이지 않아요. 위험이 감지되면 이 폰이 울려요.</div>
-  <div class="note">지금은 이 화면을 켜 두세요</div>
+  <div class="note">ntfy 앱을 구독했다면 화면을 꺼도 알림이 와요 · 알림을 누르면 이 화면이 다시 열려요</div>
 </div>
 
 <!-- 1j 업무폰 · 상담 종료 -->
@@ -428,6 +429,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.8.0"></script>
+<script src="app.js?v=0.8.1"></script>
 </body>
 </html>

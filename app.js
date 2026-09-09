@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.0)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.1)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -661,6 +661,7 @@ window.onerror = function (msg) {
     var c = linkCfg(), sentAt = Date.now();
     if (c && c.role === 'host') {
       var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: sentAt, ev: ev, promise: CFG.promise };
+      notifyHuman((S.counselor || '상담자') + ' 선생님 · 위험 신호', sig.place + ' · 눌러서 확인하기', 'rotating_light', 5);
       postSig(sig).then(function (ok) {
         if (S.screen === 'alert' && !ok) { setAck('miss', '신호를 보내지 못했어요', '인터넷 연결을 확인하고 "동료 호출"을 다시 눌러 주세요'); }
       });
@@ -671,6 +672,7 @@ window.onerror = function (msg) {
         if (S.ackBy || !(S.screen === 'alert' || S.screen === 'session' || S.screen === 'countdown')) return;
         clearInterval(ackTick); logItem.esc = true;
         postSig({ type: 'escalate', rid: sig.rid, to: name, place: sig.place, who: sig.who, t: elapsed, ts: Date.now(), ev: ev });
+        notifyHuman('업무폰 미확인 · ' + sig.place, (sig.who || '상담자') + ' 선생님 · ' + (name ? name + ' 선생님 ' : '') + CFG.escalate + '초 미확인 · 상황판에 알림', 'warning', 5);
         setAck('miss', '아직 확인이 없어요', (name ? name + ' 선생님 업무폰 ' : '') + CFG.escalate + '초 미확인 · 팀 상황판으로 알렸어요');
       }, (CFG.escalate || 60) * 1000);
     } else {
@@ -1058,11 +1060,22 @@ window.onerror = function (msg) {
       return fetch(t, { method: 'POST', body: JSON.stringify(o) }).then(function (r) { return !!(r && r.ok); }).catch(function () { return false; });
     } catch (e) { return Promise.resolve(false); }
   }
+  // 사람용 알림 채널: ntfy 앱이 구독하는 '팀코드-alim'. 기계 신호(JSON)는 여기로 보내지 않는다.
+  function b64(s) { try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return ''; } }
+  function alimTopic() { var t = topic(); return t ? t + '-alim' : null; }
+  function alimName() { var c = linkCfg(); return (c && c.code) ? 'maeum-anshim-' + c.code + '-alim' : ''; }
+  function appUrl() { return location.origin + location.pathname; }
+  function notifyHuman(title, body, tags, prio) {
+    var t = alimTopic(); if (!t) return Promise.resolve(false);
+    try {
+      return fetch(t, { method: 'POST', headers: { 'X-Title': '=?UTF-8?B?' + b64(title) + '?=', 'X-Priority': String(prio || 4), 'X-Tags': tags || '', 'X-Click': appUrl() }, body: body }).then(function (r) { return !!(r && r.ok); }).catch(function () { return false; });
+    } catch (e) { return Promise.resolve(false); }
+  }
   function newId() { return Math.random().toString(36).slice(2, 8); }
   function hhmm(ts) { return new Date(ts || Date.now()).toTimeString().slice(0, 5); }
-  function openES(h) {
+  function openES(h, since) {
     var t = topic(); if (!t) return null;
-    var es = new EventSource(t + '/sse');
+    var es = new EventSource(t + '/sse' + (since ? '?since=' + since : ''));
     es.onmessage = function (ev) {
       try {
         var d = JSON.parse(ev.data);
@@ -1191,6 +1204,7 @@ window.onerror = function (msg) {
     hostSubscribe();
     setWait('sending');
     go('wait');
+    notifyHuman(S.counselor + ' 선생님 · 연결 요청', (c.place || '상담실') + ' · ' + name + ' 선생님께 · 눌러서 수락', 'bell', 4);
     postSig({ type: 'request', rid: rid, to: name, who: S.counselor, client: S.client, place: c.place || '상담실', ts: S.reqAt }).then(function (ok) {
       if (S.screen !== 'wait' || S.rid !== rid) return;
       if (!ok) { setWait('fail'); return; }
@@ -1262,12 +1276,29 @@ window.onerror = function (msg) {
     try { audioCtx.resume(); } catch (e) {}
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
     try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
-    if (!phoneEs || phoneEs.readyState === 2) {
-      if (phoneEs) { try { phoneEs.close(); } catch (e) {} }
-      phoneEs = openES(onPhoneMsg);
-    }
+    reopenPhoneEs();
     sayReady();
+    var an = $('pwaitAlim'); if (an) an.textContent = alimName();
   };
+  // 페이지가 다시 앞으로 나오면(잠금 해제·알림 눌러 열기) 최근 3분 신호를 다시 받아 놓친 요청·알림을 이어받는다
+  function reopenPhoneEs() {
+    if (phoneEs) { try { phoneEs.close(); } catch (e) {} phoneEs = null; }
+    phoneEs = openES(onPhoneMsg, '3m');
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    var c = linkCfg();
+    if (c && c.role === 'phone' && P.name && (S.screen === 'pwait' || S.screen === 'pconn' || S.screen === 'preq' || S.screen === 'palert' || S.screen === 'pend')) reopenPhoneEs();
+  });
+  // 아이폰 규칙: 소리는 화면을 한 번 누른 뒤부터 낼 수 있다 → 첫 터치에서 오디오를 깨운다
+  function unlockAudio() { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {} }
+  document.addEventListener('touchstart', unlockAudio, { passive: true }); document.addEventListener('click', unlockAudio);
+  window.copyAlim = function (btn) { doCopyText(alimName(), btn); };
+  function doCopyText(txt, btn) {
+    function done() { if (btn) { var o = btn.textContent; btn.textContent = '복사됐어요 ✓'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(function () { fallbackCopy(txt); done(); });
+    else { fallbackCopy(txt); done(); }
+  }
   function sayReady() {
     postSig({ type: 'ready', name: P.name, ts: Date.now() }).then(function (ok) {
       if (S.screen !== 'pwait') return;
@@ -1439,6 +1470,8 @@ window.onerror = function (msg) {
   }
   window.testAlarm = function (btn) {
     beep();
+    var cT = linkCfg();
+    if (cT && cT.role === 'phone') notifyHuman('마음안심 테스트', '이 알림이 잠금화면에 보이면 준비 완료예요', 'white_check_mark', 4);
     try {
       if ('Notification' in window) {
         if (Notification.permission === 'granted') {
@@ -1551,6 +1584,7 @@ window.onerror = function (msg) {
   applyCfg();
   updateObsCount();
   updateLinkStat();
+  (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat; window.__addLine = addLine;
   window.__hostSub = hostSubscribe; window.__hostUnsub = hostUnsubscribe;
