@@ -5,9 +5,9 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.2)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.3)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
-            buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
+            buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
   var timerId = 0, cdId = 0, ringId = 0, ringOsc = null, wakeLock = null;
   var canvas = document.getElementById('wave'), ctx = canvas.getContext('2d');
@@ -280,6 +280,7 @@ window.onerror = function (msg) {
     $('s-'+name).classList.add('on');
     S.screen = name;
     if (name === 'session') sizeCanvas();
+    if (name === 'start') renderFirstCard();
   };
   window.tgl = function (el) { el.classList.toggle('ok'); };
   window.pickCall = function (el) {
@@ -304,7 +305,7 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = '연결됨 · ' + S.acc.name;
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; S.cancels = 0; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -346,7 +347,7 @@ window.onerror = function (msg) {
   var stt = null, sttActive = false;
   function startSTT() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR || S.noRecord) return;
+    if (!SR || S.noRecord || S.demo) return;
     stt = new SR();
     stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = false;
     stt.onresult = function (e) {
@@ -413,7 +414,7 @@ window.onerror = function (msg) {
     chip.className = 'chip calm'; chip.textContent = 'AI 맥락 분석 중'; line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 여기에 흐름이 정리돼요';
   }
   function scheduleAI(force) {
-    if (!aiKey() || S.noRecord) return;
+    if (!aiKey() || S.noRecord || S.demo) return;
     if (!force && CFG.aiEvery === 0) return;   // '감지 때만' 모드
     var wait = Math.max(0, aiLastAt + (force ? 5000 : aiGap()) - Date.now(), aiCoolUntil - Date.now());
     clearTimeout(aiTimer);
@@ -552,7 +553,7 @@ window.onerror = function (msg) {
   };
 
   function initMic() {
-    if (analyser || S.noRecord) return;
+    if (analyser || S.noRecord || S.demo) return;
     if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
     // 안드로이드 크롬은 버튼을 누른 직후에만 소리 분석기를 깨울 수 있다 → 마이크 허용을 기다리기 전에 먼저 만들고 깨운다
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -685,7 +686,7 @@ window.onerror = function (msg) {
       if (cdLeft <= 0) { clearInterval(cdId); fireAlert('timeout'); }
     }, 1000);
   }
-  window.cancelAlert = function () { clearInterval(cdId); go('session'); };
+  window.cancelAlert = function () { clearInterval(cdId); S.cancels = (S.cancels || 0) + 1; go('session'); if (S.demo) demoAfterCancel(); };
   var escId = 0, ackTick = 0;
   function setAck(state, name, sub) {
     var card = $('ackCard'), chip = $('alertChip'), ct = $('alertChipTxt');
@@ -699,7 +700,7 @@ window.onerror = function (msg) {
     clearTimeout(escId); clearInterval(ackTick);
     S.cooldownUntil = Date.now() + 45000; S.alerts += 1; S.ackBy = ''; S.silent = true;
     var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ev = buildEv('code', 'auto'); ev.t = elapsed;
-    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: 'code', hit: '', v: 0, n: ev.n, how: 'code', ack: null, esc: false }; S.alertLog.push(logItem);
+    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: 'code', hit: '', v: 0, n: ev.n, how: 'code', ack: null, esc: false, ts: Date.now() }; S.alertLog.push(logItem);
     var c = linkCfg(), name = S.acc ? S.acc.name : '';
     if (!(c && c.role === 'host')) return;
     var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: Date.now(), ev: ev, promise: CFG.promise };
@@ -721,7 +722,7 @@ window.onerror = function (msg) {
     var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
     var ev = (how === 'manual' || !S.curEv) ? buildEv('manual', 'manual') : S.curEv;
     ev.t = ev.t || elapsed; S.curEv = null;
-    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: ev.kind, hit: ev.hit, v: ev.v, n: ev.n, how: how, ack: null, esc: false }; S.alertLog.push(logItem);
+    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: ev.kind, hit: ev.hit, v: ev.v, n: ev.n, how: how, ack: null, esc: false, ts: Date.now() }; S.alertLog.push(logItem);
     var name = S.acc ? S.acc.name : '';
     $('alertTitle').textContent = name ? (how === 'manual' ? name + ' 선생님을 호출했어요' : name + ' 선생님에게 알렸어요') : (how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요');
     $('alertEv').innerHTML = evHtml(ev, { time: true });
@@ -747,11 +748,12 @@ window.onerror = function (msg) {
     }
     go('alert');
     if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+    if (S.demo) demoAfterFire();
   };
   function onAck(m) {
     S.ackBy = m.by || '동료';
     clearTimeout(escId); clearInterval(ackTick);
-    var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm() };
+    var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm(), ts: Date.now() };
     if (S.silent) { var st = $('stateTxt'); if (st && S.acc) st.textContent = '연결됨 · ' + S.acc.name + ' ✓ ' + hhmm(); return; }   // 조용한 호출: 작은 칩으로만
     setAck('ok', S.ackBy === '팀 상황판' ? '팀 상황판에서 확인했어요' : S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
@@ -820,7 +822,7 @@ window.onerror = function (msg) {
   function draftFromSession() {
     return { d: iso(S.startedAt || Date.now()), min: Math.max(0, Math.round(((S.endedAt || Date.now()) - S.startedAt) / 60000)), alerts: S.alerts, noRec: S.noRecord, a: {},
       c1: S.counselor || '-', c2: S.client || '-', one: S.stype || '', place: (linkCfg() || {}).place || '', buddy: S.buddyName || '', callAns: S.callAnswered || '',
-      tr: S.tr || [], ctx: S.ctx || [], al: S.alertLog || [], memo: '', basic: {}, status: 'draft' };
+      tr: S.tr || [], ctx: S.ctx || [], al: S.alertLog || [], memo: '', basic: {}, status: 'draft', cancels: S.cancels || 0 };
   }
   function factsHtml(r) {
     var loud = (r.tr || []).filter(function (l) { return l.v === 2; }).length;
@@ -869,6 +871,7 @@ window.onerror = function (msg) {
   }
   window.editRecord = function () { openWrap(curIdx); };
   window.finish = function (confirm) {
+    if (S.demo) { exitDemo(true); return; }
     var r = S.wrapRec;
     if (editIdx >= 0 && !confirm) { openDetail(editIdx); return; }
     if (r) {
@@ -961,9 +964,44 @@ window.onerror = function (msg) {
       + ((r.a && (r.a.q1 != null || r.a.q2 != null)) ? ' (화면 의식: ' + lbl(L1, r.a.q1) + ' · 분위기: ' + lbl(L2, r.a.q2) + ')' : '')
       + (r.del ? ' | 원문 삭제됨(' + fmtDate(r.del.when) + ', 사유: ' + r.del.why + ')' : '');
   }
+  // ---------- 되짚기 통계 (이름 없이 건수만 · 이번 달/지난달) ----------
+  var statOff = 0;
+  function monthKey(off) { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  function median(a) { if (!a.length) return null; var s = a.slice().sort(function (x, y) { return x - y; }), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); }
+  function secText(s) { return s == null ? '-' : (s >= 60 ? Math.floor(s / 60) + '분 ' + (s % 60) + '초' : s + '초'); }
+  function monthStats(off) {
+    var key = monthKey(off), o = { key: key, n: 0, linked: 0, live: 0, alerts: 0, cancels: 0, fb: [0, 0, 0, 0], acks: [], esc: 0, mood: [0, 0, 0] };
+    getObs().forEach(function (r) {
+      if (String(r.d || '').slice(0, 7) !== key) return;
+      o.n += 1; o.alerts += r.alerts || 0;
+      if (r.gone) return;
+      o.live += 1; if (r.buddy) o.linked += 1; o.cancels += r.cancels || 0;
+      (r.al || []).forEach(function (x) { o.fb[x.fb == null ? 3 : x.fb] += 1; if (x.esc) o.esc += 1; if (x.ts && x.ack && x.ack.ts) o.acks.push(Math.round((x.ack.ts - x.ts) / 1000)); });
+      var q = r.a && r.a.q3; if (q === 0 || q === 1 || q === 2) o.mood[q] += 1;
+    });
+    return o;
+  }
+  function statText(o) {
+    var m = parseInt(o.key.slice(5), 10) + '월', md = median(o.acks), mx = o.acks.length ? Math.max.apply(null, o.acks) : null;
+    return m + ' 상담 ' + o.n + '건 · 동료 연결 ' + o.linked + '건' + (o.live ? '(' + Math.round(o.linked / o.live * 100) + '%)' : '') + ' · 위험 신호 ' + o.alerts + '건 · 유예 취소 ' + o.cancels + '건\n'
+      + '되짚기 정확 ' + o.fb[0] + ' · 과함 ' + o.fb[1] + ' · 모르겠음 ' + o.fb[2] + ' · 미응답 ' + o.fb[3] + '\n'
+      + '알림→확인 중앙값 ' + secText(md) + (mx != null ? ' (최대 ' + secText(mx) + ')' : '') + ' · 확산 ' + o.esc + '건 · 마음 더 안심 ' + o.mood[0] + ' · 비슷 ' + o.mood[1] + ' · 더 불편 ' + o.mood[2];
+  }
+  function renderStat() {
+    var el = $('recStat'); if (!el) return;
+    var o = monthStats(statOff), md = median(o.acks), mx = o.acks.length ? Math.max.apply(null, o.acks) : null, m = parseInt(o.key.slice(5), 10) + '월';
+    if (!o.n) { el.innerHTML = '<b>' + m + '</b> 기록이 없어요 <span class="note"><a href="#" onclick="statShift(1);return false">지난달</a>' + (statOff ? ' · <a href="#" onclick="statShift(-1);return false">다음 달</a>' : '') + '</span>'; return; }
+    el.innerHTML = '<b>' + m + '</b> 상담 <b>' + o.n + '</b>건 · 동료 연결 <b>' + o.linked + '</b>건' + (o.live ? '(' + Math.round(o.linked / o.live * 100) + '%)' : '') + ' · 위험 신호 <b>' + o.alerts + '</b>건 · 유예 취소 <b>' + o.cancels + '</b>건<br>'
+      + '되짚기 <span class="k g">정확 ' + o.fb[0] + '</span><span class="k a">과함 ' + o.fb[1] + '</span><span class="k">모르겠음 ' + o.fb[2] + '</span><span class="k">미응답 ' + o.fb[3] + '</span><br>'
+      + '알림 → 확인 <b>중앙값 ' + secText(md) + '</b>' + (mx != null ? ' (최대 ' + secText(mx) + ')' : '') + ' · 확산 <b>' + o.esc + '</b>건 · 마음 <span class="k g">더 안심 ' + o.mood[0] + '</span><span class="k">비슷 ' + o.mood[1] + '</span><span class="k r">더 불편 ' + o.mood[2] + '</span>'
+      + '<div class="note">이름 없이 건수만 · <a href="#" id="statCopy" onclick="copyStat();return false">이 줄 복사</a> · <a href="#" onclick="statShift(1);return false">지난달</a>' + (statOff ? ' · <a href="#" onclick="statShift(-1);return false">다음 달</a>' : '') + '</div>';
+  }
+  window.statShift = function (d) { statOff = Math.max(0, statOff + d); renderStat(); };
+  window.copyStat = function () { doCopy(statText(monthStats(statOff)), 'statCopy'); };
   window.openRecords = function () {
     var list = $('recList'); list.innerHTML = '';
     purgeOld();
+    renderStat();
     var arr = getObs();
     if (arr.length === 0) {
       list.innerHTML = '<div class="banner" style="max-width:none">아직 기록이 없어요 — 상담을 마치면 여기에 쌓여요</div>';
@@ -1419,6 +1457,17 @@ window.onerror = function (msg) {
   };
   function onPhoneMsg(m) {
     if (m.type === 'ping') { if (S.screen === 'pwait') sayReady(); return; }
+    if (m.type === 'test') {
+      // 상담용 기기가 보낸 왕복 테스트: 3초 벨 + 안내, 받았다고 되돌려 보낸다
+      if (m.ts && Date.now() - m.ts > 60000) return;
+      if (!(S.screen === 'pwait' || S.screen === 'pconn')) return;
+      var txt = hhmm(m.ts) + ' 상담용 기기(' + (m.place || '') + ')에서 테스트 신호 · 벨 3초 · 잠금화면 알림도 왔는지 봐 주세요';
+      if (S.screen === 'pwait') { $('pwaitMsg').textContent = txt; $('pwaitMsg').style.color = '#3C5A78'; }
+      else { var nT = $('pAckNote'); nT.style.display = 'block'; nT.textContent = txt; }
+      phoneRing(true); setTimeout(function () { phoneRing(false); }, 3000);
+      postSig({ type: 'testack', by: P.name, place: m.place || '', ts: Date.now() });
+      return;
+    }
     if (m.type === 'request') {
       if (m.to !== P.name) return;
       if (m.ts && Date.now() - m.ts > 90000) return;
@@ -1680,11 +1729,12 @@ window.onerror = function (msg) {
   };
   function hostSubscribe() {
     var c = linkCfg();
-    if (!(c && c.role === 'host')) return;
+    if (!(c && c.role === 'host') || S.demo) return;
     if (esSig && esSig.readyState !== 2) return;
     if (esSig) { try { esSig.close(); } catch (e) {} }
     esSig = openES(function (m) {
-      if (m.type === 'ready' && m.name) { buddies[m.name] = Date.now(); if (S.screen === 'checkin') renderBuddies(false); }
+      if (m.type === 'ready' && m.name) { buddies[m.name] = Date.now(); if (S.screen === 'checkin') renderBuddies(false); if (S.screen === 'start') renderFirstNames(); }
+      else if (m.type === 'testack') onTestAck(m);
       else if (m.type === 'accept') onAccepted(m);
       else if (m.type === 'decline') { if (S.rid && m.rid === S.rid && S.screen === 'wait') { clearTimeout(reqTimer); setWait('declined'); } }
       else if (m.type === 'ack') {
@@ -1696,7 +1746,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.2';
+  var APP_VER = '0.9.3';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -1711,10 +1761,100 @@ window.onerror = function (msg) {
   purgeOld();
   updateObsCount();
   updateLinkStat();
+  renderFirstCard();
   (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat; window.__addLine = addLine;
   window.__ev = function (k) { return evHtml(buildEv(k, "auto"), { time: true }); };   // 시험용
+  // ---------- 첫 연결 확인 카드 (상담용 · 팀 코드 저장 뒤, 업무폰이 한 번 받기 전까지) ----------
+  var testTid = 0;
+  function tested() { try { return !!localStorage.getItem('ma_tested'); } catch (e) { return false; } }
+  function renderFirstNames() {
+    var el = $('firstNames'); if (!el) return;
+    var now = Date.now(), names = Object.keys(buddies).filter(function (n) { return now - buddies[n] < 600000; });
+    el.textContent = names.length ? '대기 중인 업무폰: ' + names.join(', ') : '대기 중인 업무폰을 찾는 중…';
+  }
+  function renderFirstCard() {
+    var card = $('firstCard'), rt = $('retest'); if (!card) return;
+    var c = linkCfg(), show = !!(c && c.role === 'host') && !tested() && !S.demo;
+    card.style.display = show ? 'block' : 'none';
+    if (rt) rt.style.display = (c && c.role === 'host' && tested()) ? 'inline' : 'none';
+    if (!show) return;
+    card.className = 'fcard';
+    $('firstCode').textContent = c.code; $('firstMsg').textContent = '';
+    $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 신호 보내기';
+    hostSubscribe(); postSig({ type: 'ping', place: c.place || '' }); renderFirstNames();
+  }
+  window.sendTest = function () {
+    var c = linkCfg(); if (!(c && c.role === 'host')) return;
+    hostSubscribe();
+    $('firstBtn').disabled = true; $('firstBtn').textContent = '보냈어요…'; $('firstMsg').textContent = '업무폰 응답을 기다리는 중 (최대 20초)';
+    notifyHuman('마음안심 테스트 · ' + (c.place || '상담실'), '상담용 기기에서 보낸 테스트예요 · 이 알림이 잠금화면에 보이면 준비 완료', 'white_check_mark', 4);
+    postSig({ type: 'test', place: c.place || '', who: ($('counselorName').value || '').trim(), ts: Date.now() }).then(function (ok) {
+      if (!ok) { $('firstMsg').textContent = '신호를 보내지 못했어요 — 인터넷 연결을 확인해 주세요'; $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 신호 보내기'; }
+    });
+    clearTimeout(testTid);
+    testTid = setTimeout(function () {
+      if (tested()) return;
+      $('firstMsg').textContent = '20초 안에 응답이 없어요 — 업무폰이 대기 화면인지, 팀 코드가 같은지, 인터넷이 되는지 봐 주세요';
+      $('firstBtn').disabled = false; $('firstBtn').textContent = '다시 보내기';
+    }, 20000);
+  };
+  function onTestAck(m) {
+    clearTimeout(testTid);
+    try { localStorage.setItem('ma_tested', String(Date.now())); } catch (e) {}
+    var card = $('firstCard'); if (!card || S.screen !== 'start') return;
+    card.className = 'fcard ok';
+    $('firstMsg').innerHTML = '<b>✓ ' + esc(m.by || '업무폰') + ' 업무폰이 받았어요 · ' + hhmm(m.ts) + '</b><br>잠금화면 알림까지 확인했으면 준비 완료예요. 이 카드는 다음부터 안 보여요.';
+    $('firstBtn').style.display = 'none';
+    setTimeout(function () { if (S.screen === 'start') { $('firstBtn').style.display = ''; renderFirstCard(); } }, 8000);
+  }
+  window.retestLink = function () { try { localStorage.removeItem('ma_tested'); } catch (e) {} renderFirstCard(); };
+
+  // ---------- 체험 모드 (업무폰 없이 90초 · 신호는 밖으로 안 나가고 기록도 안 남음) ----------
+  var demoT = [], demoOrig = null;
+  function dT(ms, f) { demoT.push(setTimeout(function () { if (S.demo) f(); }, ms)); }
+  function guide(n, text) { var g = $('demoGuide'); if (!g) return; g.style.display = 'block'; g.innerHTML = '<b>' + n + ' / 6</b> ' + esc(text); }
+  window.startDemo = function () {
+    if (S.demo) return;
+    S.demo = true; demoT = [];
+    demoOrig = { p: postSig, n: notifyHuman };
+    postSig = function () { return Promise.resolve(true); }; notifyHuman = function () { return Promise.resolve(true); };
+    $('demoBar').style.display = 'flex';
+    if (!($('counselorName').value || '').trim()) $('counselorName').value = '체험 상담자';
+    $('clientName').value = '홍길동(예시)';
+    S.acc = { name: '김서연', rid: 'demo', at: Date.now() }; S.buddyName = '김서연 (체험)'; S.callMin = 0;
+    $('checkWho').textContent = '상담자 ' + $('counselorName').value + ' · 홍길동(예시) 님 · 체험';
+    $('buddyPills').innerHTML = '<span class="pill on">김서연 · 수락됨 (체험)</span>'; $('buddyNote').textContent = '체험이라 업무폰 동료가 이미 수락한 상태로 진행해요';
+    go('checkin');
+    guide(1, '실제로는 여기서 업무폰을 받은 동료를 고르고, 그 동료가 수락해야 다음으로 갑니다. 3초 뒤 고지 화면으로 넘어가요.');
+    dT(3000, function () { go('notice'); guide(1, '내담자에게 읽어 주는 고지예요. 기록 사실·외부 전송·열람 권리. 3초 뒤 상담이 시작돼요.'); });
+    dT(6000, function () { if (S.screen === 'notice') startSession(true); S.cooldownUntil = Date.now() + 60000; guide(2, '대화가 글로 바뀌고 있어요(체험은 미리 준비한 문장). 큰 목소리는 글자가 커집니다. 잠시 뒤 위협하는 말이 나와요.'); });
+    dT(8000, function () { if (S.screen === 'session') addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); });
+    dT(11500, function () { if (S.screen === 'session') addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); });
+    dT(16000, function () { if (S.screen !== 'session') return; S.cooldownUntil = 0; addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); guide(3, '위협하는 말이 잡혀 10초 유예가 시작됐어요. 아무것도 안 누르면 동료 폰이 울립니다. 괜찮으면 "괜찮아요"로 취소할 수 있어요.'); });
+  };
+  function demoAfterFire() {
+    guide(4, '동료에게 알렸어요. 실제로는 업무폰에서 "확인했어요"를 누르면 이렇게 초록으로 바뀝니다.');
+    dT(3000, function () { if (S.screen === 'alert') onAck({ by: '김서연', rid: 'demo' }); });
+    dT(7000, function () { if (S.screen === 'alert') { endSession(); guide(5, '상담 종료 화면이에요. 입력은 되짚기 버튼 하나와 마음 버튼 하나가 전부, 나머지는 자동입니다. 아래 버튼을 누르면 체험이 끝나요.'); } });
+  }
+  function demoAfterCancel() {
+    guide(3, '취소했어요. 실제라면 상담이 그대로 이어집니다. 3초 뒤 상담자가 직접 호출했을 때의 화면을 보여 드릴게요.');
+    dT(3000, function () { if (S.screen === 'session') fireAlert('manual'); });
+  }
+  window.exitDemo = function (done) {
+    if (!S.demo) return;
+    demoT.forEach(clearTimeout); demoT = [];
+    clearInterval(timerId); clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick); clearInterval(hbId); playRing(false); aiStop(); stopSTT();
+    if (demoOrig) { postSig = demoOrig.p; notifyHuman = demoOrig.n; demoOrig = null; }
+    S.demo = false; S.acc = null; S.rid = ''; S.callMin = 15; S.wrapRec = null; S.tr = []; S.alertLog = []; S.alerts = 0;
+    $('demoBar').style.display = 'none'; $('clientName').value = '';
+    go('start');
+    var g = $('demoGuide');
+    if (done) { guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결 설정"에서 팀 코드로 시작합니다.'); setTimeout(function () { if (!S.demo && g) g.style.display = 'none'; }, 7000); }
+    else if (g) g.style.display = 'none';
+  };
   window.__S = S; window.__match = matchAll;   // 시험용
   window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; renderAcc(); };   // 시험용
   // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
@@ -1723,7 +1863,7 @@ window.onerror = function (msg) {
     var role = /^p/.test(s) ? 'phone' : s === 'board' ? 'board' : 'host';
     try {
       localStorage.setItem('ma_link', JSON.stringify({ code: 'h7k2m9pq', role: role, place: '2층 상담실' }));
-      localStorage.setItem('ma_counselor', '박지우'); localStorage.setItem('ma_stype', '정기상담'); localStorage.setItem('ma_phone_name', '김서연');
+      localStorage.setItem('ma_counselor', '박지우'); localStorage.setItem('ma_stype', '정기상담'); localStorage.setItem('ma_phone_name', '김서연'); localStorage.setItem('ma_tested', '1');
     } catch (e) {}
     postSig = function () { return Promise.resolve(true); }; openES = function () { return null; };
     notifyHuman = function () { return Promise.resolve(true); };
