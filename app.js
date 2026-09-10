@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.4)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.5)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -1746,7 +1746,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.4';
+  var APP_VER = '0.9.5';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -1814,7 +1814,14 @@ window.onerror = function (msg) {
   // ---------- 체험 모드 (업무폰 없이 90초 · 신호는 밖으로 안 나가고 기록도 안 남음) ----------
   var demoT = [], demoOrig = null;
   function dT(ms, f) { demoT.push(setTimeout(function () { if (S.demo) f(); }, ms)); }
-  function guide(n, text) { var g = $('demoGuide'); if (!g) return; g.style.display = 'block'; g.innerHTML = '<b>' + n + ' / 6</b> ' + esc(text); }
+  var guideTid = 0;
+  function guide(n, text, hold) {
+    var g = $('demoGuide'); if (!g) return;
+    clearTimeout(guideTid);
+    g.style.display = 'block'; g.innerHTML = '<b>' + n + ' / 6</b> ' + esc(text) + '<span class="gx">누르면 닫힘</span>';
+    guideTid = setTimeout(function () { g.style.display = 'none'; }, hold || Math.max(6000, 2500 + text.length * 90));
+  }
+  window.hideGuide = function () { clearTimeout(guideTid); var g = $('demoGuide'); if (g) g.style.display = 'none'; };
   window.startDemo = function () {
     if (S.demo) return;
     S.demo = true; demoT = [];
@@ -1827,21 +1834,21 @@ window.onerror = function (msg) {
     $('checkWho').textContent = '상담자 ' + $('counselorName').value + ' · 홍길동(예시) 님 · 체험';
     $('buddyPills').innerHTML = '<span class="pill on">김서연 · 수락됨 (체험)</span>'; $('buddyNote').textContent = '체험이라 업무폰 동료가 이미 수락한 상태로 진행해요';
     go('checkin');
-    guide(1, '실제로는 여기서 업무폰을 받은 동료를 고르고, 그 동료가 수락해야 다음으로 갑니다. 3초 뒤 고지 화면으로 넘어가요.');
-    dT(3000, function () { go('notice'); guide(1, '내담자에게 읽어 주는 고지예요. 기록 사실·외부 전송·열람 권리. 3초 뒤 상담이 시작돼요.'); });
-    dT(6000, function () { if (S.screen === 'notice') startSession(true); S.cooldownUntil = Date.now() + 60000; guide(2, '대화가 글로 바뀌고 있어요(체험은 미리 준비한 문장). 큰 목소리는 글자가 커집니다. 잠시 뒤 위협하는 말이 나와요.'); });
-    dT(8000, function () { if (S.screen === 'session') addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); });
-    dT(11500, function () { if (S.screen === 'session') addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); });
-    dT(16000, function () { if (S.screen !== 'session') return; S.cooldownUntil = 0; addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); guide(3, '위협하는 말이 잡혀 10초 유예가 시작됐어요. 아무것도 안 누르면 동료 폰이 울립니다. 괜찮으면 "괜찮아요"로 취소할 수 있어요.'); });
+    guide(1, '실제로는 여기서 업무폰을 받은 동료를 고르고, 그 동료가 수락해야 다음으로 갑니다. 8초 뒤 고지 화면으로 넘어가요.');
+    dT(8000, function () { go('notice'); guide(1, '내담자에게 읽어 주는 고지예요. 기록 사실·외부 전송·열람 권리. 12초 뒤 상담이 시작돼요.'); });
+    dT(20000, function () { if (S.screen === 'notice') startSession(true); S.cooldownUntil = Date.now() + 60000; guide(2, '대화가 글로 바뀌고 있어요(체험은 미리 준비한 문장). 큰 목소리는 글자가 커집니다. 잠시 뒤 위협하는 말이 나와요.'); });
+    dT(23000, function () { if (S.screen === 'session') addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); });
+    dT(28000, function () { if (S.screen === 'session') addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); });
+    dT(36000, function () { if (S.screen !== 'session') return; S.cooldownUntil = 0; addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); guide(3, '위협하는 말이 잡혀 10초 유예가 시작됐어요. 아무것도 안 누르면 동료 폰이 울립니다. 괜찮으면 "괜찮아요"로 취소할 수 있어요.', 5000); });
   };
   function demoAfterFire() {
     guide(4, '동료에게 알렸어요. 실제로는 업무폰에서 "확인했어요"를 누르면 이렇게 초록으로 바뀝니다.');
-    dT(3000, function () { if (S.screen === 'alert') onAck({ by: '김서연', rid: 'demo' }); });
-    dT(7000, function () { if (S.screen === 'alert') { endSession(); guide(5, '상담 종료 화면이에요. 입력은 되짚기 버튼 하나와 마음 버튼 하나가 전부, 나머지는 자동입니다. 아래 버튼을 누르면 체험이 끝나요.'); } });
+    dT(5000, function () { if (S.screen === 'alert') onAck({ by: '김서연', rid: 'demo' }); });
+    dT(12000, function () { if (S.screen === 'alert') { endSession(); guide(5, '상담 종료 화면이에요. 입력은 되짚기 버튼 하나와 마음 버튼 하나가 전부, 나머지는 자동입니다. 아래 버튼을 누르면 체험이 끝나요.'); } });
   }
   function demoAfterCancel() {
     guide(3, '취소했어요. 실제라면 상담이 그대로 이어집니다. 3초 뒤 상담자가 직접 호출했을 때의 화면을 보여 드릴게요.');
-    dT(3000, function () { if (S.screen === 'session') fireAlert('manual'); });
+    dT(4000, function () { if (S.screen === 'session') fireAlert('manual'); });
   }
   window.exitDemo = function (done) {
     if (!S.demo) return;
@@ -1852,8 +1859,8 @@ window.onerror = function (msg) {
     $('demoBar').style.display = 'none'; $('clientName').value = '';
     go('start');
     var g = $('demoGuide');
-    if (done) { guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결 설정"에서 팀 코드로 시작합니다.'); setTimeout(function () { if (!S.demo && g) g.style.display = 'none'; }, 7000); }
-    else if (g) g.style.display = 'none';
+    if (done) guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결 설정"에서 팀 코드로 시작합니다.', 9000);
+    else hideGuide();
   };
   window.__S = S; window.__match = matchAll;   // 시험용
   window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; renderAcc(); };   // 시험용
