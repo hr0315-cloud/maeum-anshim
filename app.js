@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.1)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.2)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -656,7 +656,7 @@ window.onerror = function (msg) {
     if (ev.n) meta.push('이 상담에서 ' + ev.n + '번째');
     if (opts.time && ev.t) meta.unshift(ev.t);
     var s = '<span class="hit">' + head + '</span> <span class="meta">' + (meta.length ? '· ' + meta.join(' · ') : '') + '</span>';
-    // 예전 기기(v0.8)가 보낸 신호에는 around가 있을 수 있다 — 그래도 감지 문장 한 줄만 보여준다
+    // 예전 기기 v0.8이 보낸 신호에는 around가 있을 수 있다 — 그래도 감지 문장 한 줄만 보여준다
     var line = ev.line || (ev.around && ev.around.length ? (ev.around.filter(function (l) { return l.hit; })[0] || {}).x : '');
     if (line && !opts.noAround) s += '<div class="ctx"><div><span class="t">' + esc(ev.t || '') + '</span><b>' + esc(line) + '</b></div></div>';
     return s;
@@ -850,6 +850,7 @@ window.onerror = function (msg) {
     else { r = getObs()[idx]; if (!r) { openRecords(); return; } r = JSON.parse(JSON.stringify(r)); editIdx = idx; }
     S.wrapRec = r;
     var wk = $('wrapKeep'); if (wk) wk.textContent = CFG.keep ? CFG.keep + '일 뒤 자동 삭제' : '수동 삭제만';
+    var wc = document.querySelector('#s-wrap .chip.calm'); if (wc) wc.innerHTML = '<span class="dot"></span>' + (r.noRec ? '기록 없이 진행 · 글 없음' : '음성 삭제됨 · 글만 보관');
     $('wrapMode').textContent = idx == null ? '상담 종료' : '기록 고치기';
     $('wrapTitle').textContent = idx == null ? '오늘도 수고하셨어요' : fmtDate(r.d) + ' 기록';
     $('wrapSummary').textContent = '상담 ' + r.min + '분 · 위험 신호 ' + (r.alerts || 0) + '건 · ' + (r.c2 || '-') + ' 님';
@@ -1045,7 +1046,7 @@ window.onerror = function (msg) {
     try {
       var arr = getObs();
       if (arr[curIdx] && !arr[curIdx].del) {
-        arr[curIdx].del = { when: new Date().toISOString().slice(0, 16), why: why };
+        arr[curIdx].del = { when: iso(Date.now()), why: why };
         arr[curIdx].tr = [];
         localStorage.setItem('ma_obs', JSON.stringify(arr));
       }
@@ -1125,7 +1126,7 @@ window.onerror = function (msg) {
     if (!why) { $('clearWhy').placeholder = '사유를 적어야 삭제할 수 있어요'; $('clearWhy').focus(); return; }
     try {
       var arr = getObs();
-      var when = new Date().toISOString().slice(0, 16);
+      var when = iso(Date.now());
       arr.forEach(function (r) { if (!r.del && !r.gone) { r.del = { when: when, why: why }; r.tr = []; } });
       localStorage.setItem('ma_obs', JSON.stringify(arr));
     } catch (e) {}
@@ -1157,6 +1158,15 @@ window.onerror = function (msg) {
   }
   function newId() { return Math.random().toString(36).slice(2, 8); }
   function hhmm(ts) { return new Date(ts || Date.now()).toTimeString().slice(0, 5); }
+  // 같은 신호를 두 번 처리하지 않기: SSE가 끊겨 다시 붙을 때(화면 켤 때 since=3m) 최근 신호가 다시 오는데, 이미 처리한 것은 ntfy 메시지 id로 걸러낸다
+  var seenIds = {}, seenOrder = [];
+  function seenBefore(id) {
+    if (!id) return false;
+    if (seenIds[id]) return true;
+    seenIds[id] = 1; seenOrder.push(id);
+    if (seenOrder.length > 400) delete seenIds[seenOrder.shift()];
+    return false;
+  }
   function openES(h, since) {
     var t = topic(); if (!t) return null;
     var es = new EventSource(t + '/sse' + (since ? '?since=' + since : ''));
@@ -1164,6 +1174,7 @@ window.onerror = function (msg) {
       try {
         var d = JSON.parse(ev.data);
         if (!d.message) return;
+        if (seenBefore(d.id)) return;
         h(JSON.parse(d.message));
       } catch (e) {}
     };
@@ -1609,6 +1620,7 @@ window.onerror = function (msg) {
       try {
         var d = JSON.parse(ev.data);
         if (!d.message) return;
+        if (seenBefore(d.id)) return;
         m = JSON.parse(d.message);
       } catch (e) { return; }
       var k = skey(m);
@@ -1684,11 +1696,11 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.1';
+  var APP_VER = '0.9.2';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
-        var m = /\(v([0-9.]+)\)/.exec(t); if (!m || m[1] === APP_VER || window.__shot) return;
+        var m = /APP_VER = '([0-9.]+)'/.exec(t); if (!m || m[1] === APP_VER || window.__shot) return;   // 파일 안의 다른 '(v…)' 글자에 걸리지 않게 APP_VER 줄만 본다
         var bar = $('updBar'); if (!bar) return;
         bar.style.display = 'flex'; $('updTxt').textContent = '새 버전 v' + m[1] + '이 있어요 (지금 v' + APP_VER + ')';
       }).catch(function () {});
