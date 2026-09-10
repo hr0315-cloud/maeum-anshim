@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.0)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.1)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -46,6 +46,7 @@ window.onerror = function (msg) {
     aiEvery: 45,
     promise: '2분 안에 확인 전화 → 노크 → 동석',
     escalate: 60,
+    keep: 30,   // 기록 보존 일수. 0 = 수동 삭제만. 지나면 기기에서 지우고 "자동 삭제됨" 한 줄만 남긴다
     warn: '폭언이 계속되면 상담이 중단될 수 있습니다. 상담 내용은 기록되고 있습니다.'
   };
   var CFG = loadCfg();
@@ -134,6 +135,7 @@ window.onerror = function (msg) {
     $('cfgCounselor').value = CFG.counselor; $('cfgCode').value = CFG.code; $('cfgLose').value = CFG.lose; $('cfgMeta').value = CFG.meta; $('cfgCalm').value = CFG.calm; $('cfgRefusal').value = CFG.refusal;
     document.querySelectorAll('#s-settings [data-score]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-score'), 10) === CFG.score); }); $('cfgWarn').value = CFG.warn; $('cfgPromise').value = CFG.promise;
     document.querySelectorAll('#s-settings [data-esc]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-esc'), 10) === CFG.escalate); });
+    document.querySelectorAll('#s-settings [data-keep]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-keep'), 10) === CFG.keep); });
     formKeys = { gemini: CFG.gkey, anthropic: CFG.key };
     $('swApproved').classList.toggle('on', !!CFG.approved);
     $('swApprovedTxt').textContent = CFG.approved ? '기관 승인 완료' : '기관 승인 전';
@@ -174,6 +176,7 @@ window.onerror = function (msg) {
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
   window.pickEvery = function (el) { pickOne(el, 'data-every'); };
   window.pickEsc = function (el) { pickOne(el, 'data-esc'); };
+  window.pickKeep = function (el) { pickOne(el, 'data-keep'); };
   window.pickScore = function (el) { pickOne(el, 'data-score'); };
   window.pickModel = function (el) { var v = pickOne(el, 'data-model'); var g = $('cfgGModel'); if (el.parentElement.id === 'modelRowG') { g.style.display = v === 'custom' ? 'inline-block' : 'none'; if (v === 'custom') g.focus(); } };
   function readSettingsForm() {
@@ -192,6 +195,7 @@ window.onerror = function (msg) {
       provider: formProvider,
       promise: $('cfgPromise').value.trim() || DEF.promise,
       escalate: (function () { var e = document.querySelector('#s-settings [data-esc].on'); return e ? parseInt(e.getAttribute('data-esc'), 10) : DEF.escalate; })(),
+      keep: (function () { var e = document.querySelector('#s-settings [data-keep].on'); return e ? parseInt(e.getAttribute('data-keep'), 10) : DEF.keep; })(),
       aiEvery: (function () { var e = document.querySelector('#s-settings [data-every].on'); return e ? parseInt(e.getAttribute('data-every'), 10) : DEF.aiEvery; })(),
       gkey: formKeys.gemini || '', gmodel: (mg && mg.getAttribute('data-model') === 'custom') ? ($('cfgGModel').value.trim() || DEF.gmodel) : (mg ? mg.getAttribute('data-model') : DEF.gmodel),
       key: formKeys.anthropic || '', model: ma ? ma.getAttribute('data-model') : DEF.model,
@@ -199,7 +203,7 @@ window.onerror = function (msg) {
     };
   }
   window.saveSettings = function () {
-    CFG = readSettingsForm(); saveCfg(); applyCfg();
+    CFG = readSettingsForm(); saveCfg(); applyCfg(); purgeOld(); updateObsCount();
     $('cfgMsg').textContent = '저장됐어요 (' + hhmm() + ')';
     setTimeout(function () { if (S.screen === 'settings') go('start'); }, 700);
   };
@@ -634,20 +638,11 @@ window.onerror = function (msg) {
     var hit = (kind === 'threat' || kind === 'abuse' || kind === 'score' || kind === 'counselor') ? S.lastHit : null;
     if (kind === 'code') { S.hitN = (S.hitN || 0) + 1; return { kind: 'code', how: how || '', hit: '', line: '', v: 0, n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [], parts: '' }; }
     var idx = lines.length - 1;
-    var around = lines.slice(Math.max(0, idx - 3), idx + 1).map(function (l, i, arr) { return { t: l.t, x: String(l.x).slice(0, 80), v: l.v || 0, hit: !!hit && i === arr.length - 1 }; });
     S.hitN = (S.hitN || 0) + 1;
+    // 9단계: 앞뒤 대화(around)와 AI 맥락(ctx)은 보내지 않는다. 감지된 문장 한 줄(line)만
     return { kind: kind, how: how || '', hit: hit ? hit.hit : '', line: hit ? String(hit.x).slice(0, 120) : '', v: hit ? (lines[idx] ? (lines[idx].v || 0) : 0) : (kind === 'loud' ? 2 : 0),
-             n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: S.lastCtx ? String(S.lastCtx.x).slice(0, 140) : '', around: around,
+             n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [],
              parts: (kind === 'score' && hit) ? (hit.parts || '') : '' };
-  }
-  function refreshAround(ev) {
-    // 발송 시점에 뒤따른 문장 한 줄을 더 붙인다
-    var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
-    if (!ev.around.length) return ev;
-    var lastT = ev.around[ev.around.length - 1].t, extra = null;
-    for (var i = lines.length - 1; i >= 0; i--) { if (lines[i].t > lastT) extra = lines[i]; else break; }
-    if (extra) ev.around = ev.around.concat([{ t: extra.t, x: String(extra.x).slice(0, 80), v: extra.v || 0, hit: false }]).slice(-5);
-    return ev;
   }
   function evHtml(ev, opts) {
     opts = opts || {};
@@ -661,10 +656,9 @@ window.onerror = function (msg) {
     if (ev.n) meta.push('이 상담에서 ' + ev.n + '번째');
     if (opts.time && ev.t) meta.unshift(ev.t);
     var s = '<span class="hit">' + head + '</span> <span class="meta">' + (meta.length ? '· ' + meta.join(' · ') : '') + '</span>';
-    if (ev.around && ev.around.length && !opts.noAround) {
-      s += '<div class="ctx">' + ev.around.map(function (l) { var x = esc(l.x); return '<div><span class="t">' + esc(l.t) + '</span>' + (l.hit ? '<b>' + x + '</b>' : x) + '</div>'; }).join('') + '</div>';
-    }
-    if (ev.ctx) s += '<div class="ctx"><b>AI 맥락</b> ' + esc(ev.ctx) + '</div>';
+    // 예전 기기(v0.8)가 보낸 신호에는 around가 있을 수 있다 — 그래도 감지 문장 한 줄만 보여준다
+    var line = ev.line || (ev.around && ev.around.length ? (ev.around.filter(function (l) { return l.hit; })[0] || {}).x : '');
+    if (line && !opts.noAround) s += '<div class="ctx"><div><span class="t">' + esc(ev.t || '') + '</span><b>' + esc(line) + '</b></div></div>';
     return s;
   }
 
@@ -725,7 +719,7 @@ window.onerror = function (msg) {
     $('stateChip').className = 'chip warn';
     $('stateTxt').textContent = '감지 ' + S.alerts + '회';
     var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
-    var ev = (how === 'manual' || !S.curEv) ? buildEv('manual', 'manual') : refreshAround(S.curEv);
+    var ev = (how === 'manual' || !S.curEv) ? buildEv('manual', 'manual') : S.curEv;
     ev.t = ev.t || elapsed; S.curEv = null;
     S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: ev.kind, hit: ev.hit, v: ev.v, n: ev.n, how: how, ack: null, esc: false }; S.alertLog.push(logItem);
     var name = S.acc ? S.acc.name : '';
@@ -855,6 +849,7 @@ window.onerror = function (msg) {
     if (idx == null) { r = draftFromSession(); editIdx = -1; }
     else { r = getObs()[idx]; if (!r) { openRecords(); return; } r = JSON.parse(JSON.stringify(r)); editIdx = idx; }
     S.wrapRec = r;
+    var wk = $('wrapKeep'); if (wk) wk.textContent = CFG.keep ? CFG.keep + '일 뒤 자동 삭제' : '수동 삭제만';
     $('wrapMode').textContent = idx == null ? '상담 종료' : '기록 고치기';
     $('wrapTitle').textContent = idx == null ? '오늘도 수고하셨어요' : fmtDate(r.d) + ' 기록';
     $('wrapSummary').textContent = '상담 ' + r.min + '분 · 위험 신호 ' + (r.alerts || 0) + '건 · ' + (r.c2 || '-') + ' 님';
@@ -932,6 +927,18 @@ window.onerror = function (msg) {
     openCheckin();
   };
   function getObs() { try { return JSON.parse(localStorage.getItem('ma_obs') || '[]'); } catch (e) { return []; } }
+  // 보존 기간(설정 ⑥)이 지난 기록은 내용을 지우고 날짜·건수만 남긴다. 앱을 열 때와 기록을 볼 때 실행
+  function purgeOld() {
+    var days = CFG.keep || 0; if (!days) return 0;
+    var arr = getObs(), n = 0, limit = Date.now() - days * 86400000;
+    arr.forEach(function (r, i) {
+      if (r.gone) return;
+      var t = Date.parse(r.d || ''); if (isNaN(t) || t > limit) return;
+      arr[i] = { d: r.d, gone: true, keep: days, alerts: r.alerts || 0, when: iso(Date.now()) }; n += 1;
+    });
+    if (n) { try { localStorage.setItem('ma_obs', JSON.stringify(arr)); } catch (e) {} }
+    return n;
+  }
   function updateObsCount() {
     var n = getObs().length;
     var b = $('recBtn');
@@ -946,6 +953,7 @@ window.onerror = function (msg) {
   }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function recLine(r) {
+    if (r.gone) return fmtDate(r.d) + ' · 자동 삭제됨 (보존 ' + r.keep + '일) · 위험 신호 ' + (r.alerts || 0) + '건';
     return fmtDate(r.d) + ' · 상담자 ' + (r.c1 || '-') + ' · 내담자 ' + (r.c2 || '-') + ' · ' + r.min + '분 · 위험 신호 ' + r.alerts + '건'
       + ' | 유형: ' + (r.one || '(미선택)')
       + ' | 마음: ' + lbl(L3, r.a && r.a.q3)
@@ -954,6 +962,7 @@ window.onerror = function (msg) {
   }
   window.openRecords = function () {
     var list = $('recList'); list.innerHTML = '';
+    purgeOld();
     var arr = getObs();
     if (arr.length === 0) {
       list.innerHTML = '<div class="banner" style="max-width:none">아직 기록이 없어요 — 상담을 마치면 여기에 쌓여요</div>';
@@ -964,6 +973,7 @@ window.onerror = function (msg) {
           var div = document.createElement('div');
           div.className = 'banner recrow';
           div.style.maxWidth = 'none';
+          if (r.gone) { div.style.opacity = '0.6'; div.style.cursor = 'default'; div.innerHTML = '<span style="color:#8A7663; font-style:italic">' + esc(fmtDate(r.d)) + ' · 자동 삭제됨 (보존 ' + r.keep + '일) · 위험 신호 ' + (r.alerts || 0) + '건</span>'; list.appendChild(div); return; }
           if (r.del) div.style.opacity = '0.75';
           div.innerHTML = (r.status === 'final' ? '<span style="font-size:11px; color:#2F5E40; background:#E7F0E9; border-radius:999px; padding:1px 8px; margin-right:8px">확정</span>' : '<span style="font-size:11px; color:#8A5F14; background:#F7EDD8; border-radius:999px; padding:1px 8px; margin-right:8px">초안</span>') + '<b>' + esc(fmtDate(r.d)) + '</b> · ' + esc(r.c1 || '-') + ' → ' + esc(r.c2 || '-') + ' · ' + r.min + '분 · '
             + (r.alerts > 0 ? '<span style="color:#B3403A; font-weight:700">위험 신호 ' + r.alerts + '건</span>' : '위험 신호 0건')
@@ -987,7 +997,7 @@ window.onerror = function (msg) {
   window.openDetail = function (idx) {
     curIdx = idx;
     var r = getObs()[idx];
-    if (!r) { openRecords(); return; }
+    if (!r || r.gone) { openRecords(); return; }
     $('detTitle').textContent = fmtDate(r.d) + ' — ' + (r.c1 || '-') + ' → ' + (r.c2 || '-');
     $('detMeta').textContent = '상담 ' + r.min + '분 · 위험 신호 ' + r.alerts + '건 · ' + (r.one || '유형 미선택') + ' · ' + (r.status === 'final' ? '확정 ' + fmtDate(r.finalAt) + (r.editedAt ? ' · 수정 ' + fmtDate(r.editedAt) : '') : '초안') + ' · 음성 삭제됨';
     var list = $('detList'); list.innerHTML = '';
@@ -1116,7 +1126,7 @@ window.onerror = function (msg) {
     try {
       var arr = getObs();
       var when = new Date().toISOString().slice(0, 16);
-      arr.forEach(function (r) { if (!r.del) { r.del = { when: when, why: why }; r.tr = []; } });
+      arr.forEach(function (r) { if (!r.del && !r.gone) { r.del = { when: when, why: why }; r.tr = []; } });
       localStorage.setItem('ma_obs', JSON.stringify(arr));
     } catch (e) {}
     updateObsCount();
@@ -1674,7 +1684,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.0';
+  var APP_VER = '0.9.1';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -1686,6 +1696,7 @@ window.onerror = function (msg) {
   }, 1500);
   window.reloadFresh = function () { location.href = location.origin + location.pathname + '?r=' + Date.now(); };
   applyCfg();
+  purgeOld();
   updateObsCount();
   updateLinkStat();
   (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
