@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.8.4">
+<link rel="stylesheet" href="style.css?v=0.9.0">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.8.4</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.9.0</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -69,11 +69,20 @@
     <h2>② 감지 기준</h2>
     <div class="row"><label style="width:110px">유예 시간</label><span class="pill" data-grace="5" onclick="pickGrace(this)">5초</span><span class="pill" data-grace="10" onclick="pickGrace(this)">10초</span><span class="pill" data-grace="15" onclick="pickGrace(this)">15초</span></div>
     <div class="row"><label style="width:110px">큰 소리 민감도</label><span class="pill" data-sens="low" onclick="pickSens(this)">낮음</span><span class="pill" data-sens="mid" onclick="pickSens(this)">보통</span><span class="pill" data-sens="high" onclick="pickSens(this)">높음</span></div>
-    <label>위협 표현 (쉼표로 구분 · 한 번이면 바로 유예 시작)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
-    <label>심한 말 (쉼표로 구분 · 한 번이면 바로 유예 시작)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
+    <div class="note" style="font-weight:700; color:#B3403A; margin-top:6px">A · 즉시 — 한 번이면 바로 유예가 시작돼요</div>
+    <label>위협 표현 (쉼표로 구분)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
+    <label>심한 말 (쉼표로 구분)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
+    <label>상담자 문구 (쉼표로 구분 · 상담자가 중단 의사를 밝히는 말 · 내담자는 하지 않는 문장이라 화자 구분 없이도 잡혀요)</label><textarea class="txt" id="cfgCounselor" rows="2"></textarea>
+    <label>암호 문구 (쉼표로 여러 개 가능 · 말하면 유예도 화면 변화도 없이 바로 동료를 불러요 · 평소에 안 쓰는 문장으로)</label><textarea class="txt" id="cfgCode" rows="1"></textarea>
+    <div class="note" style="font-weight:700; color:#8A5F14; margin-top:10px">B · 점수 — 2분 안에 쌓여 기준 점수가 되면 유예</div>
     <label>요구 표현 (쉼표로 구분 · 1회 1점 · 말이 바뀌어도 "달라"는 형태를 셈)</label><textarea class="txt" id="cfgDemand" rows="2"></textarea>
+    <label>통제 상실 예고 (쉼표로 구분 · 1회 2점 · 위협 한 단계 앞의 말)</label><textarea class="txt" id="cfgLose" rows="1"></textarea>
+    <label>반복 자각 (쉼표로 구분 · 1회 1점 · 되풀이하고 있다고 스스로 말하는 표현)</label><textarea class="txt" id="cfgMeta" rows="1"></textarea>
+    <label>완화 표현 (쉼표로 구분 · 상담자가 진정시키는 말 · 2분 안 두 번째부터 1점)</label><textarea class="txt" id="cfgCalm" rows="1"></textarea>
     <div class="row"><label style="width:150px">알림 기준 점수</label><span class="pill" data-score="2" onclick="pickScore(this)">2점</span><span class="pill" data-score="3" onclick="pickScore(this)">3점</span><span class="pill" data-score="4" onclick="pickScore(this)">4점</span></div>
-    <div class="note">위협 표현·심한 말은 한 번이면 바로 유예가 시작돼요. 그 밖의 신호는 2분 안에 점수를 더해요: 요구 표현 1점 · 같은 말 되풀이 1점 · 매우 큰 목소리 +1점. 쌓이는 동안 상담 화면 위에 점(● ● ○)이 차요.</div>
+    <div class="note" style="font-weight:700; color:#3C5A78; margin-top:10px">C · 문턱 — 울리지 않아요</div>
+    <label>거절·제한 통보 (쉼표로 구분 · 상담자가 지원 불가를 알리는 말 · 뒤 2분 동안 기준 점수가 1점 내려가요)</label><textarea class="txt" id="cfgRefusal" rows="2"></textarea>
+    <div class="note">같은 말 되풀이 1점 · 매우 큰 목소리 +1점은 목록 없이 자동으로 더해져요. 쌓이는 동안 상담 화면 위에 점(● ● ○)이 차고, 거절 통보 뒤 2분은 점이 하나 줄어 보여요(○ ○).</div>
     <label>이 문장이 감지되나요? (위 목록 기준으로 바로 확인)</label>
     <div class="row"><input class="txt" id="cfgTest" placeholder="예: 퇴근길 조심해라" autocomplete="off" style="flex:1; min-width:200px; padding:8px 12px; font-size:14px"><button class="mid" onclick="testThreat()">확인</button></div>
     <div class="note" id="cfgTestOut">띄어쓰기는 무시하고 비교해요 · 상담 중 한 번 감지되면 45초 동안은 다시 감지하지 않아요</div>
@@ -430,6 +439,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.8.4"></script>
+<script src="app.js?v=0.9.0"></script>
 </body>
 </html>

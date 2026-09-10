@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.8.4)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.0)'; }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null };
   var analyser = null, audioCtx = null, micStream = null;
@@ -30,6 +30,16 @@ window.onerror = function (msg) {
     demand: '해줘, 해달라, 해주세요, 해주라, 해주라고, 달라고, 주라고, 왜 안, 안 되냐, 안되냐, 안 돼요, 안 돼냐, 언제 되, 언제 해, 언제 줘, 해결해, 내놔, 약속했잖, 해준다며, 해준다고, 해주기로, 해 줘야, 해야지, 왜 못',
     score: 3,
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹, 꺼져, 닥쳐, 등신, 또라이, 개같은, 좆',
+    // A층(즉시) 상담자가 중단 의사를 밝히는 말 — 화자 분리 없이도 내담자가 할 리 없는 문장
+    counselor: '그만하세요, 그만하셨으면, 그런 말씀은 그만, 상담을 더 못하겠, 상담을 여기서, 이렇게는 진행할 수 없, 그렇게 말씀하시면 안, 상담을 중단',
+    // A층 암호 문구: 말하면 유예·화면 변화 없이 바로 동료 호출 (내담자 앞에서 손 안 대고 부르는 길)
+    code: '팀장님께 서류 확인 부탁드릴게요',
+    // B층(점수) 통제 상실 예고 2점 · 반복 자각 1점 · 완화 표현은 2분 안 두 번째부터 1점
+    lose: '못 참겠, 더는 못 참, 더 이상 못 참, 참는 것도 한계, 내가 무슨 짓, 뭘 할지 몰라, 지금 참고 있, 나 지금 참고',
+    meta: '몇 번을 말해, 몇 번 말했, 이미 말했잖, 또 말해야, 몇 번째 말, 같은 말을 몇 번',
+    calm: '진정하세요, 진정하시고, 소리 지르지, 목소리를 낮춰, 흥분하지 마, 화내지 마시고',
+    // C층(문턱) 거절·제한 통보: 울리지 않고 뒤 2분 동안 기준 점수를 1 낮춘다 (폭력 선행요인 1위)
+    refusal: '규정상 어렵, 도와드릴 수 없, 지원이 안 되, 지원이 어렵, 대상이 아니, 이번에는 어렵, 해드릴 수 없, 불가능합니다',
     provider: 'gemini',
     gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
@@ -53,12 +63,19 @@ window.onerror = function (msg) {
     var alts = parts.map(function (p) { return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
     return new RegExp('(' + alts.join('|') + ')');
   }
-  function matchThreat(x) {
-    var t = String(x || '').replace(/\s+/g, '');
-    var m = RX_THREAT && RX_THREAT.exec(t); if (m) return { kind: 'threat', hit: m[1] };
-    m = RX_ABUSE && RX_ABUSE.exec(t); if (m) return { kind: 'abuse', hit: m[1] };
-    m = RX_DEMAND && RX_DEMAND.exec(t); if (m) return { kind: 'demand', hit: m[1] };
-    return null;
+  // 한 문장을 세 층으로 분류한다. imm = A층(즉시) 하나 · pts = B층(점수) 여러 개 · refusal = C층(문턱)
+  function matchAll(x) {
+    var t = String(x || '').replace(/\s+/g, ''), r = { imm: null, pts: [], refusal: false }, m;
+    m = RX_CODE && RX_CODE.exec(t); if (m) { r.imm = { kind: 'code', hit: m[1] }; return r; }
+    m = RX_COUNSELOR && RX_COUNSELOR.exec(t); if (m) { r.imm = { kind: 'counselor', hit: m[1] }; return r; }
+    m = RX_THREAT && RX_THREAT.exec(t); if (m) { r.imm = { kind: 'threat', hit: m[1] }; return r; }
+    m = RX_ABUSE && RX_ABUSE.exec(t); if (m) { r.imm = { kind: 'abuse', hit: m[1] }; return r; }
+    m = RX_LOSE && RX_LOSE.exec(t); if (m) r.pts.push({ k: 'lose', p: 2, hit: m[1] });
+    m = RX_META && RX_META.exec(t); if (m) r.pts.push({ k: 'meta', p: 1, hit: m[1] });
+    m = RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
+    m = RX_CALM && RX_CALM.exec(t); if (m) r.pts.push({ k: 'calm', p: 1, hit: m[1] });
+    m = RX_REFUSAL && RX_REFUSAL.exec(t); if (m) { r.refusal = true; r.refusalHit = m[1]; }
+    return r;
   }
   // 같은 말 되풀이: 낱말(2자 이상)이 절반 이상 겹치면 반복으로 본다
   function tokens(x) { return String(x || '').split(/\s+/).map(function (w) { return w.replace(/[^가-힣a-zA-Z0-9]/g, ''); }).filter(function (w) { return w.length >= 2; }); }
@@ -72,23 +89,31 @@ window.onerror = function (msg) {
     }
     return false;
   }
+  var RX_THREAT = null, RX_ABUSE = null, RX_DEMAND = null, RX_COUNSELOR = null, RX_CODE = null, RX_LOSE = null, RX_META = null, RX_CALM = null, RX_REFUSAL = null;
+  function buildRx(c) {
+    RX_THREAT = listToRx(c.threat); RX_ABUSE = listToRx(c.abuse); RX_DEMAND = listToRx(c.demand);
+    RX_COUNSELOR = listToRx(c.counselor); RX_CODE = listToRx(c.code); RX_LOSE = listToRx(c.lose); RX_META = listToRx(c.meta); RX_CALM = listToRx(c.calm); RX_REFUSAL = listToRx(c.refusal);
+  }
   window.testThreat = function () {
     var x = ($('cfgTest').value || '').trim(), out = $('cfgTestOut');
     if (!x) { out.textContent = '문장을 적고 눌러 주세요'; return; }
-    var saved = { t: RX_THREAT, a: RX_ABUSE };
-    var savedD = RX_DEMAND;
-    RX_THREAT = listToRx($('cfgThreat').value); RX_ABUSE = listToRx($('cfgAbuse').value); RX_DEMAND = listToRx($('cfgDemand').value);
-    var m = matchThreat(x);
-    RX_THREAT = saved.t; RX_ABUSE = saved.a; RX_DEMAND = savedD;
-    if (!m) { out.textContent = '해당 없음 · 위협·심한 말·요구 표현 목록에 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#8A7663'; return; }
-    if (m.kind === 'threat' || m.kind === 'abuse') { out.textContent = '즉시 감지 · ' + (m.kind === 'threat' ? '위협 표현' : '심한 말') + ' "' + m.hit + '" — 한 번이면 바로 유예가 시작돼요'; out.style.color = '#B3403A'; return; }
-    var pts = 1;
-    out.textContent = '요구 표현 "' + m.hit + '" · ' + pts + '점 (매우 큰 목소리면 +1) · 2분 안에 ' + (parseInt((document.querySelector('#s-settings [data-score].on') || {}).getAttribute ? document.querySelector('#s-settings [data-score].on').getAttribute('data-score') : CFG.score, 10) || CFG.score) + '점이 되면 유예 시작';
-    out.style.color = '#8A5F14';
+    buildRx({ threat: $('cfgThreat').value, abuse: $('cfgAbuse').value, demand: $('cfgDemand').value, counselor: $('cfgCounselor').value, code: $('cfgCode').value, lose: $('cfgLose').value, meta: $('cfgMeta').value, calm: $('cfgCalm').value, refusal: $('cfgRefusal').value });
+    var r = matchAll(x);
+    buildRx(CFG);
+    var thEl = document.querySelector('#s-settings [data-score].on'), th = thEl ? parseInt(thEl.getAttribute('data-score'), 10) : CFG.score;
+    if (r.imm) {
+      if (r.imm.kind === 'code') { out.textContent = 'A · 암호 문구 "' + r.imm.hit + '" — 유예도 화면 변화도 없이 바로 동료를 불러요'; out.style.color = '#B3403A'; return; }
+      out.textContent = 'A · 즉시 — ' + SIG[r.imm.kind] + ' "' + r.imm.hit + '" · 한 번이면 바로 유예가 시작돼요'; out.style.color = '#B3403A'; return;
+    }
+    var parts = r.pts.map(function (e) { return SIG[e.k] + ' "' + e.hit + '" ' + (e.k === 'calm' ? '(2분 안 두 번째부터 +1)' : '+' + e.p); });
+    var s = '';
+    if (parts.length) s += 'B · 점수 — ' + parts.join(' · ') + ' · 2분 안에 ' + th + '점이 되면 유예 (매우 큰 목소리 +1)';
+    if (r.refusal) s += (s ? '  /  ' : '') + 'C · 문턱 — 거절·제한 통보 "' + r.refusalHit + '" · 울리지 않고 뒤 2분 동안 기준이 ' + Math.max(1, th - 1) + '점으로 내려가요';
+    if (!s) { out.textContent = '해당 없음 · 어느 목록에도 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#8A7663'; return; }
+    out.textContent = s; out.style.color = r.pts.length ? '#8A5F14' : '#3C5A78';
   };
-  var RX_THREAT = null, RX_ABUSE = null, RX_DEMAND = null;
   function applyCfg() {
-    RX_THREAT = listToRx(CFG.threat); RX_ABUSE = listToRx(CFG.abuse); RX_DEMAND = listToRx(CFG.demand);
+    buildRx(CFG);
     var t = ['noticeN1', 'noticeN2', 'noticeN3'], v = [CFG.n1, CFG.n2, CFG.n3];
     t.forEach(function (id, i) { var el = $(id); if (el) el.textContent = v[i]; });
     var nr = $('norecTxt'); if (nr) nr.textContent = CFG.refuse;
@@ -106,6 +131,7 @@ window.onerror = function (msg) {
   window.openSettings = function () {
     $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
     $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgDemand').value = CFG.demand;
+    $('cfgCounselor').value = CFG.counselor; $('cfgCode').value = CFG.code; $('cfgLose').value = CFG.lose; $('cfgMeta').value = CFG.meta; $('cfgCalm').value = CFG.calm; $('cfgRefusal').value = CFG.refusal;
     document.querySelectorAll('#s-settings [data-score]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-score'), 10) === CFG.score); }); $('cfgWarn').value = CFG.warn; $('cfgPromise').value = CFG.promise;
     document.querySelectorAll('#s-settings [data-esc]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-esc'), 10) === CFG.escalate); });
     formKeys = { gemini: CFG.gkey, anthropic: CFG.key };
@@ -161,6 +187,7 @@ window.onerror = function (msg) {
       grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), demand: $('cfgDemand').value.trim(),
+      counselor: $('cfgCounselor').value.trim(), code: $('cfgCode').value.trim(), lose: $('cfgLose').value.trim(), meta: $('cfgMeta').value.trim(), calm: $('cfgCalm').value.trim(), refusal: $('cfgRefusal').value.trim(),
       score: (function () { var e = document.querySelector('#s-settings [data-score].on'); return e ? parseInt(e.getAttribute('data-score'), 10) : DEF.score; })(),
       provider: formProvider,
       promise: $('cfgPromise').value.trim() || DEF.promise,
@@ -273,7 +300,7 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = '연결됨 · ' + S.acc.name;
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -447,43 +474,59 @@ window.onerror = function (msg) {
   // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
   // 말 감지: 시작 직후 대기 없이 바로 잡는다. 한 번 감지된 뒤 45초(S.cooldownUntil)만 쉰다.
   // 점수 누적 (2분 창): 요구 표현 1점 · 같은 말 반복 1점 · 매우 큰 목소리 +1점 → 기준 점수면 유예. 위협 표현·심한 말은 점수와 무관하게 1회 즉시.
-  var SCORE_WIN = 120000, SIG = { abuse: '심한 말', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리' };
+  var SCORE_WIN = 120000, SIG = { threat: '위협 표현', abuse: '심한 말', counselor: '상담자 문구', code: '암호 문구', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리', lose: '통제 상실 예고', meta: '반복 자각', calm: '완화 표현 반복' };
+  // C층: 거절·제한 통보 뒤 2분은 기준 점수가 1 낮다
+  function winOn() { return Date.now() < (S.winUntil || 0); }
+  function threshold() { return Math.max(1, (CFG.score || 3) - (winOn() ? 1 : 0)); }
   function pruneScore() { var now = Date.now(); S.sc = (S.sc || []).filter(function (e) { return now - e.at < SCORE_WIN; }); return S.sc; }
   function scoreTotal() { return pruneScore().reduce(function (s, e) { return s + e.p; }, 0); }
   function scoreParts() {
     var c = {}; pruneScore().forEach(function (e) { c[e.k] = (c[e.k] || 0) + 1; });
-    return ['abuse', 'demand', 'repeat', 'loud'].filter(function (k) { return c[k]; }).map(function (k) { return SIG[k] + ' ' + c[k] + '회'; }).join(' · ');
+    return ['demand', 'repeat', 'loud', 'lose', 'meta', 'calm'].filter(function (k) { return c[k]; }).map(function (k) { return SIG[k] + ' ' + c[k] + '회'; }).join(' · ');
   }
   function renderAcc() {
     var chip = $('accChip'); if (!chip) return;
-    var total = scoreTotal(), th = CFG.score || 3;
-    if (total <= 0) { chip.style.display = 'none'; return; }
+    var total = scoreTotal(), th = threshold();
+    if (total <= 0 && !winOn()) { chip.style.display = 'none'; return; }
     var dots = ''; for (var i = 0; i < th; i++) dots += (i < total ? '●' : '○') + (i < th - 1 ? ' ' : '');
-    chip.style.display = 'flex'; chip.textContent = dots; chip.title = scoreParts();
+    chip.style.display = 'flex'; chip.textContent = dots; chip.title = (winOn() ? '거절·제한 통보 뒤 2분 · 기준 ' + th + '점' : '') + (scoreParts() ? (winOn() ? ' · ' : '') + scoreParts() : '');
   }
+  var IMM_REASON = { threat: '위협하는 말("%")이', abuse: '심한 말("%")이', counselor: '상담자의 중단 의사("%")가' };
   function checkThreat(x, v) {
-    if (S.screen !== 'session' || Date.now() <= S.cooldownUntil) return;
-    var m = matchThreat(x);
-    if (m && (m.kind === 'threat' || m.kind === 'abuse')) {
-      S.lastHit = { kind: m.kind, hit: m.hit, x: x, at: Date.now() };
-      triggerCountdown((m.kind === 'threat' ? '위협하는 말("' : '심한 말("') + m.hit + '")이');
+    if (S.screen !== 'session') return;
+    var r = matchAll(x), now = Date.now();
+    // C층: 거절·제한 통보는 쉬는 시간과 무관하게 창을 연다 (울리지 않음)
+    if (r.refusal) { S.winUntil = now + SCORE_WIN; renderAcc(); clearTimeout(winTid); winTid = setTimeout(renderAcc, SCORE_WIN + 300); }
+    if (now <= S.cooldownUntil) return;
+    if (r.imm) {
+      S.lastHit = { kind: r.imm.kind, hit: r.imm.hit, x: x, at: now };
+      if (r.imm.kind === 'code') { fireSilent(); return; }
+      triggerCountdown(IMM_REASON[r.imm.kind].replace('%', r.imm.hit));
       return;
     }
-    var now = Date.now(), added = [];
-    var prev = (S.tr || []).slice(0, -1).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).slice(-12);
-    if (m && m.kind === 'demand') added.push({ k: 'demand', p: 1, hit: m.hit });
+    // B층
+    var added = [], prev = (S.tr || []).slice(0, -1).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).slice(-12);
+    r.pts.forEach(function (e) {
+      if (e.k === 'calm') {
+        S.calmAt = (S.calmAt || []).filter(function (t) { return now - t < SCORE_WIN; }); S.calmAt.push(now);
+        if (S.calmAt.length < 2) return;   // 첫 번째 완화 표현은 점수 없음
+      }
+      added.push({ k: e.k, p: e.p, hit: e.hit });
+    });
     if (isRepeat(x, prev)) added.push({ k: 'repeat', p: 1, hit: '' });
     if (v === 2) added.push({ k: 'loud', p: 1, hit: '' });
     if (!added.length) { renderAcc(); return; }
     S.sc = pruneScore(); added.forEach(function (e) { e.at = now; e.x = x; S.sc.push(e); });
     var total = scoreTotal();
     renderAcc();
-    if (total >= (CFG.score || 3)) {
-      S.lastHit = { kind: 'score', hit: (m && m.hit) || '', x: x, at: now, parts: scoreParts(), total: total };
+    if (total >= threshold()) {
+      var firstHit = added.filter(function (e) { return e.hit; })[0];
+      S.lastHit = { kind: 'score', hit: firstHit ? firstHit.hit : '', x: x, at: now, parts: scoreParts(), total: total, win: winOn() };
       S.sc = [];
-      triggerCountdown('2분 안에 신호가 쌓여(' + S.lastHit.parts + ')');
+      triggerCountdown('2분 안에 신호가 쌓여(' + S.lastHit.parts + (winOn() ? ' · 거절 통보 뒤' : '') + ')');
     }
   }
+  var winTid = 0;
 
   // ---------- 경고 음성 (기기 내장 음성합성, 무료) ----------
   window.playWarning = function (btn) {
@@ -576,10 +619,20 @@ window.onerror = function (msg) {
   window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
 
   // ---------- 감지 근거 카드 ----------
-  var KIND = { threat: '위협 표현', abuse: '심한 말', demand: '요구 표현', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호' };
+  var KIND = { threat: '위협 표현', abuse: '심한 말', demand: '요구 표현', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호', counselor: '상담자가 중단 의사를 밝혔어요', code: '상담자가 조용히 불렀어요' };
+  // 기록·되짚기·TXT에 같이 쓰는 한 줄 라벨
+  function kindText(x) {
+    if (x.kind === 'threat' || x.kind === 'abuse') return (x.kind === 'threat' ? '위협 표현' : '심한 말') + ' “' + (x.hit || '') + '”';
+    if (x.kind === 'counselor') return '상담자 문구 “' + (x.hit || '') + '”';
+    if (x.kind === 'code') return '암호 문구 (조용한 호출)';
+    if (x.kind === 'score') return '쌓인 신호' + (x.hit ? ' “' + x.hit + '”' : '');
+    if (x.kind === 'manual') return '상담자가 직접 호출';
+    return '계속되는 큰 소리';
+  }
   function buildEv(kind, how) {
     var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
-    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'score') ? S.lastHit : null;
+    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'score' || kind === 'counselor') ? S.lastHit : null;
+    if (kind === 'code') { S.hitN = (S.hitN || 0) + 1; return { kind: 'code', how: how || '', hit: '', line: '', v: 0, n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [], parts: '' }; }
     var idx = lines.length - 1;
     var around = lines.slice(Math.max(0, idx - 3), idx + 1).map(function (l, i, arr) { return { t: l.t, x: String(l.x).slice(0, 80), v: l.v || 0, hit: !!hit && i === arr.length - 1 }; });
     S.hitN = (S.hitN || 0) + 1;
@@ -602,6 +655,8 @@ window.onerror = function (msg) {
     if (ev.kind === 'score') { head = KIND.score; meta.push((ev.parts || '') + ' · 2분 안'); }
     else if (ev.kind === 'threat' || ev.kind === 'abuse') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
     else if (ev.kind === 'loud') { head = KIND.loud; meta.push('1.5초 이상'); }
+    else if (ev.kind === 'counselor') { head = KIND.counselor; meta.push('“' + esc(ev.hit) + '”'); }
+    else if (ev.kind === 'code') { head = KIND.code; meta.push('암호 문구 · 내용 없음'); }
     else { head = KIND.manual; }
     if (ev.n) meta.push('이 상담에서 ' + ev.n + '번째');
     if (opts.time && ev.t) meta.unshift(ev.t);
@@ -646,7 +701,25 @@ window.onerror = function (msg) {
     if (state === 'ok') { chip.style.background = '#E7F0E9'; chip.style.color = '#2F5E40'; chip.querySelector('.dot').style.background = '#3E7A52'; ct.textContent = '확인됨 · ' + (S.ackBy || ''); }
     else { chip.style.background = '#F7E3E1'; chip.style.color = '#97302B'; chip.querySelector('.dot').style.background = '#B3403A'; ct.textContent = '위험 신호'; }
   }
+  function fireSilent() {
+    clearTimeout(escId); clearInterval(ackTick);
+    S.cooldownUntil = Date.now() + 45000; S.alerts += 1; S.ackBy = ''; S.silent = true;
+    var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ev = buildEv('code', 'auto'); ev.t = elapsed;
+    S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: 'code', hit: '', v: 0, n: ev.n, how: 'code', ack: null, esc: false }; S.alertLog.push(logItem);
+    var c = linkCfg(), name = S.acc ? S.acc.name : '';
+    if (!(c && c.role === 'host')) return;
+    var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: Date.now(), ev: ev, promise: CFG.promise };
+    notifyHuman((S.counselor || '상담자') + ' 선생님 · 위험 신호', sig.place + ' · 눌러서 확인하기', 'rotating_light', 5);
+    postSig(sig);
+    escId = setTimeout(function () {
+      if (S.ackBy || !inSession()) return;
+      logItem.esc = true;
+      postSig({ type: 'escalate', rid: sig.rid, to: name, place: sig.place, who: sig.who, t: elapsed, ts: Date.now(), ev: ev });
+      notifyHuman('업무폰 미확인 · ' + sig.place, (sig.who || '상담자') + ' 선생님 · ' + (name ? name + ' 선생님 ' : '') + CFG.escalate + '초 미확인 · 상황판에 알림', 'warning', 5);
+    }, (CFG.escalate || 60) * 1000);
+  }
   window.fireAlert = function (how) {
+    S.silent = false;
     clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick);
     S.alerts += 1; S.ackBy = '';
     $('stateChip').className = 'chip warn';
@@ -685,6 +758,7 @@ window.onerror = function (msg) {
     S.ackBy = m.by || '동료';
     clearTimeout(escId); clearInterval(ackTick);
     var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm() };
+    if (S.silent) { var st = $('stateTxt'); if (st && S.acc) st.textContent = '연결됨 · ' + S.acc.name + ' ✓ ' + hhmm(); return; }   // 조용한 호출: 작은 칩으로만
     setAck('ok', S.ackBy === '팀 상황판' ? '팀 상황판에서 확인했어요' : S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
   }
@@ -765,7 +839,7 @@ window.onerror = function (msg) {
       + '<span>위험 신호</span><span>' + (r.alerts || 0) + '건' + (acks.length ? ' · ' + esc(acks.join(', ')) : '') + '</span>';
   }
   function fbRowHtml(x, i) {
-    var head = x.kind === 'threat' || x.kind === 'abuse' ? '“' + esc(x.hit) + '” · ' + (x.kind === 'threat' ? '위협 표현' : '심한 말') : x.kind === 'score' ? '쌓인 신호' : x.kind === 'manual' ? '상담자가 직접 호출' : '계속되는 큰 소리';
+    var head = esc(kindText(x));
     var pills = FB.map(function (l, v) { return '<span class="pill' + (x.fb === v ? ' on' : '') + '" onclick="pickFb(' + i + ',' + v + ',this)">' + l + '</span>'; }).join('');
     return '<div class="fbrow"><div><b>' + esc(x.t) + ' ' + head + '</b> <span class="note">' + (x.ack ? x.ack.by + ' 확인 ' + x.ack.t : x.esc ? '상황판 확산' : '확인 없음') + '</span></div><div class="row">' + pills + '</div></div>';
   }
@@ -937,7 +1011,7 @@ window.onerror = function (msg) {
     }
     $('dCopy1').textContent = '텍스트 복사'; $('dTxt').textContent = 'TXT 내보내기';
     var extra = '';
-    (r.al || []).forEach(function (x) { extra += '<div style="background:#FFF6F0; border:1px solid #E0A57E; border-radius:8px; padding:6px 10px; font-size:13px"><b style="color:#97302B">위험 신호 ' + esc(x.t) + '</b> · ' + esc(x.kind === 'threat' ? '위협 표현 “' + x.hit + '”' : x.kind === 'abuse' ? '심한 말 “' + x.hit + '”' : x.kind === 'score' ? '쌓인 신호' : x.kind === 'manual' ? '직접 호출' : '큰 소리') + (x.ack ? ' · ' + esc(x.ack.by) + ' 확인 ' + esc(x.ack.t) : '') + (x.fb != null ? ' · 피드백: ' + FB[x.fb] : '') + '</div>'; });
+    (r.al || []).forEach(function (x) { extra += '<div style="background:#FFF6F0; border:1px solid #E0A57E; border-radius:8px; padding:6px 10px; font-size:13px"><b style="color:#97302B">위험 신호 ' + esc(x.t) + '</b> · ' + esc(kindText(x)) + (x.ack ? ' · ' + esc(x.ack.by) + ' 확인 ' + esc(x.ack.t) : '') + (x.fb != null ? ' · 피드백: ' + FB[x.fb] : '') + '</div>'; });
     if (r.memo) extra += '<div style="background:#F7EFE4; border-radius:8px; padding:6px 10px; font-size:13px"><b style="color:#6E4326">상담 메모</b> ' + esc(r.memo) + '</div>';
     var bb = r.basic || {}; if (bb.dob || bb.addr || bb.tel) extra += '<div style="font-size:12.5px; color:#55483A"><b>기본정보</b> ' + esc([bb.dob, bb.addr, bb.tel].filter(Boolean).join(' · ')) + '</div>';
     if (extra) { var ex = document.createElement('div'); ex.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-bottom:6px'; ex.innerHTML = extra; list.insertBefore(ex, list.firstChild); }
@@ -978,7 +1052,7 @@ window.onerror = function (msg) {
     L.push('상담자: ' + (r.c1 || '-') + ' / 내담자: ' + (r.c2 || '-') + ' / 장소: ' + (r.place || '-') + ' / 유형: ' + (r.one || '미선택'));
     L.push('동료 연결: ' + (r.buddy || '-') + ' / 확인 전화: ' + (r.callAns || '-'));
     L.push('위험 신호: ' + (r.alerts || 0) + '건');
-    (r.al || []).forEach(function (x) { L.push('  - ' + x.t + ' ' + (x.kind === 'threat' ? '"' + x.hit + '" 위협 표현' : x.kind === 'abuse' ? '"' + x.hit + '" 심한 말' : x.kind === 'score' ? '쌓인 신호' : x.kind === 'manual' ? '상담자 직접 호출' : '계속되는 큰 소리') + (x.v === 2 ? ', 매우 큰 목소리' : '') + ' / ' + (x.ack ? x.ack.by + ' 확인 ' + x.ack.t : x.esc ? '상황판 확산' : '확인 없음') + (x.fb != null ? ' / 피드백: ' + FB[x.fb] : '')); });
+    (r.al || []).forEach(function (x) { L.push('  - ' + x.t + ' ' + kindText(x) + (x.v === 2 ? ', 매우 큰 목소리' : '') + ' / ' + (x.ack ? x.ack.by + ' 확인 ' + x.ack.t : x.esc ? '상황판 확산' : '확인 없음') + (x.fb != null ? ' / 피드백: ' + FB[x.fb] : '')); });
     L.push('상담 메모: ' + (r.memo || '(없음)'));
     var b = r.basic || {}; L.push('기본정보: ' + ([b.dob && '생년월일 ' + b.dob, b.addr && '주소 ' + b.addr, b.tel && '연락처 ' + b.tel].filter(Boolean).join(' / ') || '(없음)'));
     L.push('선생님 마음: ' + lbl(L3, r.a && r.a.q3));
@@ -1600,7 +1674,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.8.4';
+  var APP_VER = '0.9.0';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -1617,6 +1691,9 @@ window.onerror = function (msg) {
   (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat; window.__addLine = addLine;
+  window.__ev = function (k) { return evHtml(buildEv(k, "auto"), { time: true }); };   // 시험용
+  window.__S = S; window.__match = matchAll;   // 시험용
+  window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; renderAcc(); };   // 시험용
   // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
   (function () {
     var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
