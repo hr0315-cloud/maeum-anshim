@@ -141,6 +141,8 @@
   #demoBar button { font-family: inherit; font-size: 13px; border: 1px solid #C9A85A; background: #FFF9EC; color: #8A5F14; border-radius: 10px; padding: 4px 12px; cursor: pointer; }
   #demoGuide { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 900; background: #3A2A1C; color: #FBF3E9; border-radius: 14px; padding: 12px 18px; font-size: clamp(13px, 1.6vw, 15px); line-height: 1.55; max-width: min(640px, 92vw); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
   #demoGuide b { color: #F0C4BF; margin-right: 8px; font-family: 'IBM Plex Mono', monospace; }
+  #demoGuide { cursor: pointer; }
+  #demoGuide .gx { display: block; margin-top: 6px; font-size: 11.5px; color: #C8B49C; text-align: right; }
   .stat { background: #FFF; border: 1px solid #EADFCE; border-radius: 12px; padding: 10px 16px; width: min(760px, 94vw); text-align: left; font-size: clamp(12.5px, 1.5vw, 14px); color: #55483A; line-height: 1.8; }
   .stat b { color: #3A2A1C; }
   .stat .k { display: inline-block; background: #F4ECE0; border-radius: 8px; padding: 0 8px; margin: 0 4px 2px 0; font-size: 12.5px; }
