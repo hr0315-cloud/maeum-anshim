@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.9.0">
+<link rel="stylesheet" href="style.css?v=0.9.1">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.9.0</span></div>
+  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.9.1</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -105,7 +105,12 @@
     <h2>⑤ 동료 알림</h2>
     <label>기관 약속 문구 (업무폰 알림에 같이 보여요)</label><textarea class="txt" id="cfgPromise" rows="1"></textarea>
     <div class="row"><label style="width:150px">상황판 확산 시점</label><span class="pill" data-esc="30" onclick="pickEsc(this)">30초</span><span class="pill" data-esc="60" onclick="pickEsc(this)">60초</span><span class="pill" data-esc="120" onclick="pickEsc(this)">120초</span></div>
-    <div class="note">업무폰이 이 시간 안에 "확인했어요"를 누르지 않으면 팀 상황판(PC)에 소리와 함께 카드가 떠요.</div>
+    <div class="note">업무폰이 이 시간 안에 "확인했어요"를 누르지 않으면 팀 상황판(PC)에 소리와 함께 카드가 떠요. 위험 신호와 함께 가는 내용은 신호 종류·장소·감지된 문장 한 줄이에요. 앞뒤 대화는 가지 않아요.</div>
+  </div>
+  <div class="sec">
+    <h2>⑥ 기록 보존</h2>
+    <div class="row"><label style="width:150px">보존 기간</label><span class="pill" data-keep="7" onclick="pickKeep(this)">7일</span><span class="pill" data-keep="30" onclick="pickKeep(this)">30일</span><span class="pill" data-keep="90" onclick="pickKeep(this)">90일</span><span class="pill" data-keep="0" onclick="pickKeep(this)">수동 삭제만</span></div>
+    <div class="note">기간이 지난 기록은 이 기기에서 자동으로 지워지고, 목록에 "자동 삭제됨 · 날짜 · 위험 신호 건수" 한 줄만 남아요. 기관 방침에 맞춰 정해 주세요. 사유를 적고 지우는 수동 삭제는 그대로 있어요.</div>
   </div>
   <div class="sec">
     <h2>④ 경고 음성 문구</h2>
@@ -210,7 +215,7 @@
 <div class="screen" id="s-records">
   <div class="brand"><b>마음안심</b><span>상담기록</span></div>
   <h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)">상담기록</h1>
-  <div class="note">기록을 누르면 전체 대화 내용을 볼 수 있어요</div>
+  <div class="note">기록을 누르면 전체 대화 내용을 볼 수 있어요 · 보존 기간(설정 ⑥)이 지난 기록은 한 줄만 남아요</div>
   <div id="recList" style="width:min(760px,94vw); max-height:46vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px"></div>
   <input class="txt" id="clearWhy" placeholder="전체 원문 삭제 사유를 적어주세요 (필수)" style="display:none; width:min(640px,90vw)">
   <div style="display:flex; gap:12px">
@@ -407,7 +412,7 @@
 <!-- 8 종료 · 기록 검토 -->
 <div class="screen scroll" id="s-wrap">
   <div class="brand"><b>마음안심</b><span id="wrapMode">상담 종료</span></div>
-  <div class="chips"><div class="chip calm"><span class="dot"></span>음성 삭제됨 · 글만 보관</div></div>
+  <div class="chips"><div class="chip calm"><span class="dot"></span>음성 삭제됨 · 글만 보관</div><div class="chip" id="wrapKeep">30일 뒤 자동 삭제</div></div>
   <h1 class="serif" style="font-size:clamp(24px,3.6vw,36px)" id="wrapTitle">오늘도 수고하셨어요</h1>
   <div class="sec" style="gap:4px">
     <h2 style="cursor:pointer" onclick="toggleFacts()"><span id="wrapSummary">-</span><span class="note" id="factsToggle">펼치기 ▾</span></h2>
@@ -439,6 +444,6 @@
   </div>
 </div>
 
-<script src="app.js?v=0.9.0"></script>
+<script src="app.js?v=0.9.1"></script>
 </body>
 </html>
