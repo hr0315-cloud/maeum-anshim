@@ -132,5 +132,19 @@
   .nnum { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #C05A2A; color: #FFF9F3; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
   .txt { font-family: inherit; font-size: 16px; padding: 14px 18px; border: 1.5px solid #D9C8B2; border-radius: 12px; background: #FFF; color: #3A2A1C; }
   .txt:focus { outline: none; border-color: #C05A2A; box-shadow: 0 0 0 2px rgba(192,90,42,0.2); }
+  .fcard { background: #F7E6D8; border: 1.5px solid #E0A57E; border-radius: 14px; padding: 14px 20px; max-width: min(640px, 92vw); text-align: left; font-size: clamp(13px, 1.6vw, 15px); color: #55483A; }
+  .fcard h4 { margin: 0 0 6px; font-size: 15px; color: #6E4326; }
+  .fcard ol { margin: 0; padding-left: 20px; line-height: 1.6; }
+  .fcard.ok { background: #E7F0E9; border-color: #3E7A52; }
+  .fcard.ok #firstMsg { color: #2F5E40; font-size: 14px; }
+  #demoBar { position: fixed; top: 0; left: 0; right: 0; z-index: 900; background: #F6E7C6; color: #8A5F14; font-size: 13px; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  #demoBar button { font-family: inherit; font-size: 13px; border: 1px solid #C9A85A; background: #FFF9EC; color: #8A5F14; border-radius: 10px; padding: 4px 12px; cursor: pointer; }
+  #demoGuide { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 900; background: #3A2A1C; color: #FBF3E9; border-radius: 14px; padding: 12px 18px; font-size: clamp(13px, 1.6vw, 15px); line-height: 1.55; max-width: min(640px, 92vw); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  #demoGuide b { color: #F0C4BF; margin-right: 8px; font-family: 'IBM Plex Mono', monospace; }
+  .stat { background: #FFF; border: 1px solid #EADFCE; border-radius: 12px; padding: 10px 16px; width: min(760px, 94vw); text-align: left; font-size: clamp(12.5px, 1.5vw, 14px); color: #55483A; line-height: 1.8; }
+  .stat b { color: #3A2A1C; }
+  .stat .k { display: inline-block; background: #F4ECE0; border-radius: 8px; padding: 0 8px; margin: 0 4px 2px 0; font-size: 12.5px; }
+  .stat .k.g { background: #E7F0E9; color: #2F5E40; } .stat .k.a { background: #F7EDD8; color: #8A5F14; } .stat .k.r { background: #F7E3E1; color: #97302B; }
+  .stat a { color: #A34A1E; }
   .recrow { cursor: pointer; }
   .recrow:active { background: #F7E6D8; }
