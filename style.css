@@ -105,8 +105,8 @@
   #callScreen { background: #3A2A1C; }
   #callScreen .sub, #callScreen .note { color: #C8B49C; }
   .ring { width: clamp(90px, 13vw, 125px); height: clamp(90px, 13vw, 125px); border-radius: 50%; background: #C05A2A; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 16px rgba(192,90,42,0.25), 0 0 0 34px rgba(192,90,42,0.1); animation: pulse 1.2s ease-in-out infinite; }
-  .cd { width: clamp(140px, 17vw, 190px); height: clamp(140px, 17vw, 190px); border-radius: 50%; border: 7px solid #B07A1E; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 0 14px rgba(176,122,30,0.12); }
-  .cd b { font-size: clamp(52px, 7vw, 76px); color: #8A5F14; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
+  .cd { flex: none; width: clamp(140px, 17vw, 190px); height: clamp(140px, 17vw, 190px); border-radius: 50%; border: 7px solid #B07A1E; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 0 14px rgba(176,122,30,0.12); }
+  .cd b { font-size: clamp(52px, 7vw, 76px); color: #8A5F14; line-height: 1; font-family: 'IBM Plex Mono', monospace; min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
   .qrow { display: flex; align-items: center; gap: 14px; width: min(720px, 90vw); }
   .qrow .q { flex: 1; text-align: left; font-size: clamp(14px, 1.9vw, 16.5px); }
   .banner { background: #FFF; border: 1px solid #EADFCE; border-radius: 14px; padding: 16px 24px; max-width: min(720px, 90vw); font-size: clamp(13px, 1.7vw, 15px); color: #55483A; line-height: 1.7; text-align: left; }
