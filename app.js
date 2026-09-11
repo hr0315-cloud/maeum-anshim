@@ -30,6 +30,8 @@ window.onerror = function (msg) {
     demand: '해줘, 해달라, 해주세요, 해주라, 해주라고, 달라고, 주라고, 왜 안, 안 되냐, 안되냐, 안 돼요, 안 돼냐, 언제 되, 언제 해, 언제 줘, 해결해, 내놔, 약속했잖, 해준다며, 해준다고, 해주기로, 해 줘야, 해야지, 왜 못',
     score: 3,
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹, 꺼져, 닥쳐, 등신, 또라이, 개같은, 좆',
+    // A층(즉시) 성희롱 표현. 신체 부위 단독(가슴·다리·엉덩이)은 "아파요"에 걸리므로 넣지 않고, 만져·좀·크·예쁘와 붙은 꼴만
+    sexual: '손 잡아 보, 손 좀 잡, 손 한번 잡, 손잡아 보, 안아 보, 안아 줘, 만져 보, 만지고 싶, 만져 줘, 뽀뽀, 키스, 몸매, 가슴이 크, 가슴 좀, 엉덩이 좀, 엉덩이 만, 허벅지 만, 다리가 예쁘, 애인 해, 애인 하, 사귀자, 사귈래, 데이트, 둘이서 만나, 밤에 만나, 모텔, 같이 자, 자고 싶, 야한, 옷 벗, 벗어 보',
     // A층(즉시) 상담자가 중단 의사를 밝히는 말 — 화자 분리 없이도 내담자가 할 리 없는 문장
     counselor: '그만하세요, 그만하셨으면, 그런 말씀은 그만, 상담을 더 못하겠, 상담을 여기서, 이렇게는 진행할 수 없, 그렇게 말씀하시면 안, 상담을 중단',
     // A층 암호 문구: 말하면 유예·화면 변화 없이 바로 동료 호출 (내담자 앞에서 손 안 대고 부르는 길)
@@ -71,6 +73,7 @@ window.onerror = function (msg) {
     m = RX_COUNSELOR && RX_COUNSELOR.exec(t); if (m) { r.imm = { kind: 'counselor', hit: m[1] }; return r; }
     m = RX_THREAT && RX_THREAT.exec(t); if (m) { r.imm = { kind: 'threat', hit: m[1] }; return r; }
     m = RX_ABUSE && RX_ABUSE.exec(t); if (m) { r.imm = { kind: 'abuse', hit: m[1] }; return r; }
+    m = RX_SEXUAL && RX_SEXUAL.exec(t); if (m) { r.imm = { kind: 'sexual', hit: m[1] }; return r; }
     m = RX_LOSE && RX_LOSE.exec(t); if (m) r.pts.push({ k: 'lose', p: 2, hit: m[1] });
     m = RX_META && RX_META.exec(t); if (m) r.pts.push({ k: 'meta', p: 1, hit: m[1] });
     m = RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
@@ -90,15 +93,15 @@ window.onerror = function (msg) {
     }
     return false;
   }
-  var RX_THREAT = null, RX_ABUSE = null, RX_DEMAND = null, RX_COUNSELOR = null, RX_CODE = null, RX_LOSE = null, RX_META = null, RX_CALM = null, RX_REFUSAL = null;
+  var RX_THREAT = null, RX_ABUSE = null, RX_SEXUAL = null, RX_DEMAND = null, RX_COUNSELOR = null, RX_CODE = null, RX_LOSE = null, RX_META = null, RX_CALM = null, RX_REFUSAL = null;
   function buildRx(c) {
-    RX_THREAT = listToRx(c.threat); RX_ABUSE = listToRx(c.abuse); RX_DEMAND = listToRx(c.demand);
+    RX_THREAT = listToRx(c.threat); RX_ABUSE = listToRx(c.abuse); RX_SEXUAL = listToRx(c.sexual); RX_DEMAND = listToRx(c.demand);
     RX_COUNSELOR = listToRx(c.counselor); RX_CODE = listToRx(c.code); RX_LOSE = listToRx(c.lose); RX_META = listToRx(c.meta); RX_CALM = listToRx(c.calm); RX_REFUSAL = listToRx(c.refusal);
   }
   window.testThreat = function () {
     var x = ($('cfgTest').value || '').trim(), out = $('cfgTestOut');
     if (!x) { out.textContent = '문장을 적고 눌러 주세요'; return; }
-    buildRx({ threat: $('cfgThreat').value, abuse: $('cfgAbuse').value, demand: $('cfgDemand').value, counselor: $('cfgCounselor').value, code: $('cfgCode').value, lose: $('cfgLose').value, meta: $('cfgMeta').value, calm: $('cfgCalm').value, refusal: $('cfgRefusal').value });
+    buildRx({ threat: $('cfgThreat').value, abuse: $('cfgAbuse').value, sexual: $('cfgSexual').value, demand: $('cfgDemand').value, counselor: $('cfgCounselor').value, code: $('cfgCode').value, lose: $('cfgLose').value, meta: $('cfgMeta').value, calm: $('cfgCalm').value, refusal: $('cfgRefusal').value });
     var r = matchAll(x);
     buildRx(CFG);
     var thEl = document.querySelector('#s-settings [data-score].on'), th = thEl ? parseInt(thEl.getAttribute('data-score'), 10) : CFG.score;
@@ -131,7 +134,7 @@ window.onerror = function (msg) {
   var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
     $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
-    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgDemand').value = CFG.demand;
+    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgSexual').value = CFG.sexual; $('cfgDemand').value = CFG.demand;
     $('cfgCounselor').value = CFG.counselor; $('cfgCode').value = CFG.code; $('cfgLose').value = CFG.lose; $('cfgMeta').value = CFG.meta; $('cfgCalm').value = CFG.calm; $('cfgRefusal').value = CFG.refusal;
     document.querySelectorAll('#s-settings [data-score]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-score'), 10) === CFG.score); }); $('cfgWarn').value = CFG.warn; $('cfgPromise').value = CFG.promise;
     document.querySelectorAll('#s-settings [data-esc]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-esc'), 10) === CFG.escalate); });
@@ -182,7 +185,7 @@ window.onerror = function (msg) {
   window.listCounts = function () {
     var total = 0;
     document.querySelectorAll('#foldLists .cnt').forEach(function (c) { var t = $(c.getAttribute('data-for')); var n = t ? t.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean).length : 0; total += n; c.textContent = n + '개'; });
-    var s = $('sumLists'); if (s) s.textContent = '9묶음 · ' + total + '개';
+    var s = $('sumLists'); if (s) s.textContent = '10묶음 · ' + total + '개';
   };
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
@@ -201,7 +204,7 @@ window.onerror = function (msg) {
       approved: $('swApproved').classList.contains('on'),
       grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
-      threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), demand: $('cfgDemand').value.trim(),
+      threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), sexual: $('cfgSexual').value.trim(), demand: $('cfgDemand').value.trim(),
       counselor: $('cfgCounselor').value.trim(), code: $('cfgCode').value.trim(), lose: $('cfgLose').value.trim(), meta: $('cfgMeta').value.trim(), calm: $('cfgCalm').value.trim(), refusal: $('cfgRefusal').value.trim(),
       score: (function () { var e = document.querySelector('#s-settings [data-score].on'); return e ? parseInt(e.getAttribute('data-score'), 10) : DEF.score; })(),
       provider: formProvider,
@@ -492,7 +495,7 @@ window.onerror = function (msg) {
   // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
   // 말 감지: 시작 직후 대기 없이 바로 잡는다. 한 번 감지된 뒤 45초(S.cooldownUntil)만 쉰다.
   // 점수 누적 (2분 창): 요구 표현 1점 · 같은 말 반복 1점 · 매우 큰 목소리 +1점 → 기준 점수면 유예. 위협 표현·심한 말은 점수와 무관하게 1회 즉시.
-  var SCORE_WIN = 120000, SIG = { threat: '위협 표현', abuse: '심한 말', counselor: '상담자 문구', code: '암호 문구', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리', lose: '통제 상실 예고', meta: '반복 자각', calm: '완화 표현 반복' };
+  var SCORE_WIN = 120000, SIG = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', counselor: '상담자 문구', code: '암호 문구', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리', lose: '통제 상실 예고', meta: '반복 자각', calm: '완화 표현 반복' };
   // C층: 거절·제한 통보 뒤 2분은 기준 점수가 1 낮다
   function winOn() { return Date.now() < (S.winUntil || 0); }
   function threshold() { return Math.max(1, (CFG.score || 3) - (winOn() ? 1 : 0)); }
@@ -509,7 +512,7 @@ window.onerror = function (msg) {
     var dots = ''; for (var i = 0; i < th; i++) dots += (i < total ? '●' : '○') + (i < th - 1 ? ' ' : '');
     chip.style.display = 'flex'; chip.textContent = dots; chip.title = (winOn() ? '거절·제한 통보 뒤 2분 · 기준 ' + th + '점' : '') + (scoreParts() ? (winOn() ? ' · ' : '') + scoreParts() : '');
   }
-  var IMM_REASON = { threat: '위협하는 말("%")이', abuse: '심한 말("%")이', counselor: '상담자의 중단 의사("%")가' };
+  var IMM_REASON = { threat: '위협하는 말("%")이', abuse: '심한 말("%")이', sexual: '성희롱 표현("%")이', counselor: '상담자의 중단 의사("%")가' };
   function checkThreat(x, v) {
     if (S.screen !== 'session') return;
     var r = matchAll(x), now = Date.now();
@@ -637,10 +640,10 @@ window.onerror = function (msg) {
   window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
 
   // ---------- 감지 근거 카드 ----------
-  var KIND = { threat: '위협 표현', abuse: '심한 말', demand: '요구 표현', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호', counselor: '상담자가 중단 의사를 밝혔어요', code: '상담자가 조용히 불렀어요' };
+  var KIND = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', demand: '요구 표현', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호', counselor: '상담자가 중단 의사를 밝혔어요', code: '상담자가 조용히 불렀어요' };
   // 기록·되짚기·TXT에 같이 쓰는 한 줄 라벨
   function kindText(x) {
-    if (x.kind === 'threat' || x.kind === 'abuse') return (x.kind === 'threat' ? '위협 표현' : '심한 말') + ' “' + (x.hit || '') + '”';
+    if (x.kind === 'threat' || x.kind === 'abuse' || x.kind === 'sexual') return KIND[x.kind] + ' “' + (x.hit || '') + '”';
     if (x.kind === 'counselor') return '상담자 문구 “' + (x.hit || '') + '”';
     if (x.kind === 'code') return '암호 문구 (조용한 호출)';
     if (x.kind === 'score') return '쌓인 신호' + (x.hit ? ' “' + x.hit + '”' : '');
@@ -649,7 +652,7 @@ window.onerror = function (msg) {
   }
   function buildEv(kind, how) {
     var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
-    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'score' || kind === 'counselor') ? S.lastHit : null;
+    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'sexual' || kind === 'score' || kind === 'counselor') ? S.lastHit : null;
     if (kind === 'code') { S.hitN = (S.hitN || 0) + 1; return { kind: 'code', how: how || '', hit: '', line: '', v: 0, n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [], parts: '' }; }
     var idx = lines.length - 1;
     S.hitN = (S.hitN || 0) + 1;
@@ -662,7 +665,7 @@ window.onerror = function (msg) {
     opts = opts || {};
     var head, meta = [];
     if (ev.kind === 'score') { head = KIND.score; meta.push((ev.parts || '') + ' · 2분 안'); }
-    else if (ev.kind === 'threat' || ev.kind === 'abuse') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
+    else if (ev.kind === 'threat' || ev.kind === 'abuse' || ev.kind === 'sexual') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
     else if (ev.kind === 'loud') { head = KIND.loud; meta.push('1.5초 이상'); }
     else if (ev.kind === 'counselor') { head = KIND.counselor; meta.push('“' + esc(ev.hit) + '”'); }
     else if (ev.kind === 'code') { head = KIND.code; meta.push('암호 문구 · 내용 없음'); }
@@ -1762,7 +1765,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.9';
+  var APP_VER = '0.10.0';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {

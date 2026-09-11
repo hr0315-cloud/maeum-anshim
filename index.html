@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.9.9">
+<link rel="stylesheet" href="style.css?v=0.10.0">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>v0.9.9</span></div>
+  <div class="brand"><b>마음안심</b><span>v0.10.0</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -82,13 +82,14 @@
   </details>
 
   <details class="sec fold" id="foldLists">
-    <summary><span>감지 목록</span><span class="sum" id="sumLists">9묶음</span></summary>
+    <summary><span>감지 목록</span><span class="sum" id="sumLists">10묶음</span></summary>
     <label>이 문장이 감지되나요? (아래 목록 기준으로 바로 확인)</label>
     <div class="row"><input class="txt" id="cfgTest" placeholder="예: 퇴근길 조심해라" autocomplete="off" style="flex:1; min-width:200px; padding:8px 12px; font-size:14px"><button class="mid" onclick="testThreat()">확인</button></div>
     <div class="note" id="cfgTestOut">띄어쓰기는 무시하고 비교해요 · 상담 중 한 번 감지되면 45초 동안은 다시 감지하지 않아요</div>
     <div class="note" style="margin-top:8px">A 즉시 = 한 번이면 바로 유예 · B 점수 = 2분 안에 쌓여 기준 점수면 유예 · C 문턱 = 울리지 않고 뒤 2분 동안 기준 1점 낮춤. 같은 말 되풀이 1점·매우 큰 목소리 +1점은 목록 없이 자동. 쉼표로 구분.</div>
     <details class="lst"><summary><span><i class="k a">A</i>위협 표현</span><span class="cnt" data-for="cfgThreat">-</span></summary><textarea class="txt" id="cfgThreat" rows="3" oninput="listCounts()"></textarea></details>
     <details class="lst"><summary><span><i class="k a">A</i>심한 말</span><span class="cnt" data-for="cfgAbuse">-</span></summary><textarea class="txt" id="cfgAbuse" rows="2" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k a">A</i>성희롱 표현 <span class="note">신체 부위 낱말 하나만으로는 잡지 않아요("가슴이 아파요")</span></span><span class="cnt" data-for="cfgSexual">-</span></summary><textarea class="txt" id="cfgSexual" rows="3" oninput="listCounts()"></textarea></details>
     <details class="lst"><summary><span><i class="k a">A</i>상담자 문구 <span class="note">상담자가 중단 의사를 밝히는 말 · 화자 구분 없이 잡혀요</span></span><span class="cnt" data-for="cfgCounselor">-</span></summary><textarea class="txt" id="cfgCounselor" rows="2" oninput="listCounts()"></textarea></details>
     <details class="lst"><summary><span><i class="k b">B</i>요구 표현 +1 <span class="note">말이 바뀌어도 "달라"는 형태를 셈</span></span><span class="cnt" data-for="cfgDemand">-</span></summary><textarea class="txt" id="cfgDemand" rows="2" oninput="listCounts()"></textarea></details>
     <details class="lst"><summary><span><i class="k b">B</i>통제 상실 예고 +2 <span class="note">위협 한 단계 앞의 말</span></span><span class="cnt" data-for="cfgLose">-</span></summary><textarea class="txt" id="cfgLose" rows="1" oninput="listCounts()"></textarea></details>
@@ -458,6 +459,6 @@
 
 <div id="demoBar" style="display:none"><span>체험 모드 · 신호는 밖으로 나가지 않고 기록도 남지 않아요</span><button onclick="exitDemo(false)">나가기 ✕</button></div>
 <div id="demoGuide" style="display:none" onclick="hideGuide()"></div>
-<script src="app.js?v=0.9.9"></script>
+<script src="app.js?v=0.10.0"></script>
 </body>
 </html>
