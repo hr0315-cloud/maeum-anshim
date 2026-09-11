@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.8)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.9)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -110,7 +110,7 @@ window.onerror = function (msg) {
     var s = '';
     if (parts.length) s += 'B · 점수 — ' + parts.join(' · ') + ' · 2분 안에 ' + th + '점이 되면 유예 (매우 큰 목소리 +1)';
     if (r.refusal) s += (s ? '  /  ' : '') + 'C · 문턱 — 거절·제한 통보 "' + r.refusalHit + '" · 울리지 않고 뒤 2분 동안 기준이 ' + Math.max(1, th - 1) + '점으로 내려가요';
-    if (!s) { out.textContent = '해당 없음 · 어느 목록에도 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#8A7663'; return; }
+    if (!s) { out.textContent = '해당 없음 · 어느 목록에도 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#6E5A48'; return; }
     out.textContent = s; out.style.color = r.pts.length ? '#8A5F14' : '#3C5A78';
   };
   function applyCfg() {
@@ -1025,14 +1025,14 @@ window.onerror = function (msg) {
           var div = document.createElement('div');
           div.className = 'banner recrow';
           div.style.maxWidth = 'none';
-          if (r.gone) { div.style.opacity = '0.6'; div.style.cursor = 'default'; div.innerHTML = '<span style="color:#8A7663; font-style:italic">' + esc(fmtDate(r.d)) + ' · 자동 삭제됨 (보존 ' + r.keep + '일) · 위험 신호 ' + (r.alerts || 0) + '건</span>'; list.appendChild(div); return; }
+          if (r.gone) { div.style.opacity = '0.6'; div.style.cursor = 'default'; div.innerHTML = '<span style="color:#6E5A48; font-style:italic">' + esc(fmtDate(r.d)) + ' · 자동 삭제됨 (보존 ' + r.keep + '일) · 위험 신호 ' + (r.alerts || 0) + '건</span>'; list.appendChild(div); return; }
           if (r.del) div.style.opacity = '0.75';
           div.innerHTML = (r.status === 'final' ? '<span style="font-size:11px; color:#2F5E40; background:#E7F0E9; border-radius:999px; padding:1px 8px; margin-right:8px">확정</span>' : '<span style="font-size:11px; color:#8A5F14; background:#F7EDD8; border-radius:999px; padding:1px 8px; margin-right:8px">초안</span>') + '<b>' + esc(fmtDate(r.d)) + '</b> · ' + esc(r.c1 || '-') + ' → ' + esc(r.c2 || '-') + ' · ' + r.min + '분 · '
             + (r.alerts > 0 ? '<span style="color:#B3403A; font-weight:700">위험 신호 ' + r.alerts + '건</span>' : '위험 신호 0건')
             + '<br><span style="color:#55483A; font-weight:500">' + esc(r.one || '(유형 미선택)') + '</span>'
             + (r.del
               ? '<br><span style="color:#97302B; font-size:12.5px">원문 삭제됨 (' + esc(fmtDate(r.del.when)) + ') · 사유: ' + esc(r.del.why) + '</span>'
-              : '<br><span style="color:#B3A28E; font-size:12.5px">누르면 전체 대화 보기 · 대화 ' + ((r.tr && r.tr.length) || 0) + '문장</span>');
+              : '<br><span style="color:#7A6553; font-size:12.5px">누르면 전체 대화 보기 · 대화 ' + ((r.tr && r.tr.length) || 0) + '문장</span>');
           div.onclick = function () { openDetail(idx); };
           list.appendChild(div);
         })(i);
@@ -1056,18 +1056,18 @@ window.onerror = function (msg) {
     if (r.del) {
       list.innerHTML = '<div style="color:#97302B; font-weight:700">대화 원문은 ' + esc(fmtDate(r.del.when)) + '에 삭제되었어요</div>'
         + '<div style="color:#55483A">삭제 사유: ' + esc(r.del.why) + '</div>'
-        + '<div style="color:#8A7663; font-size:13px; margin-top:6px">날짜·이름·시간·위험 신호·한 줄 요약은 기록으로 남아 있어요.</div>';
+        + '<div style="color:#6E5A48; font-size:13px; margin-top:6px">날짜·이름·시간·위험 신호·한 줄 요약은 기록으로 남아 있어요.</div>';
     } else if (!r.tr || r.tr.length === 0) {
-      list.innerHTML = '<div style="color:#8A7663">저장된 대화 기록이 없어요 — 음성 인식이 꺼져 있었거나 이전 버전의 기록이에요</div>';
+      list.innerHTML = '<div style="color:#6E5A48">저장된 대화 기록이 없어요 — 음성 인식이 꺼져 있었거나 이전 버전의 기록이에요</div>';
     } else {
-      list.innerHTML = '<div style="color:#B3A28E; font-size:12.5px">화자 구분 없이, 인식된 순서대로 기록돼요 · 큰 목소리는 굵게 · AI 맥락은 색 상자</div>';
+      list.innerHTML = '<div style="color:#7A6553; font-size:12.5px">화자 구분 없이, 인식된 순서대로 기록돼요 · 큰 목소리는 굵게 · AI 맥락은 색 상자</div>';
       var merged = r.tr.map(function (l) { return { t: l.t, x: l.x, v: l.v || 0, ai: false }; })
         .concat((r.ctx || []).map(function (c) { return { t: c.t, x: c.x, v: 0, ai: true }; }))
         .sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : (a.ai ? 1 : -1); });
       merged.forEach(function (l) {
         var div = document.createElement('div');
         if (l.ai) { div.style.cssText = 'background:#F7EFE4; border-radius:8px; padding:6px 10px; color:#55483A; font-size:13px'; div.innerHTML = '<b style="color:#6E4326; font-size:12px; margin-right:6px">AI 맥락 ' + esc(l.t) + '</b>' + esc(l.x); }
-        else div.innerHTML = '<span class="mono" style="color:#C05A2A; font-size:12.5px; margin-right:8px">' + esc(l.t) + '</span>' + (l.v === 2 ? '<b>' + esc(l.x) + '</b> <span style="color:#A34A1E; font-size:12px">매우 큼</span>' : l.v === 1 ? '<span style="font-weight:500">' + esc(l.x) + '</span> <span style="color:#8A7663; font-size:12px">큼</span>' : esc(l.x));
+        else div.innerHTML = '<span class="mono" style="color:#C05A2A; font-size:12.5px; margin-right:8px">' + esc(l.t) + '</span>' + (l.v === 2 ? '<b>' + esc(l.x) + '</b> <span style="color:#A34A1E; font-size:12px">매우 큼</span>' : l.v === 1 ? '<span style="font-weight:500">' + esc(l.x) + '</span> <span style="color:#6E5A48; font-size:12px">큼</span>' : esc(l.x));
         list.appendChild(div);
       });
     }
@@ -1323,7 +1323,7 @@ window.onerror = function (msg) {
     m.onclick = function () { S.buddyManual = true; $('buddyManual').style.display = 'inline-block'; $('buddyManual').focus(); renderBuddies(false); };
     box.appendChild(m);
     var r = document.createElement('span');
-    r.className = 'pill'; r.textContent = '다시 찾기'; r.style.color = '#8A7663';
+    r.className = 'pill'; r.textContent = '다시 찾기'; r.style.color = '#6E5A48';
     r.onclick = findBuddies;
     box.appendChild(r);
     if (!searching) {
@@ -1537,7 +1537,7 @@ window.onerror = function (msg) {
     var m = P.alert; P.alert = null; phoneRing(false);
     postSig({ type: 'ack', rid: P.conn ? P.conn.rid : (m ? m.rid : ''), place: m ? m.place : '', by: P.name, ts: Date.now() });
     var n = $('pAckNote'); n.style.display = 'block';
-    n.innerHTML = '<b>' + hhmm() + ' 확인 보냄</b> · ' + (m && m.ev && m.ev.hit ? '위험 신호 “' + esc(m.ev.hit) + '”' : '위험 신호') + '<br><span style="color:#8A7663">상담자 화면에 "' + esc(P.name) + ' 확인 ' + hhmm() + '"이 떴어요</span>';
+    n.innerHTML = '<b>' + hhmm() + ' 확인 보냄</b> · ' + (m && m.ev && m.ev.hit ? '위험 신호 “' + esc(m.ev.hit) + '”' : '위험 신호') + '<br><span style="color:#6E5A48">상담자 화면에 "' + esc(P.name) + ' 확인 ' + hhmm() + '"이 떴어요</span>';
     go(P.conn ? 'pconn' : 'pwait');
   };
   window.acceptReq = function () {
@@ -1762,7 +1762,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.8';
+  var APP_VER = '0.9.9';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {

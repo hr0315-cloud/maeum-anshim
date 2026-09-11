@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.9.8">
+<link rel="stylesheet" href="style.css?v=0.9.9">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>v0.9.8</span></div>
+  <div class="brand"><b>마음안심</b><span>v0.9.9</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -29,10 +29,10 @@
     <button class="mid" onclick="startDemo()" style="color:#6E4326">▶ 체험해 보기</button>
   </div>
   <div class="banner" style="padding:10px 18px">대화는 글로만 남고 음성은 바로 지워져요 · <a href="#" onclick="var b=document.getElementById('startMore');b.style.display=b.style.display==='none'?'block':'none';return false" style="color:#A34A1E">자세히</a>
-    <div id="startMore" style="display:none; margin-top:6px; font-size:12.5px; color:#8A7663">상담 중 대화는 글로 기록돼요. 음성은 글로 바뀐 뒤 바로 지워지고, 글로 바꾸고 정리하기 위해 외부 음성인식·AI 서비스로 전송돼요. 기록은 이 기기 안에 남고, 원하시면 언제든 지울 수 있어요.</div></div>
+    <div id="startMore" style="display:none; margin-top:6px; font-size:12.5px; color:#6E5A48">상담 중 대화는 글로 기록돼요. 음성은 글로 바뀐 뒤 바로 지워지고, 글로 바꾸고 정리하기 위해 외부 음성인식·AI 서비스로 전송돼요. 기록은 이 기기 안에 남고, 원하시면 언제든 지울 수 있어요.</div></div>
   <div class="note" id="linkStat"></div>
   <div id="startLinks"><a href="#" onclick="openLink();return false" id="linkEdit">연결 설정</a><a href="#" onclick="openSettings();return false">설정</a><span id="retest" style="display:none"><a href="#" onclick="retestLink();return false">연결 테스트</a></span></div>
-  <div id="jsAlive" style="font-size:12.5px; color:#B3A28E">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
+  <div id="jsAlive" style="font-size:12.5px; color:#7A6553">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
 </div>
 
 <!-- 1d 동료 연결 설정 -->
@@ -153,12 +153,12 @@
   <div class="chips"><div class="chip calm"><span class="dot"></span>대기 중</div></div>
   <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)"><span id="pwaitName">-</span> 님,<br>안전 연결 대기 중</h1>
   <div class="banner"><b id="pwaitCode">팀 코드 -</b><br>상담자가 연결을 요청하면 이 폰이 울려요.</div>
-  <details class="banner" id="pwaitNtfy" open><summary style="cursor:pointer; font-weight:700; color:#6E4326">화면이 꺼져도 받으려면 — ntfy 앱 구독 <span style="font-weight:400; color:#B3A28E; font-size:12px">(펼치기/접기)</span></summary><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0"><span class="mono" id="pwaitAlim" style="background:#FAF5EE; border:1.5px dashed #C05A2A; border-radius:8px; padding:5px 10px; font-size:13.5px">-</span><button class="mid" style="padding:7px 12px; font-size:13px" onclick="copyAlim(this)">복사</button></div><span style="color:#8A7663; font-size:12.5px">앱스토어 "ntfy" · 무료 · 계정 없음 · 알림 허용 · "소리·알림 테스트"를 누르면 잠금화면 알림도 같이 와요</span></details>
+  <details class="banner" id="pwaitNtfy" open><summary style="cursor:pointer; font-weight:700; color:#6E4326">화면이 꺼져도 받으려면 — ntfy 앱 구독 <span style="font-weight:400; color:#7A6553; font-size:12px">(펼치기/접기)</span></summary><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0"><span class="mono" id="pwaitAlim" style="background:#FAF5EE; border:1.5px dashed #C05A2A; border-radius:8px; padding:5px 10px; font-size:13.5px">-</span><button class="mid" style="padding:7px 12px; font-size:13px" onclick="copyAlim(this)">복사</button></div><span style="color:#6E5A48; font-size:12.5px">앱스토어 "ntfy" · 무료 · 계정 없음 · 알림 허용 · "소리·알림 테스트"를 누르면 잠금화면 알림도 같이 와요</span></details>
   <div class="note" id="pwaitMsg">-</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
     <button class="mid" onclick="go('pname')">이름 바꾸기</button>
     <button class="mid" onclick="testAlarm(this)">소리·알림 테스트</button>
-    <button class="mid" onclick="stopPhone()" style="color:#8A7663">대기 종료</button>
+    <button class="mid" onclick="stopPhone()" style="color:#6E5A48">대기 종료</button>
   </div>
 </div>
 
@@ -333,7 +333,7 @@
     <div class="nrow"><span class="nnum">3</span><span id="noticeN3">-</span></div>
   </div>
   <button class="primary big" onclick="startSession(true)">네, 확인했습니다</button>
-  <button class="mid" onclick="go('norec')" style="border:none; background:transparent; text-decoration:underline; text-underline-offset:3px; color:#8A7663">기록을 원하지 않아요</button>
+  <button class="mid" onclick="go('norec')" style="border:none; background:transparent; text-decoration:underline; text-underline-offset:3px; color:#6E5A48">기록을 원하지 않아요</button>
   <button class="corner" style="left:24px" onclick="backFromNotice()">← 뒤로</button>
 </div>
 
@@ -394,7 +394,7 @@
   <div class="brand"><b>마음안심</b></div>
   <div class="chip warn" style="position:absolute; top:20px; right:24px"><span class="dot"></span>위험 신호 감지</div>
   <div style="display:flex; align-items:center; gap:22px; width:min(720px,92vw)">
-    <div class="cd"><b id="cdNum">10</b><span style="font-size:13px; color:#8A7663">초 후 알림</span></div>
+    <div class="cd"><b id="cdNum">10</b><span style="font-size:13px; color:#6E5A48">초 후 알림</span></div>
     <div style="text-align:left; flex:1; min-width:0"><h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)" id="cdTitle">잠시 후 동료에게 알려요</h1><div class="sub"><span id="cdReason">계속되는 큰 소리가</span> 감지됐어요. <b>괜찮으시면 아래를 눌러주세요.</b> 아무것도 누르지 못하는 상황이라면 저희가 대신 알릴게요.</div></div>
   </div>
   <div class="ev" id="cdEv">-</div>
@@ -458,6 +458,6 @@
 
 <div id="demoBar" style="display:none"><span>체험 모드 · 신호는 밖으로 나가지 않고 기록도 남지 않아요</span><button onclick="exitDemo(false)">나가기 ✕</button></div>
 <div id="demoGuide" style="display:none" onclick="hideGuide()"></div>
-<script src="app.js?v=0.9.8"></script>
+<script src="app.js?v=0.9.9"></script>
 </body>
 </html>
