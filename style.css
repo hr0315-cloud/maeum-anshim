@@ -148,5 +148,29 @@
   .stat .k { display: inline-block; background: #F4ECE0; border-radius: 8px; padding: 0 8px; margin: 0 4px 2px 0; font-size: 12.5px; }
   .stat .k.g { background: #E7F0E9; color: #2F5E40; } .stat .k.a { background: #F7EDD8; color: #8A5F14; } .stat .k.r { background: #F7E3E1; color: #97302B; }
   .stat a { color: #A34A1E; }
+  .sec.must { border-color: #C05A2A; background: #FFF9F3; }
+  .sec.must h2 { color: #A34A1E; margin-bottom: 4px; }
+  .mrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px dashed #EADFCE; }
+  .mrow:first-of-type { border-top: 0; }
+  .mrow b { color: #6E4326; font-size: 14px; }
+  .mrow .note { font-size: 12px; }
+  .mrow.col { flex-direction: column; align-items: stretch; gap: 6px; }
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: clamp(14px, 1.8vw, 16px); color: #6E4326; font-weight: 700; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::after { content: '펼치기 ▾'; font-size: 12px; font-weight: 400; color: #B3A28E; margin-left: 8px; }
+  details.fold[open] > summary::after { content: '접기 ▴'; }
+  details.fold > summary .sum { font-weight: 400; font-size: 12.5px; color: #8A7663; margin-left: auto; }
+  details.fold[open] > summary { margin-bottom: 8px; }
+  details.lst { border-top: 1px dashed #EADFCE; padding: 6px 0; }
+  details.lst > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13.5px; color: #55483A; }
+  details.lst > summary::-webkit-details-marker { display: none; }
+  details.lst > summary .cnt { color: #8A7663; font-size: 12.5px; white-space: nowrap; }
+  details.lst > summary .cnt::after { content: ' · 편집 ›'; }
+  details.lst[open] > summary .cnt::after { content: ' · 접기'; }
+  details.lst > summary .note { display: block; font-size: 11.5px; }
+  details.lst textarea { margin-top: 6px; }
+  .k { display: inline-block; font-size: 10.5px; font-style: normal; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin-right: 7px; }
+  .k.a { background: #F7E3E1; color: #97302B; } .k.b { background: #F7EDD8; color: #8A5F14; } .k.c { background: #E2E9F0; color: #3C5A78; }
+  #startLinks a { color: #8A7663; }
   .recrow { cursor: pointer; }
   .recrow:active { background: #F7E6D8; }

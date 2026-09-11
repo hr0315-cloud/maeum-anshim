@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.9.5">
+<link rel="stylesheet" href="style.css?v=0.9.6">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>현장 테스트 v0.9.5</span></div>
+  <div class="brand"><b>마음안심</b><span>v0.9.6</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -23,16 +23,15 @@
     <div class="note" id="firstMsg" style="margin-top:6px"></div>
   </div>
   <button class="primary big" onclick="openName()">상담 시작</button>
-  <div class="banner">상담 중 대화는 글로 기록돼요. 음성은 글로 바뀐 뒤 바로 지워지고, <b>글로 바꾸고 정리하기 위해 외부 음성인식·AI 서비스로 전송</b>돼요. 기록은 이 기기 안에 남고, 원하시면 언제든 지울 수 있어요.</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
-    <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건 보기</button>
+    <button class="mid" id="recBtn" onclick="openRecords()" style="display:none">상담기록 0건</button>
     <button class="mid" id="linkBtn" onclick="linkTap()">동료 연결 설정</button>
-    <button class="mid" id="linkEdit" onclick="openLink()" style="display:none; color:#8A7663">연결 설정 바꾸기</button>
-    <button class="mid" onclick="openSettings()">설정</button>
-    <button class="mid" onclick="startDemo()" style="color:#6E4326">▶ 체험해 보기 <span style="font-weight:400; color:#B3A28E">· 업무폰 없이 90초</span></button>
+    <button class="mid" onclick="startDemo()" style="color:#6E4326">▶ 체험해 보기</button>
   </div>
+  <div class="banner" style="padding:10px 18px">대화는 글로만 남고 음성은 바로 지워져요 · <a href="#" onclick="var b=document.getElementById('startMore');b.style.display=b.style.display==='none'?'block':'none';return false" style="color:#A34A1E">자세히</a>
+    <div id="startMore" style="display:none; margin-top:6px; font-size:12.5px; color:#8A7663">상담 중 대화는 글로 기록돼요. 음성은 글로 바뀐 뒤 바로 지워지고, 글로 바꾸고 정리하기 위해 외부 음성인식·AI 서비스로 전송돼요. 기록은 이 기기 안에 남고, 원하시면 언제든 지울 수 있어요.</div></div>
   <div class="note" id="linkStat"></div>
-  <div class="note"><a href="#" id="retest" onclick="retestLink();return false" style="display:none; color:#8A7663">업무폰 연결 다시 테스트</a></div>
+  <div class="note" id="startLinks"><a href="#" onclick="openLink();return false" id="linkEdit">연결 설정</a> · <a href="#" onclick="openSettings();return false">설정</a> <span id="retest" style="display:none">· <a href="#" onclick="retestLink();return false">연결 테스트</a></span></div>
   <div id="jsAlive" style="font-size:12.5px; color:#B3A28E">⚠ 이 표시가 계속 보이면 버튼이 동작하지 않는 뷰어예요 — 크롬 브라우저로 열어주세요</div>
 </div>
 
@@ -40,7 +39,7 @@
 <div class="screen" id="s-link">
   <div class="brand"><b>마음안심</b><span>동료 연결</span></div>
   <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)">기기를 서로 연결해요</h1>
-  <div class="sub" style="max-width:640px">같은 <b>팀 코드</b>를 넣은 기기끼리 위험 신호가 전달돼요.<br>평소에는 장소·시각·이름만 오가고, <b>위험 신호 때만 감지된 문장 한 줄이 함께 가요.</b></div>
+  <div class="sub" style="max-width:640px">같은 <b>팀 코드</b>를 넣은 기기끼리만 신호가 오가요. 평소엔 장소·시각·이름, 위험 신호 때만 감지된 문장 한 줄.</div>
   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center">
     <span style="font-weight:700; color:#6E4326; font-size:15px">이 기기는</span>
     <span class="pill" data-role="host" onclick="pickRole(this)">상담용 (상담하는 기기)</span>
@@ -62,41 +61,60 @@
   <div class="brand"><b>마음안심</b><span>설정</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif" style="font-size:clamp(22px,3vw,30px)">설정</h1>
-  <div class="note">모든 값은 이 기기 안에만 저장돼요. 저장소나 서버로 나가지 않아요.</div>
-  <div class="sec">
-    <h2>① 내담자에게 보이는 고지 문구
-      <span class="switch" id="swApproved" onclick="toggleApproved()"><span class="knob"></span><span id="swApprovedTxt">기관 승인 전</span></span>
-    </h2>
+  <div class="note">모든 값은 이 기기 안에만 저장돼요. 나머지는 기본값으로 써도 돼요.</div>
+
+  <div class="sec must">
+    <h2>꼭 정할 것 4가지</h2>
+    <div class="mrow"><div><b>고지 문구 승인</b><div class="note">기관이 문구를 확정하고 법률 검토가 끝나면 켜요. 켜기 전엔 "기관 승인 전"이 표시돼요</div></div>
+      <span class="switch" id="swApproved" onclick="toggleApproved()"><span class="knob"></span><span id="swApprovedTxt">기관 승인 전</span></span></div>
+    <div class="mrow col"><b>기관 약속 문구 <span class="note">업무폰 알림에 같이 보여요</span></b><textarea class="txt" id="cfgPromise" rows="1"></textarea></div>
+    <div class="mrow col"><b>암호 문구 <span class="note">말하면 유예도 화면 변화도 없이 바로 동료를 불러요 · 평소에 안 쓰는 문장 · 쉼표로 여러 개</span></b><textarea class="txt" id="cfgCode" rows="1"></textarea></div>
+    <div class="mrow"><div><b>기록 보존</b><div class="note">지나면 기기에서 자동 삭제, 날짜·건수 한 줄만 남아요</div></div>
+      <div class="row"><span class="pill" data-keep="7" onclick="pickKeep(this)">7일</span><span class="pill" data-keep="30" onclick="pickKeep(this)">30일</span><span class="pill" data-keep="90" onclick="pickKeep(this)">90일</span><span class="pill" data-keep="0" onclick="pickKeep(this)">수동 삭제만</span></div></div>
+  </div>
+
+  <details class="sec fold" id="foldNotice">
+    <summary><span>고지 문구</span><span class="sum">3줄 + 거부 안내</span></summary>
     <label>1번 문구</label><textarea class="txt" id="cfgN1" rows="2"></textarea>
     <label>2번 문구</label><textarea class="txt" id="cfgN2" rows="2"></textarea>
     <label>3번 문구</label><textarea class="txt" id="cfgN3" rows="2"></textarea>
     <label>기록 거부 시 안내 ("기록을 원하지 않아요"를 눌렀을 때)</label><textarea class="txt" id="cfgRefuse" rows="2"></textarea>
-    <div class="note">기관이 문구를 확정하고 법률 검토가 끝나면 위 스위치를 켜 주세요. 켜기 전까지는 화면에 "기관 승인 전"이 표시돼요.</div>
-  </div>
-  <div class="sec">
-    <h2>② 감지 기준</h2>
-    <div class="row"><label style="width:110px">유예 시간</label><span class="pill" data-grace="5" onclick="pickGrace(this)">5초</span><span class="pill" data-grace="10" onclick="pickGrace(this)">10초</span><span class="pill" data-grace="15" onclick="pickGrace(this)">15초</span></div>
-    <div class="row"><label style="width:110px">큰 소리 민감도</label><span class="pill" data-sens="low" onclick="pickSens(this)">낮음</span><span class="pill" data-sens="mid" onclick="pickSens(this)">보통</span><span class="pill" data-sens="high" onclick="pickSens(this)">높음</span></div>
-    <div class="note" style="font-weight:700; color:#B3403A; margin-top:6px">A · 즉시 — 한 번이면 바로 유예가 시작돼요</div>
-    <label>위협 표현 (쉼표로 구분)</label><textarea class="txt" id="cfgThreat" rows="3"></textarea>
-    <label>심한 말 (쉼표로 구분)</label><textarea class="txt" id="cfgAbuse" rows="2"></textarea>
-    <label>상담자 문구 (쉼표로 구분 · 상담자가 중단 의사를 밝히는 말 · 내담자는 하지 않는 문장이라 화자 구분 없이도 잡혀요)</label><textarea class="txt" id="cfgCounselor" rows="2"></textarea>
-    <label>암호 문구 (쉼표로 여러 개 가능 · 말하면 유예도 화면 변화도 없이 바로 동료를 불러요 · 평소에 안 쓰는 문장으로)</label><textarea class="txt" id="cfgCode" rows="1"></textarea>
-    <div class="note" style="font-weight:700; color:#8A5F14; margin-top:10px">B · 점수 — 2분 안에 쌓여 기준 점수가 되면 유예</div>
-    <label>요구 표현 (쉼표로 구분 · 1회 1점 · 말이 바뀌어도 "달라"는 형태를 셈)</label><textarea class="txt" id="cfgDemand" rows="2"></textarea>
-    <label>통제 상실 예고 (쉼표로 구분 · 1회 2점 · 위협 한 단계 앞의 말)</label><textarea class="txt" id="cfgLose" rows="1"></textarea>
-    <label>반복 자각 (쉼표로 구분 · 1회 1점 · 되풀이하고 있다고 스스로 말하는 표현)</label><textarea class="txt" id="cfgMeta" rows="1"></textarea>
-    <label>완화 표현 (쉼표로 구분 · 상담자가 진정시키는 말 · 2분 안 두 번째부터 1점)</label><textarea class="txt" id="cfgCalm" rows="1"></textarea>
-    <div class="row"><label style="width:150px">알림 기준 점수</label><span class="pill" data-score="2" onclick="pickScore(this)">2점</span><span class="pill" data-score="3" onclick="pickScore(this)">3점</span><span class="pill" data-score="4" onclick="pickScore(this)">4점</span></div>
-    <div class="note" style="font-weight:700; color:#3C5A78; margin-top:10px">C · 문턱 — 울리지 않아요</div>
-    <label>거절·제한 통보 (쉼표로 구분 · 상담자가 지원 불가를 알리는 말 · 뒤 2분 동안 기준 점수가 1점 내려가요)</label><textarea class="txt" id="cfgRefusal" rows="2"></textarea>
-    <div class="note">같은 말 되풀이 1점 · 매우 큰 목소리 +1점은 목록 없이 자동으로 더해져요. 쌓이는 동안 상담 화면 위에 점(● ● ○)이 차고, 거절 통보 뒤 2분은 점이 하나 줄어 보여요(○ ○).</div>
-    <label>이 문장이 감지되나요? (위 목록 기준으로 바로 확인)</label>
+  </details>
+
+  <details class="sec fold" id="foldLists">
+    <summary><span>감지 목록</span><span class="sum" id="sumLists">9묶음</span></summary>
+    <label>이 문장이 감지되나요? (아래 목록 기준으로 바로 확인)</label>
     <div class="row"><input class="txt" id="cfgTest" placeholder="예: 퇴근길 조심해라" autocomplete="off" style="flex:1; min-width:200px; padding:8px 12px; font-size:14px"><button class="mid" onclick="testThreat()">확인</button></div>
     <div class="note" id="cfgTestOut">띄어쓰기는 무시하고 비교해요 · 상담 중 한 번 감지되면 45초 동안은 다시 감지하지 않아요</div>
-  </div>
-  <div class="sec">
-    <h2>③ AI 맥락 분석 <span class="pill" id="aiStat">꺼짐 · 키 없음</span></h2>
+    <div class="note" style="margin-top:8px">A 즉시 = 한 번이면 바로 유예 · B 점수 = 2분 안에 쌓여 기준 점수면 유예 · C 문턱 = 울리지 않고 뒤 2분 동안 기준 1점 낮춤. 같은 말 되풀이 1점·매우 큰 목소리 +1점은 목록 없이 자동. 쉼표로 구분.</div>
+    <details class="lst"><summary><span><i class="k a">A</i>위협 표현</span><span class="cnt" data-for="cfgThreat">-</span></summary><textarea class="txt" id="cfgThreat" rows="3" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k a">A</i>심한 말</span><span class="cnt" data-for="cfgAbuse">-</span></summary><textarea class="txt" id="cfgAbuse" rows="2" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k a">A</i>상담자 문구 <span class="note">상담자가 중단 의사를 밝히는 말 · 화자 구분 없이 잡혀요</span></span><span class="cnt" data-for="cfgCounselor">-</span></summary><textarea class="txt" id="cfgCounselor" rows="2" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k b">B</i>요구 표현 +1 <span class="note">말이 바뀌어도 "달라"는 형태를 셈</span></span><span class="cnt" data-for="cfgDemand">-</span></summary><textarea class="txt" id="cfgDemand" rows="2" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k b">B</i>통제 상실 예고 +2 <span class="note">위협 한 단계 앞의 말</span></span><span class="cnt" data-for="cfgLose">-</span></summary><textarea class="txt" id="cfgLose" rows="1" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k b">B</i>반복 자각 +1 <span class="note">되풀이하고 있다고 스스로 말하는 표현</span></span><span class="cnt" data-for="cfgMeta">-</span></summary><textarea class="txt" id="cfgMeta" rows="1" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k b">B</i>완화 표현 2회째부터 +1 <span class="note">상담자가 진정시키는 말</span></span><span class="cnt" data-for="cfgCalm">-</span></summary><textarea class="txt" id="cfgCalm" rows="1" oninput="listCounts()"></textarea></details>
+    <details class="lst"><summary><span><i class="k c">C</i>거절·제한 통보 <span class="note">뒤 2분 동안 기준 점수 -1 · 울리지 않음</span></span><span class="cnt" data-for="cfgRefusal">-</span></summary><textarea class="txt" id="cfgRefusal" rows="2" oninput="listCounts()"></textarea></details>
+  </details>
+
+  <details class="sec fold" id="foldRules">
+    <summary><span>감지 기준</span><span class="sum" id="sumRules">-</span></summary>
+    <div class="row"><label style="width:110px">유예 시간</label><span class="pill" data-grace="5" onclick="pickGrace(this)">5초</span><span class="pill" data-grace="10" onclick="pickGrace(this)">10초</span><span class="pill" data-grace="15" onclick="pickGrace(this)">15초</span></div>
+    <div class="row"><label style="width:110px">큰 소리 민감도</label><span class="pill" data-sens="low" onclick="pickSens(this)">낮음</span><span class="pill" data-sens="mid" onclick="pickSens(this)">보통</span><span class="pill" data-sens="high" onclick="pickSens(this)">높음</span></div>
+    <div class="row"><label style="width:110px">알림 기준 점수</label><span class="pill" data-score="2" onclick="pickScore(this)">2점</span><span class="pill" data-score="3" onclick="pickScore(this)">3점</span><span class="pill" data-score="4" onclick="pickScore(this)">4점</span></div>
+    <div class="note">쌓이는 동안 상담 화면 위에 점(● ● ○)이 차고, 거절 통보 뒤 2분은 점이 하나 줄어 보여요(○ ○).</div>
+  </details>
+
+  <details class="sec fold" id="foldAlert">
+    <summary><span>동료 알림 · 경고 음성</span><span class="sum" id="sumAlert">-</span></summary>
+    <div class="row"><label style="width:110px">상황판 확산</label><span class="pill" data-esc="30" onclick="pickEsc(this)">30초</span><span class="pill" data-esc="60" onclick="pickEsc(this)">60초</span><span class="pill" data-esc="120" onclick="pickEsc(this)">120초</span></div>
+    <div class="note">업무폰이 이 시간 안에 "확인했어요"를 누르지 않으면 팀 상황판(PC)에 소리와 함께 카드가 떠요. 위험 신호와 함께 가는 내용은 신호 종류·장소·감지된 문장 한 줄이에요.</div>
+    <label>경고 음성 문구 ("경고 음성" 버튼이 읽어요)</label><textarea class="txt" id="cfgWarn" rows="2"></textarea>
+    <div class="row"><button class="mid" onclick="playWarning(this)">들어보기</button></div>
+  </details>
+
+  <details class="sec fold" id="foldAI">
+    <summary><span>AI 맥락 분석 <span class="note">선택</span></span><span class="sum"><span class="pill" id="aiStat">꺼짐 · 키 없음</span></span></summary>
     <div class="row"><label style="width:110px">AI 회사</label><span class="pill" data-provider="gemini" onclick="pickProvider(this)">Google Gemini (무료 등급)</span><span class="pill" data-provider="anthropic" onclick="pickProvider(this)">Anthropic Claude (유료)</span></div>
     <div class="row">
       <input class="txt" id="cfgKey" type="password" placeholder="API 키" autocomplete="off" style="flex:1; min-width:220px">
@@ -105,26 +123,11 @@
     <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-3.6-flash" onclick="pickModel(this)">Gemini 3.6 Flash</span><span class="pill" data-model="gemini-3.6-flash-lite" onclick="pickModel(this)">3.6 Flash-Lite</span><span class="pill" data-model="custom" onclick="pickModel(this)">직접 입력</span><input class="txt" id="cfgGModel" placeholder="모델 이름 (예: gemini-3.6-flash)" autocomplete="off" style="display:none; width:260px; padding:8px 12px; font-size:13px"></div>
     <div class="row" id="modelRowA"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5</span></div>
     <div class="row"><label style="width:110px">호출 간격</label><span class="pill" data-every="20" onclick="pickEvery(this)">20초</span><span class="pill" data-every="45" onclick="pickEvery(this)">45초</span><span class="pill" data-every="90" onclick="pickEvery(this)">90초</span><span class="pill" data-every="0" onclick="pickEvery(this)">감지 때만</span></div>
-    <div class="note">무료 등급은 하루 호출 횟수에 한도가 있어요(모델마다 다름). 간격이 길수록 오래 씁니다. "감지 때만"은 위험 신호가 잡힐 때만 불러 상담 한 번에 몇 회로 끝나요.</div>
-    <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료, AQ. 또는 AIza로 시작). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
-    <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.</div>
-  </div>
-  <div class="sec">
-    <h2>⑤ 동료 알림</h2>
-    <label>기관 약속 문구 (업무폰 알림에 같이 보여요)</label><textarea class="txt" id="cfgPromise" rows="1"></textarea>
-    <div class="row"><label style="width:150px">상황판 확산 시점</label><span class="pill" data-esc="30" onclick="pickEsc(this)">30초</span><span class="pill" data-esc="60" onclick="pickEsc(this)">60초</span><span class="pill" data-esc="120" onclick="pickEsc(this)">120초</span></div>
-    <div class="note">업무폰이 이 시간 안에 "확인했어요"를 누르지 않으면 팀 상황판(PC)에 소리와 함께 카드가 떠요. 위험 신호와 함께 가는 내용은 신호 종류·장소·감지된 문장 한 줄이에요. 앞뒤 대화는 가지 않아요.</div>
-  </div>
-  <div class="sec">
-    <h2>⑥ 기록 보존</h2>
-    <div class="row"><label style="width:150px">보존 기간</label><span class="pill" data-keep="7" onclick="pickKeep(this)">7일</span><span class="pill" data-keep="30" onclick="pickKeep(this)">30일</span><span class="pill" data-keep="90" onclick="pickKeep(this)">90일</span><span class="pill" data-keep="0" onclick="pickKeep(this)">수동 삭제만</span></div>
-    <div class="note">기간이 지난 기록은 이 기기에서 자동으로 지워지고, 목록에 "자동 삭제됨 · 날짜 · 위험 신호 건수" 한 줄만 남아요. 기관 방침에 맞춰 정해 주세요. 사유를 적고 지우는 수동 삭제는 그대로 있어요.</div>
-  </div>
-  <div class="sec">
-    <h2>④ 경고 음성 문구</h2>
-    <textarea class="txt" id="cfgWarn" rows="2"></textarea>
-    <div class="row"><button class="mid" onclick="playWarning(this)">들어보기</button></div>
-  </div>
+    <div class="note">무료 등급은 하루 호출 횟수에 한도가 있어요(모델마다 다름). "감지 때만"은 위험 신호가 잡힐 때만 불러요.</div>
+    <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
+    <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석만 꺼지고 나머지는 그대로 동작해요.</div>
+  </details>
+
   <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; padding-bottom:40px">
     <button class="mid" onclick="resetSettings()">기본값으로 되돌리기</button>
     <button class="primary mid" onclick="saveSettings()">저장</button>
@@ -150,7 +153,7 @@
   <div class="chips"><div class="chip calm"><span class="dot"></span>대기 중</div></div>
   <h1 class="serif" style="font-size:clamp(24px,3.4vw,34px)"><span id="pwaitName">-</span> 님,<br>안전 연결 대기 중</h1>
   <div class="banner"><b id="pwaitCode">팀 코드 -</b><br>상담자가 연결을 요청하면 이 폰이 울려요.</div>
-  <div class="banner"><b>화면이 꺼져도 받으려면</b> — ntfy 앱에서 이 이름을 구독하세요<br><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0"><span class="mono" id="pwaitAlim" style="background:#FAF5EE; border:1.5px dashed #C05A2A; border-radius:8px; padding:5px 10px; font-size:13.5px">-</span><button class="mid" style="padding:7px 12px; font-size:13px" onclick="copyAlim(this)">복사</button></div><span style="color:#8A7663; font-size:12.5px">앱스토어 "ntfy" · 무료 · 계정 없음 · 알림 허용 · "소리·알림 테스트"를 누르면 잠금화면 알림도 같이 와요</span></div>
+  <details class="banner" id="pwaitNtfy" open><summary style="cursor:pointer; font-weight:700; color:#6E4326">화면이 꺼져도 받으려면 — ntfy 앱 구독 <span style="font-weight:400; color:#B3A28E; font-size:12px">(펼치기/접기)</span></summary><div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0"><span class="mono" id="pwaitAlim" style="background:#FAF5EE; border:1.5px dashed #C05A2A; border-radius:8px; padding:5px 10px; font-size:13.5px">-</span><button class="mid" style="padding:7px 12px; font-size:13px" onclick="copyAlim(this)">복사</button></div><span style="color:#8A7663; font-size:12.5px">앱스토어 "ntfy" · 무료 · 계정 없음 · 알림 허용 · "소리·알림 테스트"를 누르면 잠금화면 알림도 같이 와요</span></details>
   <div class="note" id="pwaitMsg">-</div>
   <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
     <button class="mid" onclick="go('pname')">이름 바꾸기</button>
@@ -352,10 +355,10 @@
   <div class="brand"><b>마음안심</b></div>
   <div class="chips">
     <div class="chip calm" id="stateChip" onpointerdown="secretTap()"><span class="dot"></span><span id="stateTxt">연결됨</span></div>
-    <div class="chip rec" id="recChip"><span class="dot"></span><span id="recLabel">기록 중</span></div>
+    <div class="chip rec" id="recChip" style="display:none"><span class="dot"></span><span id="recLabel">기록 중</span></div>
     <div class="chip warn" id="accChip" style="display:none; letter-spacing:2px; font-family:'IBM Plex Mono',monospace" title="쌓인 신호">○ ○ ○</div>
     <div class="chip off" id="aiChip">AI 꺼짐</div>
-    <div class="chip call mono" id="callChip" style="display:none">확인 전화까지 <span id="callLeft" style="margin-left:5px">--:--</span></div>
+    <div class="chip call mono" id="callChip" style="display:none">전화 <span id="callLeft" style="margin-left:5px">--:--</span></div>
   </div>
   <div class="toprow">
     <div class="mono" id="timer" style="font-size:clamp(26px,3.6vw,40px); color:#6E4326">00:00</div>
@@ -455,6 +458,6 @@
 
 <div id="demoBar" style="display:none"><span>체험 모드 · 신호는 밖으로 나가지 않고 기록도 남지 않아요</span><button onclick="exitDemo(false)">나가기 ✕</button></div>
 <div id="demoGuide" style="display:none" onclick="hideGuide()"></div>
-<script src="app.js?v=0.9.5"></script>
+<script src="app.js?v=0.9.6"></script>
 </body>
 </html>

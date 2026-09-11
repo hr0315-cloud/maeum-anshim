@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.5)'; }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.6)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -148,6 +148,7 @@ window.onerror = function (msg) {
     document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
     showProvider(CFG.provider || 'gemini');
     $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
+    foldSums(); listCounts();
     go('settings');
     $('s-settings').scrollTop = 0;
   };
@@ -171,7 +172,18 @@ window.onerror = function (msg) {
     $('swApproved').classList.toggle('on', on);
     $('swApprovedTxt').textContent = on ? '기관 승인 완료' : '기관 승인 전';
   };
-  function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); return el.getAttribute(attr); }
+  function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); foldSums(); return el.getAttribute(attr); }
+  // 접힌 묶음의 한 줄 요약과 목록 개수
+  function onTxt(attr) { var e = document.querySelector('#s-settings [' + attr + '].on'); return e ? e.textContent : '-'; }
+  function foldSums() {
+    var r = $('sumRules'); if (r) r.textContent = '유예 ' + onTxt('data-grace') + ' · 큰 소리 ' + onTxt('data-sens') + ' · ' + onTxt('data-score');
+    var al = $('sumAlert'); if (al) al.textContent = '확산 ' + onTxt('data-esc');
+  }
+  window.listCounts = function () {
+    var total = 0;
+    document.querySelectorAll('#foldLists .cnt').forEach(function (c) { var t = $(c.getAttribute('data-for')); var n = t ? t.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean).length : 0; total += n; c.textContent = n + '개'; });
+    var s = $('sumLists'); if (s) s.textContent = '9묶음 · ' + total + '개';
+  };
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
   window.pickEvery = function (el) { pickOne(el, 'data-every'); };
@@ -302,7 +314,7 @@ window.onerror = function (msg) {
     try { localStorage.setItem('ma_counselor', S.counselor); } catch (e) {}
     S.cooldownUntil = 0; loudUntil = Date.now() + 20000;   // 큰 소리 감지만 시작 뒤 20초 대기 (마이크 기준 잡는 시간)
     $('stateChip').className = 'chip calm';
-    $('stateTxt').textContent = '연결됨 · ' + S.acc.name;
+    $('stateTxt').textContent = S.acc.name + (withRecord ? ' · 기록 중' : ' · 기록 없음');
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
     S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; S.cancels = 0; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
@@ -410,7 +422,8 @@ window.onerror = function (msg) {
   function aiReset() {
     clearTimeout(aiTimer); aiDirty = false; aiLastAt = 0; aiBusy = false; aiFails = 0;
     var chip = $('aiChip'), line = $('aiLine');
-    if (!aiKey() || S.noRecord) { chip.className = 'chip off'; chip.textContent = 'AI 꺼짐'; line.className = 'ai off'; line.textContent = S.noRecord ? 'AI 맥락 분석 꺼짐 · 기록 없이 진행 중' : 'AI 맥락 분석 꺼짐 · 설정 ③에 키를 넣으면 켜져요'; return; }
+    if (!aiKey() || S.noRecord || S.demo) { chip.style.display = 'none'; line.style.display = 'none'; return; }
+    chip.style.display = ''; line.style.display = '';
     chip.className = 'chip calm'; chip.textContent = 'AI 맥락 분석 중'; line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 여기에 흐름이 정리돼요';
   }
   function scheduleAI(force) {
@@ -754,7 +767,7 @@ window.onerror = function (msg) {
     S.ackBy = m.by || '동료';
     clearTimeout(escId); clearInterval(ackTick);
     var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm(), ts: Date.now() };
-    if (S.silent) { var st = $('stateTxt'); if (st && S.acc) st.textContent = '연결됨 · ' + S.acc.name + ' ✓ ' + hhmm(); return; }   // 조용한 호출: 작은 칩으로만
+    if (S.silent) { var st = $('stateTxt'); if (st && S.acc) st.textContent = S.acc.name + ' ✓ ' + hhmm(); return; }   // 조용한 호출: 작은 칩으로만
     setAck('ok', S.ackBy === '팀 상황판' ? '팀 상황판에서 확인했어요' : S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
   }
@@ -947,7 +960,7 @@ window.onerror = function (msg) {
     var n = getObs().length;
     var b = $('recBtn');
     b.style.display = n > 0 ? 'inline-block' : 'none';
-    b.textContent = '상담기록 ' + n + '건 보기';
+    b.textContent = '상담기록 ' + n + '건';
   }
   var L1 = ['전혀', '조금', '많이'], L2 = ['더 차분', '비슷', '더 격함'], L3 = ['더 안심', '비슷', '더 불편'];
   function lbl(arr, v) { return (v === 0 || v === 1 || v === 2) ? arr[v] : '-'; }
@@ -992,9 +1005,9 @@ window.onerror = function (msg) {
     var o = monthStats(statOff), md = median(o.acks), mx = o.acks.length ? Math.max.apply(null, o.acks) : null, m = parseInt(o.key.slice(5), 10) + '월';
     if (!o.n) { el.innerHTML = '<b>' + m + '</b> 기록이 없어요 <span class="note"><a href="#" onclick="statShift(1);return false">지난달</a>' + (statOff ? ' · <a href="#" onclick="statShift(-1);return false">다음 달</a>' : '') + '</span>'; return; }
     el.innerHTML = '<b>' + m + '</b> 상담 <b>' + o.n + '</b>건 · 동료 연결 <b>' + o.linked + '</b>건' + (o.live ? '(' + Math.round(o.linked / o.live * 100) + '%)' : '') + ' · 위험 신호 <b>' + o.alerts + '</b>건 · 유예 취소 <b>' + o.cancels + '</b>건<br>'
-      + '되짚기 <span class="k g">정확 ' + o.fb[0] + '</span><span class="k a">과함 ' + o.fb[1] + '</span><span class="k">모르겠음 ' + o.fb[2] + '</span><span class="k">미응답 ' + o.fb[3] + '</span><br>'
-      + '알림 → 확인 <b>중앙값 ' + secText(md) + '</b>' + (mx != null ? ' (최대 ' + secText(mx) + ')' : '') + ' · 확산 <b>' + o.esc + '</b>건 · 마음 <span class="k g">더 안심 ' + o.mood[0] + '</span><span class="k">비슷 ' + o.mood[1] + '</span><span class="k r">더 불편 ' + o.mood[2] + '</span>'
-      + '<div class="note">이름 없이 건수만 · <a href="#" id="statCopy" onclick="copyStat();return false">이 줄 복사</a> · <a href="#" onclick="statShift(1);return false">지난달</a>' + (statOff ? ' · <a href="#" onclick="statShift(-1);return false">다음 달</a>' : '') + '</div>';
+      + '<span id="statMore" style="display:none">되짚기 <span class="k g">정확 ' + o.fb[0] + '</span><span class="k a">과함 ' + o.fb[1] + '</span><span class="k">모르겠음 ' + o.fb[2] + '</span><span class="k">미응답 ' + o.fb[3] + '</span><br>'
+      + '알림 → 확인 <b>중앙값 ' + secText(md) + '</b>' + (mx != null ? ' (최대 ' + secText(mx) + ')' : '') + ' · 확산 <b>' + o.esc + '</b>건 · 마음 <span class="k g">더 안심 ' + o.mood[0] + '</span><span class="k">비슷 ' + o.mood[1] + '</span><span class="k r">더 불편 ' + o.mood[2] + '</span></span>'
+      + '<div class="note"><a href="#" onclick="var m=document.getElementById(\'statMore\');m.style.display=m.style.display===\'none\'?\'inline\':\'none\';this.textContent=m.style.display===\'none\'?\'더 보기\':\'접기\';return false">더 보기</a> · 이름 없이 건수만 · <a href="#" id="statCopy" onclick="copyStat();return false">이 줄 복사</a> · <a href="#" onclick="statShift(1);return false">지난달</a>' + (statOff ? ' · <a href="#" onclick="statShift(-1);return false">다음 달</a>' : '') + '</div>';
   }
   window.statShift = function (d) { statOff = Math.max(0, statOff + d); renderStat(); };
   window.copyStat = function () { doCopy(statText(monthStats(statOff)), 'statCopy'); };
@@ -1239,7 +1252,7 @@ window.onerror = function (msg) {
     updateLinkStat();
     if (linkRole === 'board') { startBuddy(); }
     else if (linkRole === 'phone') { $('phoneName').value = phoneName(); $('pnameMsg').textContent = '폰을 다른 사람에게 건네면 이름만 바꾸면 돼요'; $('pnameMsg').style.color = ''; go('pname'); }
-    else { $('linkMsg').textContent = '저장됐어요 — 상담 시작 화면에서 대기 중인 업무폰을 고를 수 있어요'; }
+    else { $('linkMsg').textContent = '저장됐어요 · 다음: 업무폰에 같은 코드를 넣고 이름을 저장하면, 시작 화면의 "첫 연결 확인" 카드로 테스트할 수 있어요'; }
   };
   window.openLink = function () {
     var c = linkCfg();
@@ -1261,11 +1274,12 @@ window.onerror = function (msg) {
   function updateLinkStat() {
     var c = linkCfg(), el = $('linkStat'), b = $('linkBtn'), e2 = $('linkEdit');
     if (c && c.role === 'buddy') { c.role = 'board'; try { localStorage.setItem('ma_link', JSON.stringify(c)); } catch (e) {} }
-    e2.style.display = (c && c.role !== 'host') ? 'inline-block' : 'none';
-    if (!c) { el.textContent = ''; b.textContent = '동료 연결 설정'; return; }
-    if (c.role === 'board') { el.textContent = '팀 상황판 · 팀 코드 ' + c.code; b.textContent = '상황판 대기 시작'; }
-    else if (c.role === 'phone') { var n = phoneName(); el.textContent = '업무폰 · ' + (n || '이름 미등록') + ' · 팀 코드 ' + c.code; b.textContent = n ? '업무폰 대기 시작' : '업무폰 이름 등록'; }
-    else { el.textContent = '상담용 · ' + c.place + ' · 팀 코드 ' + c.code; b.textContent = '동료 연결 설정'; }
+    // 상담용이면 큰 버튼 없이 아래 작은 줄("연결 설정")로, 업무폰·상황판이면 대기 시작 버튼
+    if (!c) { el.textContent = ''; b.style.display = ''; b.textContent = '동료 연결 설정'; e2.textContent = '연결 설정'; return; }
+    e2.textContent = '연결 설정';
+    if (c.role === 'board') { el.textContent = '팀 상황판 · 팀 코드 ' + c.code; b.style.display = ''; b.textContent = '상황판 대기 시작'; }
+    else if (c.role === 'phone') { var n = phoneName(); el.textContent = '업무폰 · ' + (n || '이름 미등록') + ' · 팀 코드 ' + c.code; b.style.display = ''; b.textContent = n ? '업무폰 대기 시작' : '업무폰 이름 등록'; }
+    else { el.textContent = '상담용 · ' + c.place + ' · 팀 코드 ' + c.code; b.style.display = 'none'; }
   }
 
   // ---------- 상담용 태블릿: 동료 찾기 · 연결 요청 · 수락 게이트 ----------
@@ -1403,6 +1417,7 @@ window.onerror = function (msg) {
     P.name = n; P.req = null; P.alerts = 0;
     clearTimeout(pendId); phoneRing(false); clearInterval(pTick);
     $('pwaitName').textContent = n; $('pwaitCode').textContent = '팀 코드 ' + c.code;
+    var dn0 = $('pwaitNtfy'); if (dn0) { var pt = false; try { pt = !!localStorage.getItem('ma_ptest'); } catch (e) {} dn0.open = !pt; }
     $('pwaitMsg').textContent = '';
     // 다시 열었을 때: 3시간 안에 수락한 연결이 있으면 이어받는다 (알림을 눌러 열었을 때 벨·화면이 이어지도록)
     var saved = null; try { saved = JSON.parse(localStorage.getItem('ma_pconn') || 'null'); } catch (e) {}
@@ -1466,6 +1481,7 @@ window.onerror = function (msg) {
       else { var nT = $('pAckNote'); nT.style.display = 'block'; nT.textContent = txt; }
       phoneRing(true); setTimeout(function () { phoneRing(false); }, 3000);
       postSig({ type: 'testack', by: P.name, place: m.place || '', ts: Date.now() });
+      try { localStorage.setItem('ma_ptest', '1'); } catch (e) {} var dn = $('pwaitNtfy'); if (dn) dn.open = false;
       return;
     }
     if (m.type === 'request') {
@@ -1746,7 +1762,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.9.5';
+  var APP_VER = '0.9.6';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
