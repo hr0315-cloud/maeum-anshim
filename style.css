@@ -174,3 +174,28 @@
   #startLinks a { color: #8A7663; }
   .recrow { cursor: pointer; }
   .recrow:active { background: #F7E6D8; }
+  /* v0.9.7 설정 화면 가독성: 조금 더 크게, 조금 더 넓게 */
+  #s-settings .sec { font-size: clamp(14px, 1.7vw, 15.5px); padding: 18px 22px; gap: 10px; }
+  #s-settings .sec h2 { font-size: clamp(15.5px, 1.9vw, 17.5px); }
+  #s-settings .sec label { font-size: 13.5px; margin-top: 4px; }
+  #s-settings .note { font-size: clamp(12.5px, 1.45vw, 14px); }
+  #s-settings .pill { font-size: 14px; padding: 9px 16px; min-height: 40px; display: inline-flex; align-items: center; }
+  #s-settings .row { gap: 10px; row-gap: 8px; }
+  #s-settings .txt { font-size: 16px; }
+  #s-settings .mrow { padding: 14px 0; gap: 16px; }
+  #s-settings .mrow b { font-size: 15.5px; }
+  #s-settings .mrow .note { font-size: 13px; margin-top: 2px; }
+  #s-settings .mrow.col { gap: 8px; }
+  #s-settings .switch { font-size: 14px; padding: 6px 0; }
+  #s-settings .switch .knob { width: 46px; height: 26px; } #s-settings .switch .knob::after { width: 20px; height: 20px; } #s-settings .switch.on .knob::after { left: 23px; }
+  #s-settings details.fold > summary { font-size: clamp(15.5px, 1.9vw, 17.5px); min-height: 44px; padding: 4px 0; }
+  #s-settings details.fold > summary .sum { font-size: 13.5px; }
+  #s-settings details.fold > summary::after { font-size: 13px; }
+  #s-settings details.fold[open] > summary { margin-bottom: 12px; }
+  #s-settings details.lst { padding: 10px 0; }
+  #s-settings details.lst > summary { font-size: 15px; min-height: 40px; }
+  #s-settings details.lst > summary .cnt { font-size: 13.5px; }
+  #s-settings details.lst > summary .note { font-size: 12.5px; margin-top: 2px; }
+  #s-settings details.lst textarea { margin-top: 10px; }
+  #s-settings .k { font-size: 11.5px; padding: 2px 7px; margin-right: 8px; }
+  #s-settings #cfgTestOut { margin-top: 4px; }
