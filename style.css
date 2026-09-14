@@ -245,3 +245,11 @@
   /* v0.10.4 자막: 말하는 중인 글은 흐리게 */
   .tl .l.ing .x { color: #9C8B77; }
   .tl .l.ing .t { color: #C9B8A4; }
+  /* v0.10.7 상황판: 확인·취소 기록을 상담이 끝날 때까지 남긴다 */
+  .bt.done { border: 2.5px solid #2F5E40; }
+  .bt.done .tag { background: #2F5E40; color: #F4FAF5; }
+  .bt.cxl { border: 2.5px solid #B3A28E; }
+  .bt.cxl .tag { background: #E5DCCF; color: #6E5A48; }
+  .bt .hist { margin-top: 6px; padding: 6px 9px; border-radius: 8px; font-size: 13px; line-height: 1.6; background: #E7F0E9; color: #2F5E40; }
+  .bt.cxl .hist { background: #F3EEE7; color: #6E5A48; }
+  .bt .hist .n { font-size: 12px; opacity: .85; }
