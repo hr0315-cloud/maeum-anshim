@@ -332,7 +332,7 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = S.acc.name + (withRecord ? ' · 마이크 준비 중' : ' · 기록 없음');   // v0.10.2: 음성인식이 실제로 시작되면 "기록 중"으로
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; S.cancels = 0; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -384,17 +384,10 @@ window.onerror = function (msg) {
     if (S.noRecord || S.demo) return;
     if (!SR) { sttActive = false; setRecState('마이크 안 됨 · 동료 호출 버튼으로', '이 브라우저는 음성인식이 안 돼요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); return; }
     stt = new SR();
-    stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = false;
+    stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = true;   // v0.10.4: 말하는 중간 글도 받는다
     stt.onstart = function () { setRecState('기록 중'); };
-    stt.onresult = function (e) {
-      for (var i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          var x = (e.results[i][0].transcript || '').trim();
-          if (x) addLine(x);
-        }
-      }
-    };
-    stt.onend = function () { if (sttActive) { setRecState('다시 연결 중'); setTimeout(function () { try { stt.start(); } catch (e) {} }, 300); } };
+    stt.onresult = sttResult;
+    stt.onend = function () { if (sttActive) { sttFlush(); sttGen += 1; setRecState('다시 연결 중'); setTimeout(function () { try { stt.start(); } catch (e) {} }, 300); } };
     stt.onerror = function (e) {
       if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) { sttActive = false; setRecState('마이크 꺼짐 · 동료 호출 버튼으로', '마이크 권한이 꺼져 있어요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); }
       else if (e && e.error === 'audio-capture') { setRecState('마이크 없음 · 동료 호출 버튼으로', '마이크를 찾지 못했어요 · 자동 감지 없이 진행 중'); }
@@ -403,6 +396,47 @@ window.onerror = function (msg) {
     try { stt.start(); } catch (e) {}
   }
   function stopSTT() { sttActive = false; if (stt) { try { stt.stop(); } catch (e) {} stt = null; } }
+  // v0.10.4: 쉬지 않고 길게 말하면 크롬은 말이 멈출 때까지 문장을 확정하지 않고, 너무 길면 확정 없이 끊고 다시 연결한다(그 말이 통째로 사라짐).
+  // 그래서 중간 글을 받아 ① 자막에 흐리게 보여주고 ② 즉시 층(위협·심한 말·성희롱·상담자 문구·암호)만 바로 감지하고 ③ 끊길 때 남은 중간 글을 한 줄로 확정한다.
+  // 점수 층(요구·되풀이·큰 목소리)은 두 번 세지 않도록 확정된 줄에서만 센다.
+  var sttGen = 0, immStable = null;
+  function sttResult(e) {
+    var pend = null;
+    S.interim = null;
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var x = (e.results[i][0].transcript || '').trim(), key = sttGen + ':' + i;
+      if (e.results[i].isFinal) { if (x) addLine(x, null, key); }
+      else if (x) { if (pend) pend.x += ' ' + x; else pend = { x: x, key: key }; }
+    }
+    S.interim = pend;
+    renderTL();
+    if (pend) checkInterim(pend.x, pend.key);
+  }
+  function sttFlush() {
+    var it = S.interim; S.interim = null;
+    if (it && it.x && inSession()) addLine(it.x, null, it.key); else renderTL();
+  }
+  function volPeek() {
+    if (!analyser || utterPeak <= 0.005 || speechN < 2) return 0;
+    var r = utterPeak / Math.max(speechRef, 0.01);
+    return r >= 2.2 ? 2 : r >= 1.5 ? 1 : 0;
+  }
+  function checkInterim(x, key) {
+    if (!detectOn() || (S.immDone && S.immDone.key === key)) return;
+    var r = matchAll(x);
+    if (!r.imm) { immStable = null; return; }
+    // 중간 글은 계속 고쳐지므로 같은 구절이 연달아 두 번 보일 때만 믿는다 (한 번만 보이면 확정된 줄에서 잡힌다)
+    if (!(immStable && immStable.key === key && immStable.hit === r.imm.hit)) { immStable = { key: key, hit: r.imm.hit }; return; }
+    var now = Date.now();
+    if (r.imm.kind === 'code') {
+      if (now - (S.lastCodeAt || 0) > 10000) { S.immDone = { key: key }; S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.imm.hit, x: x, at: now }; fireSilent(); }
+      return;
+    }
+    if (now <= S.cooldownUntil) return;
+    S.immDone = { key: key };
+    S.lastHit = { kind: r.imm.kind, hit: r.imm.hit, x: x, at: now, v: volPeek() };
+    triggerCountdown(IMM_REASON[r.imm.kind].replace('%', r.imm.hit));
+  }
 
   // ---------- 자막: 문장마다 음량 등급(보통·큼·매우 큼)을 붙여 저장·표시 ----------
   var utterPeak = 0, speechRef = 0, speechN = 0;
@@ -417,19 +451,21 @@ window.onerror = function (msg) {
     return lv;
   }
   window.__vol = function () { return { peak: utterPeak, ref: speechRef, n: speechN, ctx: audioCtx ? audioCtx.state : 'none', analyser: !!analyser }; };
-  function addLine(x, vOverride) {
+  function addLine(x, vOverride, key) {
     var line = { t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: x, v: (vOverride == null ? volLevel() : vOverride) };
     S.tr.push(line);
     renderTL();
     aiDirty = true; scheduleAI(false);
-    checkThreat(x, line.v);
+    checkThreat(x, line.v, key);
   }
   var VOL = ['보통', '큼', '매우 큼'];
   function renderTL() {
     var box = $('tl'); if (!box) return;
     var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).slice(-5);
     box.innerHTML = '';
-    if (!lines.length) {
+    var ing = S.interim && S.interim.x;
+    if (ing) lines = lines.slice(-4);
+    if (!lines.length && !ing) {
       var e = document.createElement('div'); e.className = 'note'; e.id = 'tlEmpty';
       e.textContent = '말씀이 시작되면 여기에 글로 나타나요 · 음성은 글로 바뀐 뒤 바로 지워져요';
       box.appendChild(e); return;
@@ -440,6 +476,7 @@ window.onerror = function (msg) {
       d.innerHTML = '<span class="t">' + esc(l.t) + '</span><span class="x' + (v === 2 ? ' v140' : v === 1 ? ' v120' : '') + '">' + esc(l.x) + '</span><span class="vol' + (v === 2 ? ' hi' : '') + '">' + VOL[v] + '</span>';
       box.appendChild(d);
     });
+    if (ing) { var g = document.createElement('div'); g.className = 'l ing'; g.innerHTML = '<span class="t">…</span><span class="x">' + esc(S.interim.x) + '</span>'; box.appendChild(g); }
   }
 
   // ---------- AI 맥락 분석: 사실만 한두 문장, 판단·제안 금지 ----------
@@ -539,18 +576,22 @@ window.onerror = function (msg) {
   var IMM_REASON = { threat: '위협하는 말("%")이', abuse: '심한 말("%")이', sexual: '성희롱 표현("%")이', counselor: '상담자의 중단 의사("%")가' };
   // v0.10.2: 상담 화면뿐 아니라 확인 전화 벨·통화 화면에서도 글 감지는 계속한다 (유예·알림 화면은 제외)
   function detectOn() { return S.screen === 'session' || S.screen === 'call' || S.screen === 'incall'; }
-  function checkThreat(x, v) {
+  function checkThreat(x, v, key) {
     if (!detectOn()) return;
     var r = matchAll(x), now = Date.now();
+    // v0.10.4: 중간 글에서 이미 즉시 층으로 처리한 말이 확정되면 다시 울리지 않는다
+    var done = !!(key && S.immDone && S.immDone.key === key);
     // C층: 거절·제한 통보는 쉬는 시간과 무관하게 창을 연다 (울리지 않음)
     if (r.refusal) { S.winUntil = now + SCORE_WIN; renderAcc(); clearTimeout(winTid); winTid = setTimeout(renderAcc, SCORE_WIN + 300); }
     // v0.10.2: 암호 문구는 쉬는 시간과 무관하게 언제나 통한다 (같은 문구 10초 안 중복만 막음)
     if (r.imm && r.imm.kind === 'code') {
+      if (done) return;
       if (now - (S.lastCodeAt || 0) > 10000) { S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.imm.hit, x: x, at: now }; fireSilent(); }
       return;
     }
     if (now <= S.cooldownUntil) return;
     if (r.imm) {
+      if (done) return;
       S.lastHit = { kind: r.imm.kind, hit: r.imm.hit, x: x, at: now };
       triggerCountdown(IMM_REASON[r.imm.kind].replace('%', r.imm.hit));
       return;
@@ -704,7 +745,7 @@ window.onerror = function (msg) {
     var idx = lines.length - 1;
     S.hitN = (S.hitN || 0) + 1;
     // 9단계: 앞뒤 대화(around)와 AI 맥락(ctx)은 보내지 않는다. 감지된 문장 한 줄(line)만
-    return { kind: kind, how: how || '', hit: hit ? hit.hit : '', line: hit ? lineAround(hit.x, hit.hit) : '', v: hit ? (lines[idx] ? (lines[idx].v || 0) : 0) : (kind === 'loud' ? 2 : 0),
+    return { kind: kind, how: how || '', hit: hit ? hit.hit : '', line: hit ? lineAround(hit.x, hit.hit) : '', v: hit ? (hit.v != null ? hit.v : (lines[idx] ? (lines[idx].v || 0) : 0)) : (kind === 'loud' ? 2 : 0),
              n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [],
              parts: (kind === 'score' && hit) ? (hit.parts || '') : '' };
   }
@@ -1942,7 +1983,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.3';
+  var APP_VER = '0.10.4';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -1961,6 +2002,7 @@ window.onerror = function (msg) {
   (function () { var c0 = linkCfg(); if (c0 && c0.role === 'phone' && phoneName()) { try { startPhone(); } catch (e) {} } })();
   try { $('counselorName').value = localStorage.getItem('ma_counselor') || ''; } catch (e) {}
   window.__checkThreat = checkThreat; window.__addLine = addLine;
+  window.__stt = sttResult; window.__sttFlush = sttFlush;   // 시험용 (v0.10.4)
   window.__ev = function (k) { return evHtml(buildEv(k, "auto"), { time: true }); };   // 시험용
   // ---------- 첫 연결 확인 카드 (상담용 · 팀 코드 저장 뒤, 업무폰이 한 번 받기 전까지) ----------
   var testTid = 0;
