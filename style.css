@@ -242,3 +242,6 @@
   @keyframes btBlink { 50% { opacity: 0; } }
   @keyframes btPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(179,64,58,.55); } 50% { box-shadow: 0 0 0 7px rgba(179,64,58,0); } }
   @keyframes btFlash { 50% { background: #8E2A25; } }
+  /* v0.10.4 자막: 말하는 중인 글은 흐리게 */
+  .tl .l.ing .x { color: #9C8B77; }
+  .tl .l.ing .t { color: #C9B8A4; }
