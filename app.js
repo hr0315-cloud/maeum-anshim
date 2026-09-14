@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.9.9)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.6)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
