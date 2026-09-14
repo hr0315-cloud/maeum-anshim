@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.7)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.8)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -22,7 +22,7 @@ window.onerror = function (msg) {
     n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
     n2: '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
     n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
-    refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.',
+    refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않는 대신, 동료가 함께 앉거나 사무실 가까운 곳으로 옮겨서 진행해요. 필요하면 상담자가 직접 동료를 부릅니다.',
     approved: false,
     grace: 10,
     sens: 'mid',
@@ -71,6 +71,7 @@ window.onerror = function (msg) {
     var out = {}; Object.keys(DEF).forEach(function (k) { out[k] = (k in c) ? c[k] : DEF[k]; });
     // v0.10.1: 옛 기본 목록(오탐 많던 판)을 그대로 쓰던 기기는 새 기본 목록으로 바꾼다. 기관이 직접 고친 목록은 그대로
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
+    if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
     return out;
   }
@@ -321,10 +322,26 @@ window.onerror = function (msg) {
   };
 
   // ---------- session ----------
+  // v0.10.8: 기록 없이 상담 전 확인 — 동석 또는 장소 이동 중 하나를 골라야 시작
+  window.openNoRecOk = function () {
+    S.noRecWhy = '';
+    document.querySelectorAll('#s-norecok .check').forEach(function (c) { c.classList.remove('ok'); });
+    var m = $('norecOkMsg'); m.textContent = '둘 중 하나를 고르면 시작할 수 있어요'; m.style.color = '';
+    go('norecok');
+  };
+  window.pickNoRec = function (el) {
+    document.querySelectorAll('#s-norecok .check').forEach(function (c) { c.classList.toggle('ok', c === el); });
+    S.noRecWhy = el.getAttribute('data-v');
+    var m = $('norecOkMsg'); m.textContent = S.noRecWhy + ' 상태로 기록 없이 시작해요'; m.style.color = '';
+  };
+  window.startNoRecord = function () {
+    if (!S.noRecWhy) { var m = $('norecOkMsg'); m.textContent = '동석 또는 장소 이동 중 하나를 먼저 골라 주세요'; m.style.color = '#97302B'; return; }
+    startSession(false);
+  };
   window.startSession = function (withRecord) {
     // 수락 게이트: 업무폰 동료가 수락한 상태가 아니면 마이크·기록을 켜지 않는다
     if (!S.acc) { go('checkin'); return; }
-    S.noRecord = !withRecord;
+    S.noRecord = !withRecord; if (withRecord) S.noRecWhy = '';
     S.startedAt = Date.now();
     S.alerts = 0;
     S.tr = [];
@@ -344,7 +361,7 @@ window.onerror = function (msg) {
       startSTT();
     } else {
       $('recLabel').textContent = '기록 없음'; $('recChip').className = 'chip off';
-      $('tlEmpty').textContent = '기록 없이 진행 중이에요 · 자막과 AI 맥락은 꺼져 있어요';
+      $('tlEmpty').textContent = '기록 없이 진행 중이에요 · ' + (S.noRecWhy || '동석') + ' 상태 · 자막과 자동 감지는 꺼져 있어요';
     }
     aiReset();
     go('session');
@@ -944,7 +961,7 @@ window.onerror = function (msg) {
     hostUnsubscribe();
     S.answers = {};
     S.endedAt = Date.now();
-    openWrap(null);
+    if (S.noRecord && !S.demo) saveNoRecordLine(); else openWrap(null);   // v0.10.8: 기록 없이 한 상담은 기록 화면 없이 한 줄만
     if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; analyser = null; }
     if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
   };
@@ -957,6 +974,18 @@ window.onerror = function (msg) {
   var editIdx = -1;
   var FB = ['정확했음', '과하게 감지됨', '판단하기 어려움'];
   function iso(ts) { var d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  // v0.10.8: 기록 없이 한 상담 — 내담자 이름·대화·메모·기본정보 없이 날짜·시간·동료·신호 수만 한 줄
+  function saveNoRecordLine() {
+    var r = draftFromSession();
+    r.c2 = '(기록 없이 진행 · ' + (S.noRecWhy || '동석') + ')'; r.noRecWhy = S.noRecWhy || '';
+    r.tr = []; r.ctx = []; r.memo = ''; r.basic = {}; r.status = 'final'; r.finalAt = iso(Date.now());
+    try { var arr = getObs(); arr.push(r); localStorage.setItem('ma_obs', JSON.stringify(arr)); } catch (e) {}
+    S.noRecWhy = '';
+    updateObsCount();
+    go('start');
+    var n = $('endNote');
+    if (n) { n.textContent = '기록 없이 진행한 상담이 끝났어요 · 내담자 이름과 대화는 남기지 않았어요'; n.style.display = 'block'; setTimeout(function () { n.style.display = 'none'; }, 10000); }
+  }
   function draftFromSession() {
     return { d: iso(S.startedAt || Date.now()), min: Math.max(0, Math.round(((S.endedAt || Date.now()) - S.startedAt) / 60000)), alerts: S.alerts, noRec: S.noRecord, a: {},
       c1: S.counselor || '-', c2: S.client || '-', one: S.stype || '', place: (linkCfg() || {}).place || '', buddy: S.buddyName || '', callAns: S.callAnswered || '',
@@ -1998,7 +2027,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.7';
+  var APP_VER = '0.10.8';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
