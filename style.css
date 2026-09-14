@@ -205,3 +205,40 @@
   /* v0.9.9 상담 화면: 동료 호출은 크게, 상담 종료는 연하게 */
   #s-session button.corner[onclick="manualAlert()"] { font-size: 19px; font-weight: 700; padding: 18px 40px; border: 2.5px solid #C05A2A; color: #A34A1E; background: #FFFFFF; border-radius: 16px; bottom: 22px; left: 24px; box-shadow: 0 2px 0 #E0A57E; }
   #s-session button.corner[onclick="endSession()"] { color: #7A6553; border-color: #E0D2BE; bottom: 22px; }
+  /* v0.10.3 상황판: 한 줄 2칸 네모 + 픽셀 상담실 */
+  #s-buddy { justify-content: flex-start; padding-top: 58px; padding-bottom: 72px; gap: 12px; }
+  #s-buddy h1 { margin: 0; }
+  #s-buddy .bgrid { width: min(960px, 94vw); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-height: calc(100vh - 240px); overflow-y: auto; padding: 6px 8px; text-align: left; align-items: start; }
+  #s-buddy .bgrid:empty { display: none; }
+  @media (max-width: 540px) { #s-buddy { padding-top: 96px; } #s-buddy .bgrid { grid-template-columns: minmax(0, 1fr); max-height: calc(100vh - 290px); } }
+  .bt { border-radius: 14px; padding: 13px 15px; background: #FFFFFF; border: 1.5px solid #E5D8C8; color: #3A2A1C; }
+  .bt .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .bt .pl { font-size: 17px; font-weight: 700; }
+  .bt .tag { font-size: 12px; padding: 3px 9px; border-radius: 10px; background: #E7F0E9; color: #2F5E40; white-space: nowrap; }
+  .bt .px { width: 64%; max-width: 190px; height: auto; display: block; margin: 10px auto; shape-rendering: crispEdges; border-radius: 8px; }
+  .bt .who { font-size: 14px; }
+  .bt .sub { font-size: 13px; color: #6E5A48; }
+  .bt.wait { background: #F7DAD6; border: 3px solid #B3403A; animation: btPulse 1s infinite; }
+  .bt.wait .pl { color: #97302B; }
+  .bt.wait .tag { background: #B3403A; color: #FFF6F4; font-size: 13px; font-weight: 700; animation: btBlink .8s steps(1) infinite; }
+  .bt.wait .sub { font-size: 15px; color: #97302B; font-weight: 700; }
+  .bt.esc { background: #B3403A; border: 3px solid #B3403A; color: #FFF6F4; animation: btFlash 1s steps(1) infinite; }
+  .bt.esc .tag { background: #FFF6F4; color: #97302B; font-size: 13px; font-weight: 700; }
+  .bt.esc .sub { color: #F6DCD8; font-size: 12.5px; }
+  .bt.esc .ev { width: auto; margin: 6px 0; padding: 8px 12px; border-color: rgba(255,246,244,0.4); background: transparent; }
+  .bt.esc button { display: block; width: 100%; margin-top: 8px; padding: 10px; background: #FFF6F4; border-color: #FFF6F4; color: #97302B; font-size: 15px; }
+  .bt.stale { background: #F3EEE7; border: 1.5px dashed #B3A28E; }
+  .bt.stale .pl, .bt.stale .who { color: #6E5A48; }
+  .bt.stale .tag { background: #E5DCCF; color: #6E5A48; }
+  .bt.stale .sub { color: #8A5F14; }
+  .bt.stale .px { filter: grayscale(1); opacity: .5; }
+  .bt .bobA { animation: btBob 1.4s steps(1) infinite; } .bt .bobB { animation: btBob 1.4s steps(1) infinite .7s; }
+  .bt .shake { animation: btShake .24s steps(1) infinite; }
+  .bt .d1, .bt .d2, .bt .d3 { animation: btDot 1.2s steps(1) infinite; } .bt .d2 { animation-delay: .3s; } .bt .d3 { animation-delay: .6s; }
+  .bt .blink { animation: btBlink .8s steps(1) infinite; }
+  @keyframes btBob { 50% { transform: translateY(-1px); } }
+  @keyframes btShake { 50% { transform: translateX(1px); } }
+  @keyframes btDot { 0% { opacity: .2; } 33% { opacity: 1; } }
+  @keyframes btBlink { 50% { opacity: 0; } }
+  @keyframes btPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(179,64,58,.55); } 50% { box-shadow: 0 0 0 7px rgba(179,64,58,0); } }
+  @keyframes btFlash { 50% { background: #8E2A25; } }

@@ -1265,7 +1265,7 @@ window.onerror = function (msg) {
     openRecords();
   };
   // ---------- 동료 연결 (무료 릴레이 ntfy.sh — 신호만, 대화 내용 없음) ----------
-  var esSig = null, buddyEs = null, bRingId = 0, linkRole = '', hbId = 0, ringingOn = false, liveAt = 0, pruneId = 0;
+  var esSig = null, buddyEs = null, bRingId = 0, linkRole = '', hbId = 0, ringingOn = false, liveAt = 0, pruneId = 0, pendTick = 0;
   var sessions = {}, alertsMap = {};
   function linkCfg() { try { return JSON.parse(localStorage.getItem('ma_link') || 'null'); } catch (e) { return null; } }
   function topic() { var c = linkCfg(); return (c && c.code) ? 'https://ntfy.sh/maeum-anshim-' + c.code : null; }
@@ -1674,44 +1674,114 @@ window.onerror = function (msg) {
     pRingId = setInterval(b, 1400);
   }
   function skey(m) { return (m.place || '?') + '|' + (m.who || '?'); }
+  // v0.10.3: 상황판은 상담실마다 네모칸 하나. 칸 안에 위에서 본 픽셀 상담실(두 사람·책상)
+  // 사람 모습(머리 모양·머리색·피부색·옷 색)은 상담 번호로 정해진다 — 같은 상담은 끝날 때까지 같은 사람, 새 상담은 새 사람
+  var PX_SKIN = ['#FCE3CC', '#F2CFAE', '#E3B08A', '#C98E62', '#9C6644', '#6B4329'];
+  var PX_HAIR = ['#2A1E18', '#4A2E1C', '#7A4A26', '#B9773A', '#E2B868', '#F3E2B5', '#A9A39A', '#C2452D', '#3B3F5C', '#E7A3B8'];
+  var PX_CLO = ['#6E9C78', '#4F7CA8', '#C96A4B', '#E3B04B', '#8C6BB1', '#D97C9A', '#3F6B5E', '#5A5A66', '#F0EDE6', '#2F4A7A', '#B34A4A'];
+  var PX_STY = ['short', 'long', 'bob', 'bun', 'twin', 'buzz', 'curly', 'pony'];
+  function pxRand(seed) {
+    var h = 1779033703 ^ seed.length;
+    for (var i = 0; i < seed.length; i++) { h = Math.imul(h ^ seed.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+  }
+  function pxLook(rnd) { function p(a) { return a[Math.floor(rnd() * a.length)]; } return { s: p(PX_SKIN), h: p(PX_HAIR), c: p(PX_CLO), st: p(PX_STY) }; }
+  function pxPerson(L, front) {
+    var W = 14, H = 16, g = [], r, c, st = L.st;
+    for (var i = 0; i < H; i++) { g.push([]); for (var j = 0; j < W; j++) g[i].push(''); }
+    function set(c, r, v) { c += 1; r += 2; if (r >= 0 && r < H && c >= 0 && c < W) g[r][c] = v; }
+    function get(c, r) { c += 1; r += 2; return (r >= 0 && r < H && c >= 0 && c < W) ? g[r][c] : ''; }
+    for (r = 0; r < 9; r++) for (c = 1; c <= 10; c++) { if ((r === 0 || r === 8) && (c <= 2 || c >= 9)) continue; if ((r === 1 || r === 7) && (c === 1 || c === 10)) continue; set(c, r, 's'); }
+    for (r = 9; r < 14; r++) for (c = 2; c <= 9; c++) { if (r === 9 && (c === 2 || c === 9)) continue; set(c, r, 'c'); }
+    if (front) {
+      set(1, 11, 'c'); set(10, 11, 'c'); set(1, 12, 'c'); set(10, 12, 'c'); set(1, 13, 's'); set(10, 13, 's'); set(5, 9, 'w'); set(6, 9, 'w');
+      if (st !== 'buzz') { for (r = 0; r < 3; r++) for (c = 1; c <= 10; c++) if (get(c, r) === 's') set(c, r, 'h'); [1, 2, 5, 6, 9, 10].forEach(function (c2) { set(c2, 3, 'h'); }); }
+      else { for (r = 0; r < 2; r++) for (c = 1; c <= 10; c++) if (get(c, r) === 's') set(c, r, 'h'); }
+      if (st === 'long') { for (r = 2; r <= 11; r++) { set(0, r, 'h'); set(11, r, 'h'); if (r < 8) { set(1, r, 'h'); set(10, r, 'h'); } } }
+      if (st === 'bob') { for (r = 2; r <= 7; r++) { set(0, r, 'h'); set(11, r, 'h'); set(1, r, 'h'); set(10, r, 'h'); } }
+      if (st === 'twin') { for (r = 3; r <= 8; r++) { set(-1, r, 'h'); set(0, r, 'h'); set(11, r, 'h'); set(12, r, 'h'); } }
+      if (st === 'pony') { for (r = 1; r <= 6; r++) { set(11, r, 'h'); set(12, r + 1, 'h'); } }
+      if (st === 'curly') { for (c = 1; c <= 10; c += 2) set(c, -1, 'h'); for (r = 1; r <= 5; r++) { set(0, r, 'h'); set(11, r, 'h'); } }
+      if (st === 'bun') { for (c = 4; c <= 7; c++) set(c, -1, 'h'); set(5, -2, 'h'); set(6, -2, 'h'); }
+      set(3, 5, 'e'); set(3, 6, 'e'); set(8, 5, 'e'); set(8, 6, 'e'); set(2, 7, 'r'); set(9, 7, 'r'); set(5, 7, 'm'); set(6, 7, 'm');
+    } else {
+      for (r = 0; r < 9; r++) for (c = 1; c <= 10; c++) if (get(c, r) === 's') set(c, r, 'h');
+      if (st === 'buzz' || st === 'short' || st === 'curly') { set(0, 4, 's'); set(11, 4, 's'); set(0, 5, 's'); set(11, 5, 's'); }
+      if (st === 'long') { for (r = 7; r <= 11; r++) for (c = 2; c <= 9; c++) set(c, r, 'h'); }
+      if (st === 'bob') { for (r = 2; r <= 8; r++) { set(0, r, 'h'); set(11, r, 'h'); } }
+      if (st === 'twin') { for (r = 3; r <= 8; r++) { set(-1, r, 'h'); set(0, r, 'h'); set(11, r, 'h'); set(12, r, 'h'); } }
+      if (st === 'pony') { for (r = 8; r <= 12; r++) { set(5, r, 'h'); set(6, r, 'h'); } }
+      if (st === 'curly') { for (c = 1; c <= 10; c += 2) set(c, -1, 'h'); }
+      if (st === 'bun') { for (c = 4; c <= 7; c++) { set(c, 6, 'k'); set(c, 7, 'k'); } }
+    }
+    return g;
+  }
+  function pxShade(hex) { var n = parseInt(hex.slice(1), 16); return 'rgb(' + Math.max(0, (n >> 16) - 40) + ',' + Math.max(0, ((n >> 8) & 255) - 40) + ',' + Math.max(0, (n & 255) - 40) + ')'; }
+  function pxDraw(g, x, y, L, cls) {
+    var col = { s: L.s, h: L.h, c: L.c, e: '#2A1A10', r: '#F29C8C', m: '#C9705E', w: '#FFFFFF', k: pxShade(L.h) }, o = '<g' + (cls ? ' class="' + cls + '"' : '') + '>';
+    for (var r = 0; r < g.length; r++) for (var c = 0; c < g[r].length; c++) { if (g[r][c]) o += '<rect x="' + (x + c) + '" y="' + (y + r) + '" width="1.02" height="1.02" fill="' + col[g[r][c]] + '"/>'; }
+    return o + '</g>';
+  }
+  function pxR(x, y, w, h, f, cls) { return '<rect ' + (cls ? 'class="' + cls + '" ' : '') + 'x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + f + '"/>'; }
+  function pxRoom(seed, mode) {
+    var rnd = pxRand(seed || 'x'), a = pxLook(rnd), b = pxLook(rnd);
+    var move = mode === 'calm' ? ['bobA', 'bobB'] : mode === 'stale' ? ['', ''] : ['shake', 'shake'];
+    var s = pxR(0, 0, 44, 40, '#EFE0CC');
+    for (var i = 0; i < 44; i += 4) for (var j = 0; j < 40; j += 4) if ((i + j) % 8 === 0) s += pxR(i, j, 4, 4, '#E9D6BF');
+    s += pxR(5, 14, 34, 15, '#E3C9B0') + pxR(6, 15, 32, 13, '#EAD3BC');
+    s += pxR(2, 32, 4, 3, '#C05A2A') + pxR(1, 28, 2, 3, '#6E9C78') + pxR(3, 27, 2, 3, '#7FB08A') + pxR(5, 29, 2, 3, '#5E8C68') + pxR(3, 30, 2, 2, '#6E9C78');
+    s += pxR(37, 3, 5, 6, '#B08C68') + pxR(38, 4, 3, 4, '#8FC0D8');
+    s += pxDraw(pxPerson(b, true), 15, 1, b, move[1]);
+    s += pxR(9, 17, 26, 7, '#C99A62') + pxR(9, 17, 26, 1, '#E0B983') + pxR(9, 23, 26, 1, '#9C774C') + pxR(13, 19, 5, 3, '#FFFFFF') + pxR(14, 20, 3, 1, '#D9CFC2') + pxR(27, 19, 2, 2, '#FFFFFF') + pxR(29, 19, 1, 1, '#FFFFFF') + pxR(27.5, 19.5, 1, 1, '#8B5A3C');
+    s += pxDraw(pxPerson(a, false), 15, 21, a, move[0]);
+    if (mode === 'calm') s += pxR(30, 4, 9, 7, '#FFFFFF') + pxR(29, 5, 1, 5, '#FFFFFF') + pxR(39, 5, 1, 5, '#FFFFFF') + pxR(29, 10, 2, 2, '#FFFFFF') + pxR(31.5, 7, 1, 1, '#9C7A5B', 'd1') + pxR(33.5, 7, 1, 1, '#9C7A5B', 'd2') + pxR(35.5, 7, 1, 1, '#9C7A5B', 'd3');
+    else if (mode !== 'stale') { var bg = mode === 'esc' ? '#FFF6F4' : '#B3403A', fg = mode === 'esc' ? '#B3403A' : '#FFF6F4'; s += '<g class="blink">' + pxR(30, 3, 8, 9, bg) + pxR(29, 4, 10, 7, bg) + pxR(33, 5, 2, 4, fg) + pxR(33, 10, 2, 1, fg) + '</g>'; }
+    return '<svg class="px" viewBox="0 0 44 40" aria-hidden="true">' + s + '</svg>';
+  }
+  function pendText(at) { var n = Math.max(0, Math.floor((Date.now() - (at || Date.now())) / 1000)); return n < 60 ? n + '초' : Math.floor(n / 60) + '분 ' + (n % 60) + '초'; }
   function renderBoard() {
-    var bl = $('boardList'), ac = $('alertCards');
-    bl.innerHTML = ''; ac.innerHTML = '';
-    var ak = Object.keys(alertsMap), sk = Object.keys(sessions);
-    ak.forEach(function (k) {
-      var a = alertsMap[k];
+    var bl = $('boardList');
+    bl.innerHTML = '';
+    var ak = Object.keys(alertsMap), keys = Object.keys(sessions);
+    ak.forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });   // 상담 정보가 지워져도 경보 칸은 남긴다
+    var rank = function (k) { var s2 = sessions[k] || {}; return alertsMap[k] ? 0 : s2.pending ? 1 : 2; };
+    keys.sort(function (x, y) { return rank(x) - rank(y); });
+    keys.forEach(function (k) {
+      var a = alertsMap[k], s2 = sessions[k] || { place: a.place, who: a.who, rid: a.rid, phone: a.phone };
+      var now = Date.now(), stale = !!s2.last && now - s2.last > 150000;   // 상태 신호가 2분 30초 넘게 없으면 "연결 확인 필요" (10분 지나면 지움)
+      var mode = a ? 'esc' : s2.pending ? 'wait' : stale ? 'stale' : 'calm';
+      var mins = s2.at ? Math.max(0, Math.round((now - s2.at) / 60000)) : null;
+      var tag = { esc: a && a.esc ? '업무폰 미확인' : '위험 신호', wait: '위험 신호', stale: '연결 확인 필요', calm: '● 상담 중' }[mode];
       var d = document.createElement('div');
-      d.className = 'banner';
-      d.style.cssText = 'max-width:none; background:#B3403A; border-color:#B3403A; color:#FFF6F4';
-      d.innerHTML = '<b style="font-size:16px">위험 신호 — ' + esc(a.place) + (a.esc ? ' · 업무폰(' + esc(a.phone) + ') 미확인' : '') + '</b><br>' + esc(a.who) + ' 선생님 · 상담 ' + esc(a.t || '-') + ' 경과' + (a.ev ? '<div class="ev red" style="width:auto; margin-top:8px; padding:8px 12px; border-color:rgba(255,246,244,0.4)">' + evHtml(a.ev) + '</div>' : '') + '<br><span style="font-size:12px; color:#F0C4BF">기관 약속: ' + esc(CFG.promise || DEF.promise) + '</span>';
-      var b = document.createElement('button');
-      b.className = 'mid';
-      b.textContent = '확인했어요 — 지금 볼게요';
-      b.style.cssText = 'margin-top:10px; background:#FFF6F4; border-color:#FFF6F4; color:#97302B; display:block';
-      b.onclick = function () {
-        // v0.10.2: 확인 신호에 상담 번호·경보 번호를 싣는다. 서버가 받았을 때만 카드를 지운다
-        b.disabled = true; b.textContent = '확인 신호 보내는 중…';
-        postSig({ type: 'ack', rid: a.rid || '', aid: a.aid, place: a.place, by: '팀 상황판', ts: Date.now() }).then(function (ok) {
-          if (ok) { delete alertsMap[k]; renderBoard(); return; }
-          b.disabled = false; b.textContent = '보내지 못했어요 — 다시 누르기 (인터넷 확인)';
-        });
-      };
-      d.appendChild(b);
-      ac.appendChild(d);
-    });
-    sk.forEach(function (k) {
-      var s2 = sessions[k];
-      var mins = Math.max(0, Math.round((Date.now() - (s2.at || Date.now())) / 60000));
-      var danger = !!alertsMap[k];
-      // v0.10.2: 상태 신호가 2분 30초 넘게 없으면 지우지 않고 "연결 확인 필요"로 표시 (10분 지나면 지움)
-      var staleMin = Math.floor((Date.now() - (s2.last || Date.now())) / 60000), stale = Date.now() - (s2.last || Date.now()) > 150000;
-      var d = document.createElement('div');
-      d.className = 'banner';
-      d.style.maxWidth = 'none';
-      d.innerHTML = '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + (danger || s2.pending ? '#B3403A' : stale ? '#B3A28E' : '#3E7A52') + '; margin-right:10px"></span><b>' + esc(s2.place) + '</b> · ' + esc(s2.who) + ' 선생님 · 진행 ' + mins + '분' + (stale ? ' · <span style="color:#8A5F14">마지막 신호 ' + staleMin + '분 전 · 연결 확인 필요</span>' : '') + (s2.phone ? ' · 업무폰 ' + esc(s2.phone) : '') + (danger ? ' · <span style="color:#B3403A; font-weight:700">위험 신호!</span>' : s2.pending ? ' · <span style="color:#B07A1E; font-weight:700">위험 신호 · 업무폰 확인 대기</span>' : '');
+      d.className = 'bt ' + mode;
+      var h = '<div class="top"><span class="pl">' + esc(s2.place || '상담실') + '</span><span class="tag">' + tag + '</span></div>' + pxRoom(s2.rid || a && a.rid || k, mode);
+      if (mode === 'esc') {
+        h += '<div class="who">' + esc(s2.who || '-') + ' 선생님 · ' + (a.esc ? (a.phone ? '업무폰(' + esc(a.phone) + ') ' : '') + (CFG.escalate || 60) + '초 미확인' : '상담 ' + esc(a.t || '-') + ' 경과') + '</div>';
+        if (a.ev) h += '<div class="ev red">' + evHtml(a.ev) + '</div>';
+        h += '<div class="sub">기관 약속: ' + esc(CFG.promise || DEF.promise) + '</div>';
+      } else {
+        h += '<div class="who">' + esc(s2.who || '-') + ' 선생님' + (mins != null ? ' · 진행 ' + mins + '분' : '') + '</div>';
+        if (mode === 'wait') h += '<div class="sub">업무폰' + (s2.phone ? ' ' + esc(s2.phone) : '') + ' 확인 대기 · <span data-pend="' + (s2.pendAt || now) + '">' + pendText(s2.pendAt) + '</span></div>';
+        else if (mode === 'stale') h += '<div class="sub">마지막 신호 ' + Math.floor((now - s2.last) / 60000) + '분 전' + (s2.phone ? ' · 업무폰 ' + esc(s2.phone) : '') + '</div>';
+        else h += '<div class="sub">' + (s2.phone ? '업무폰 ' + esc(s2.phone) : '업무폰 없음') + '</div>';
+      }
+      d.innerHTML = h;
+      if (mode === 'esc') {
+        var b = document.createElement('button');
+        b.textContent = '확인했어요 — 지금 볼게요';
+        b.onclick = function () {
+          // v0.10.2: 확인 신호에 상담 번호·경보 번호를 싣는다. 서버가 받았을 때만 칸을 되돌린다
+          b.disabled = true; b.textContent = '확인 신호 보내는 중…';
+          postSig({ type: 'ack', rid: a.rid || '', aid: a.aid, place: a.place, by: '팀 상황판', ts: Date.now() }).then(function (ok) {
+            if (ok) { delete alertsMap[k]; renderBoard(); return; }
+            b.disabled = false; b.textContent = '보내지 못했어요 — 다시 누르기 (인터넷 확인)';
+          });
+        };
+        d.appendChild(b);
+      }
       bl.appendChild(d);
     });
-    $('boardEmpty').style.display = (sk.length === 0 && ak.length === 0) ? 'block' : 'none';
+    $('boardEmpty').style.display = keys.length === 0 ? 'block' : 'none';
     buddyRing(ak.length > 0);
     document.title = ak.length > 0 ? '🔴 위험 신호! — 마음안심' : '마음안심';
   }
@@ -1787,7 +1857,7 @@ window.onerror = function (msg) {
       var k = skey(m);
       if (m.type === 'start' || m.type === 'hb') {
         var prev = sessions[k] || {};
-        sessions[k] = { place: m.place || '상담실', who: m.who || '-', rid: m.rid || prev.rid || '', at: m.at || Date.now(), last: Date.now(), phone: m.to || prev.phone || '', pending: m.type === 'hb' ? !!prev.pending : false };
+        sessions[k] = { place: m.place || '상담실', who: m.who || '-', rid: m.rid || prev.rid || '', at: m.at || Date.now(), last: Date.now(), phone: m.to || prev.phone || '', pending: m.type === 'hb' ? !!prev.pending : false, pendAt: m.type === 'hb' ? prev.pendAt : 0 };   // v0.10.3: 상태 신호가 와도 확인 대기 시작 시각은 유지
         renderBoard();
       } else if (m.type === 'end') {
         delete sessions[k]; delete alertsMap[k];
@@ -1796,6 +1866,7 @@ window.onerror = function (msg) {
         if (m.ts && Date.now() - m.ts > 600000) return;
         if (!sessions[k]) sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: Date.now(), last: Date.now() };
         sessions[k].phone = m.to || ''; sessions[k].pending = (m.type === 'alert' && !!m.to); if (m.rid) sessions[k].rid = m.rid;
+        if (sessions[k].pending) sessions[k].pendAt = Math.min(m.ts || Date.now(), Date.now());   // v0.10.3: 확인 대기 초 표시
         // 업무폰이 맡은 상담은 업무폰이 확인하지 않았을 때(escalate)만 카드·소리. 업무폰 없는 상담은 바로.
         if (m.type === 'escalate' || !m.to) {
           alertsMap[k] = { place: m.place || '상담실', who: m.who || '-', rid: m.rid || '', aid: m.aid, t: m.t || '', ev: m.ev || null, phone: m.to || '', esc: m.type === 'escalate' };
@@ -1815,6 +1886,11 @@ window.onerror = function (msg) {
         renderBoard();
       }
     };
+    clearInterval(pendTick);
+    pendTick = setInterval(function () {
+      if (S.screen !== 'buddy') return;
+      document.querySelectorAll('#boardList [data-pend]').forEach(function (el) { el.textContent = pendText(+el.getAttribute('data-pend')); });
+    }, 1000);
     clearInterval(pruneId);
     pruneId = setInterval(function () {
       var now = Date.now(), ch = false;
@@ -1836,7 +1912,7 @@ window.onerror = function (msg) {
   }
   window.stopBuddy = function () {
     if (buddyEs) { try { buddyEs.close(); } catch (e) {} buddyEs = null; }
-    clearInterval(pruneId);
+    clearInterval(pruneId); clearInterval(pendTick);
     buddyRing(false);
     document.title = '마음안심';
     go('start');
@@ -1866,7 +1942,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.2';
+  var APP_VER = '0.10.3';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2033,7 +2109,7 @@ window.onerror = function (msg) {
       pconn: function () { SC.preq(); acceptReq(); onPhoneMsg({ type: 'start', rid: 'x', at: NOW - 18 * 60000 - 4000, who: '박지우', place: '2층 상담실' }); M = [['#pconnState', '연결 상태'], ['#pconnInfo', '내담자 · 장소'], ['#pTimer', '경과 시간']]; },
       palert: function () { SC.pconn(); onPhoneMsg({ type: 'alert', rid: 'x', to: '김서연', who: '박지우', place: '2층 상담실', t: '18:04', ts: NOW, promise: CFG.promise, ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, t: '18:04', around: [{ t: '17:31', x: '지원 기준은 소득 조건이 있어서요', v: 0 }, { t: '17:38', x: '아니 왜 나만 안 되냐고', v: 1 }, { t: '18:04', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2, hit: true }], ctx: '' } }); phoneRing(false); M = [['#palertEv', '근거 · 앞뒤 대화'], ['#palertPromise', '기관 약속'], ['#s-palert .primary', '확인했어요']]; },
       pend: function () { SC.pconn(); P.alerts = 1; endConn(''); clearTimeout(pendId); M = [['#pendSum', '요약'], ['#s-pend button', '지금 대기로']]; },
-      board: function () { startBuddy(); sessions['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', at: NOW - 18 * 60000, last: NOW, phone: '김서연', pending: false }; alertsMap['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', t: '18:04', esc: true, phone: '김서연', ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, around: [] } }; renderBoard(); buddyRing(false); M = [['#alertCards', '미확인 확산 카드'], ['#boardList', '진행 중 상담'], ['#s-buddy button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; }
+      board: function () { startBuddy(); sessions['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', at: NOW - 18 * 60000, last: NOW, phone: '김서연', pending: false }; alertsMap['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', t: '18:04', esc: true, phone: '김서연', ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, around: [] } }; renderBoard(); buddyRing(false); M = [['#boardList .bt.esc', '미확인 확산 칸'], ['#boardList', '진행 중 상담'], ['#s-buddy button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; }
     };
     window.__shot = s; window.__shotReady = false;
     setTimeout(function () {
