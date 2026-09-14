@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.6)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.7)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -1784,6 +1784,13 @@ window.onerror = function (msg) {
     return '<svg class="px" viewBox="0 0 44 40" aria-hidden="true">' + s + '</svg>';
   }
   function pendText(at) { var n = Math.max(0, Math.floor((Date.now() - (at || Date.now())) / 1000)); return n < 60 ? n + '초' : Math.floor(n / 60) + '분 ' + (n % 60) + '초'; }
+  // v0.10.7: 상황판 칸의 알림·확인 기록 한 덩어리(시각만 표시, 걸린 시간은 표시하지 않음)
+  function bhm(ts) { var d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function boardHist(s) {
+    var hi = s.hist, r = hi.res, n = s.alertN || 1;
+    var who = r.kind === 'ack' ? (r.by === '팀 상황판' ? '팀 상황판에서 확인' : esc(r.by) + ' 선생님 확인') : '상담자가 괜찮다고 취소';
+    return '<div class="hist"><div>' + bhm(hi.at) + ' 위험 신호' + (n > 1 ? ' <span class="n">· 이 상담 ' + n + '번째</span>' : '') + '</div><div>' + (r.kind === 'ack' ? '✓ ' : '✕ ') + bhm(r.t) + ' ' + who + '</div></div>';
+  }
   function renderBoard() {
     var bl = $('boardList');
     bl.innerHTML = '';
@@ -1794,12 +1801,12 @@ window.onerror = function (msg) {
     keys.forEach(function (k) {
       var a = alertsMap[k], s2 = sessions[k] || { place: a.place, who: a.who, rid: a.rid, phone: a.phone };
       var now = Date.now(), stale = !!s2.last && now - s2.last > 150000;   // 상태 신호가 2분 30초 넘게 없으면 "연결 확인 필요" (10분 지나면 지움)
-      var mode = a ? 'esc' : s2.pending ? 'wait' : stale ? 'stale' : 'calm';
+      var mode = a ? 'esc' : s2.pending ? 'wait' : stale ? 'stale' : (s2.hist && s2.hist.res) ? (s2.hist.res.kind === 'ack' ? 'done' : 'cxl') : 'calm';
       var mins = s2.at ? Math.max(0, Math.round((now - s2.at) / 60000)) : null;
-      var tag = { esc: a && a.esc ? '업무폰 미확인' : '위험 신호', wait: '위험 신호', stale: '연결 확인 필요', calm: '● 상담 중' }[mode];
+      var tag = { esc: a && a.esc ? '업무폰 미확인' : '위험 신호', wait: '위험 신호', stale: '연결 확인 필요', calm: '● 상담 중', done: '확인됨', cxl: '취소됨' }[mode];
       var d = document.createElement('div');
       d.className = 'bt ' + mode;
-      var h = '<div class="top"><span class="pl">' + esc(s2.place || '상담실') + '</span><span class="tag">' + tag + '</span></div>' + pxRoom(s2.rid || a && a.rid || k, mode);
+      var h = '<div class="top"><span class="pl">' + esc(s2.place || '상담실') + '</span><span class="tag">' + tag + '</span></div>' + pxRoom(s2.rid || a && a.rid || k, mode === 'done' || mode === 'cxl' ? 'calm' : mode);
       if (mode === 'esc') {
         h += '<div class="who">' + esc(s2.who || '-') + ' 선생님 · ' + (a.esc ? (a.phone ? '업무폰(' + esc(a.phone) + ') ' : '') + (CFG.escalate || 60) + '초 미확인' : '상담 ' + esc(a.t || '-') + ' 경과') + '</div>';
         if (a.ev) h += '<div class="ev red">' + evHtml(a.ev) + '</div>';
@@ -1809,6 +1816,7 @@ window.onerror = function (msg) {
         if (mode === 'wait') h += '<div class="sub">업무폰' + (s2.phone ? ' ' + esc(s2.phone) : '') + ' 확인 대기 · <span data-pend="' + (s2.pendAt || now) + '">' + pendText(s2.pendAt) + '</span></div>';
         else if (mode === 'stale') h += '<div class="sub">마지막 신호 ' + Math.floor((now - s2.last) / 60000) + '분 전' + (s2.phone ? ' · 업무폰 ' + esc(s2.phone) : '') + '</div>';
         else h += '<div class="sub">' + (s2.phone ? '업무폰 ' + esc(s2.phone) : '업무폰 없음') + '</div>';
+        if ((mode === 'done' || mode === 'cxl') && s2.hist) h += boardHist(s2);
       }
       d.innerHTML = h;
       if (mode === 'esc') {
@@ -1818,7 +1826,7 @@ window.onerror = function (msg) {
           // v0.10.2: 확인 신호에 상담 번호·경보 번호를 싣는다. 서버가 받았을 때만 칸을 되돌린다
           b.disabled = true; b.textContent = '확인 신호 보내는 중…';
           postSig({ type: 'ack', rid: a.rid || '', aid: a.aid, place: a.place, by: '팀 상황판', ts: Date.now() }).then(function (ok) {
-            if (ok) { delete alertsMap[k]; renderBoard(); return; }
+            if (ok) { var s4 = sessions[k]; if (s4 && s4.hist && !s4.hist.res) s4.hist.res = { kind: 'ack', by: '팀 상황판', t: Date.now() }; delete alertsMap[k]; renderBoard(); return; }
             b.disabled = false; b.textContent = '보내지 못했어요 — 다시 누르기 (인터넷 확인)';
           });
         };
@@ -1902,7 +1910,7 @@ window.onerror = function (msg) {
       var k = skey(m);
       if (m.type === 'start' || m.type === 'hb') {
         var prev = sessions[k] || {};
-        sessions[k] = { place: m.place || '상담실', who: m.who || '-', rid: m.rid || prev.rid || '', at: m.at || Date.now(), last: Date.now(), phone: m.to || prev.phone || '', pending: m.type === 'hb' ? !!prev.pending : false, pendAt: m.type === 'hb' ? prev.pendAt : 0 };   // v0.10.3: 상태 신호가 와도 확인 대기 시작 시각은 유지
+        sessions[k] = { place: m.place || '상담실', who: m.who || '-', rid: m.rid || prev.rid || '', at: m.at || Date.now(), last: Date.now(), phone: m.to || prev.phone || '', pending: m.type === 'hb' ? !!prev.pending : false, pendAt: m.type === 'hb' ? prev.pendAt : 0, hist: m.type === 'hb' ? prev.hist : null, alertN: m.type === 'hb' ? prev.alertN : 0, lastAid: m.type === 'hb' ? prev.lastAid : null };   // v0.10.3: 상태 신호가 와도 확인 대기 시작 시각은 유지
         renderBoard();
       } else if (m.type === 'end') {
         delete sessions[k]; delete alertsMap[k];
@@ -1911,6 +1919,9 @@ window.onerror = function (msg) {
         if (m.ts && Date.now() - m.ts > 600000) return;
         if (!sessions[k]) sessions[k] = { place: m.place || '상담실', who: m.who || '-', at: Date.now(), last: Date.now() };
         sessions[k].phone = m.to || ''; sessions[k].pending = (m.type === 'alert' && !!m.to); if (m.rid) sessions[k].rid = m.rid;
+        // v0.10.7: 알림 시각·확인자를 상담이 끝날 때까지 칸에 남긴다(칸이 길어지지 않게 가장 최근 1건 + 횟수)
+        var sk = sessions[k], aidKey = m.aid != null ? String(m.aid) : String(m.ts || '');
+        if (sk.lastAid !== aidKey && !(m.type === 'escalate' && sk.hist && !sk.hist.res)) { sk.lastAid = aidKey; sk.alertN = (sk.alertN || 0) + 1; sk.hist = { at: m.ts || Date.now(), res: null }; }
         if (sessions[k].pending) sessions[k].pendAt = Math.min(m.ts || Date.now(), Date.now());   // v0.10.3: 확인 대기 초 표시
         // 업무폰이 맡은 상담은 업무폰이 확인하지 않았을 때(escalate)만 카드·소리. 업무폰 없는 상담은 바로.
         if (m.type === 'escalate' || !m.to) {
@@ -1926,7 +1937,7 @@ window.onerror = function (msg) {
       } else if (m.type === 'cancel' || m.type === 'ack') {
         // v0.10.2: 상담 번호가 있으면 번호로, 없으면(옛 기기) 장소로 맞춘다
         var same = function (o) { return m.rid ? o.rid === m.rid : (!m.place || o.place === m.place); };
-        Object.keys(sessions).forEach(function (k2) { if (same(sessions[k2])) sessions[k2].pending = false; });
+        Object.keys(sessions).forEach(function (k2) { var s3 = sessions[k2]; if (!same(s3)) return; s3.pending = false; if (s3.hist && !s3.hist.res) s3.hist.res = m.type === 'ack' ? { kind: 'ack', by: m.by || '동료', t: m.ts || Date.now() } : { kind: 'cancel', t: Date.now() }; });
         Object.keys(alertsMap).forEach(function (k2) { if (same(alertsMap[k2])) delete alertsMap[k2]; });
         renderBoard();
       }
@@ -1987,7 +1998,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.6';
+  var APP_VER = '0.10.7';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
