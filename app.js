@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.10)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.11)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -44,6 +44,7 @@ window.onerror = function (msg) {
     calm: '진정하세요, 진정하시고, 소리 지르지, 목소리를 낮춰, 흥분하지 마, 화내지 마시고',
     // C층(문턱) 거절·제한 통보: 울리지 않고 뒤 2분 동안 기준 점수를 1 낮춘다 (폭력 선행요인 1위)
     refusal: '규정상 어렵, 도와드릴 수 없, 지원이 안 되, 지원이 어렵, 대상이 아니, 이번에는 어렵, 해드릴 수 없, 불가능합니다',
+    stt: 'clova',   // v0.10.11 받아쓰기: 'clova'(네이버 CLOVA Speech 실시간, 중계 서버 경유) | 'chrome'(크롬 내장 음성인식)
     provider: 'gemini',
     gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
@@ -172,6 +173,7 @@ window.onerror = function (msg) {
     $('cfgGModel').value = known ? '' : (CFG.gmodel || ''); $('cfgGModel').style.display = known ? 'none' : 'inline-block';
     document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
     showProvider(CFG.provider || 'gemini');
+    document.querySelectorAll('#s-settings [data-stt]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-stt') === (CFG.stt || 'clova')); }); $('sttMsg').textContent = '';
     $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
     foldSums(); listCounts();
     go('settings');
@@ -215,6 +217,17 @@ window.onerror = function (msg) {
   window.pickEsc = function (el) { pickOne(el, 'data-esc'); };
   window.pickKeep = function (el) { pickOne(el, 'data-keep'); };
   window.pickScore = function (el) { pickOne(el, 'data-score'); };
+  window.pickStt = function (el) { pickOne(el, 'data-stt'); $('sttMsg').textContent = ''; };
+  // 설정 화면: 중계 서버를 거쳐 클로바까지 실제로 붙는지 확인 (음성은 보내지 않음)
+  window.testClova = function () {
+    var m = $('sttMsg'), t0 = Date.now(), done = false, ws = null;
+    m.textContent = '클로바 연결 확인 중…'; m.style.color = '';
+    function end(ok, txt) { if (done) return; done = true; m.textContent = txt; m.style.color = ok ? '#3E7A52' : '#97302B'; try { if (ws) ws.close(); } catch (e) {} }
+    try { ws = new WebSocket(CLOVA_URL); } catch (e) { end(false, '연결 안 됨 · 상담 중에는 자동으로 크롬 받아쓰기로 넘어가요'); return; }
+    ws.onmessage = function (e) { var d = null; try { d = JSON.parse(e.data); } catch (er) {} if (d && d.type === 'ready') end(true, '클로바 연결 됨 (' + ((Date.now() - t0) / 1000).toFixed(1) + '초)'); };
+    ws.onclose = function (e) { end(false, e.code === 4029 ? '지금 동시 연결이 꽉 찼어요 · 잠시 뒤 다시 확인해 주세요' : '연결 안 됨 · 상담 중에는 자동으로 크롬 받아쓰기로 넘어가요'); };
+    setTimeout(function () { end(false, '응답이 없어요 · 상담 중에는 자동으로 크롬 받아쓰기로 넘어가요'); }, 8000);
+  };
   window.pickModel = function (el) { var v = pickOne(el, 'data-model'); var g = $('cfgGModel'); if (el.parentElement.id === 'modelRowG') { g.style.display = v === 'custom' ? 'inline-block' : 'none'; if (v === 'custom') g.focus(); } };
   function readSettingsForm() {
     formKeys[formProvider] = $('cfgKey').value.trim();
@@ -230,6 +243,7 @@ window.onerror = function (msg) {
       counselor: $('cfgCounselor').value.trim(), code: $('cfgCode').value.trim(), lose: $('cfgLose').value.trim(), meta: $('cfgMeta').value.trim(), calm: $('cfgCalm').value.trim(), refusal: $('cfgRefusal').value.trim(),
       score: (function () { var e = document.querySelector('#s-settings [data-score].on'); return e ? parseInt(e.getAttribute('data-score'), 10) : DEF.score; })(),
       provider: formProvider,
+      stt: (function () { var e = document.querySelector('#s-settings [data-stt].on'); return e ? e.getAttribute('data-stt') : DEF.stt; })(),
       promise: $('cfgPromise').value.trim() || DEF.promise,
       escalate: (function () { var e = document.querySelector('#s-settings [data-esc].on'); return e ? parseInt(e.getAttribute('data-esc'), 10) : DEF.escalate; })(),
       keep: (function () { var e = document.querySelector('#s-settings [data-keep].on'); return e ? parseInt(e.getAttribute('data-keep'), 10) : DEF.keep; })(),
@@ -397,7 +411,12 @@ window.onerror = function (msg) {
   }
 
   // ---------- 대화 기록 (음성 인식, ko-KR) ----------
-  var stt = null, sttActive = false;
+  var stt = null, sttActive = false, chromeOn = false;
+  // v0.10.11: 받아쓰기 엔진 두 가지. 클로바(네이버 CLOVA Speech 실시간)가 기본이고, 브라우저는 키 없이 중계 서버에만 붙는다.
+  // 클로바가 끊기거나 안 붙으면 멈추지 않고 크롬 받아쓰기로 이어 받고, 30초마다 클로바에 다시 붙어 본다.
+  // 클로바는 문장이 끝난 뒤 한 줄씩 오므로 말하는 중간 글(흐린 자막·중간 즉시 감지)은 크롬일 때만 있다.
+  var CLOVA_URL = 'wss://211-233-207-215.sslip.io/stt';
+  var sttMode = '';   // 'clova' | 'chrome' | 'fallback'(클로바 끊겨 크롬으로 받는 중)
   // v0.10.2: 음성인식 상태를 그대로 보여준다. 준비 중 → 기록 중 / 마이크 꺼짐(권한 거부·미지원) / 다시 연결 중
   function setRecState(label, note) {
     var st = $('stateTxt'); if (!st || !S.acc) return;
@@ -406,22 +425,99 @@ window.onerror = function (msg) {
     if (note) { var te = $('tlEmpty'); if (te && !(S.tr || []).length) te.textContent = note; }
   }
   function startSTT() {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (S.noRecord || S.demo) return;
-    if (!SR) { sttActive = false; setRecState('마이크 안 됨 · 동료 호출 버튼으로', '이 브라우저는 음성인식이 안 돼요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); return; }
+    sttActive = true;
+    if (CFG.stt === 'chrome' || !clovaSupported()) { sttMode = 'chrome'; startChrome(); return; }
+    sttMode = 'clova';
+    setRecState('클로바 연결 중');
+    startClova();
+  }
+  function startChrome() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (chromeOn) return;
+    if (!SR) { if (sttMode === 'chrome') sttActive = false; setRecState('마이크 안 됨 · 동료 호출 버튼으로', '이 브라우저는 음성인식이 안 돼요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); return; }
     stt = new SR();
     stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = true;   // v0.10.4: 말하는 중간 글도 받는다
-    stt.onstart = function () { setRecState('기록 중'); };
+    stt.onstart = function () { setRecState(sttMode === 'fallback' ? '클로바 끊김 → 크롬으로 기록 중' : '기록 중'); };
     stt.onresult = sttResult;
-    stt.onend = function () { if (sttActive) { sttFlush(); sttGen += 1; setRecState('다시 연결 중'); setTimeout(function () { try { stt.start(); } catch (e) {} }, 300); } };
+    stt.onend = function () { if (sttActive && chromeOn) { sttFlush(); sttGen += 1; setRecState('다시 연결 중'); setTimeout(function () { if (chromeOn && stt) { try { stt.start(); } catch (e) {} } }, 300); } };
     stt.onerror = function (e) {
-      if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) { sttActive = false; setRecState('마이크 꺼짐 · 동료 호출 버튼으로', '마이크 권한이 꺼져 있어요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); }
+      if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) { chromeOn = false; if (sttMode === 'chrome') sttActive = false; setRecState('마이크 꺼짐 · 동료 호출 버튼으로', '마이크 권한이 꺼져 있어요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); }
       else if (e && e.error === 'audio-capture') { setRecState('마이크 없음 · 동료 호출 버튼으로', '마이크를 찾지 못했어요 · 자동 감지 없이 진행 중'); }
     };
-    sttActive = true;
+    chromeOn = true;
     try { stt.start(); } catch (e) {}
   }
-  function stopSTT() { sttActive = false; if (stt) { try { stt.stop(); } catch (e) {} stt = null; } }
+  function stopChrome() { chromeOn = false; if (stt) { var s0 = stt; stt = null; try { s0.stop(); } catch (e) {} } }
+
+  // ---- 클로바: 마이크 → 16kHz mono 16bit PCM 100ms 조각 → 중계 서버(wss) → 문장 결과 ----
+  var cv = { ws: null, ready: false, node: null, src: null, sink: null, stream: null, mod: false, n: 0, readyT: 0, retryT: 0 };
+  function clovaSupported() { return !!(window.WebSocket && window.AudioWorkletNode && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+  // 기기 표본율(보통 48kHz)을 16kHz로 평균 내어 줄이고, 1600표본(100ms)마다 보낸다
+  var PCM_WORKLET = 'class P extends AudioWorkletProcessor{constructor(){super();this.r=sampleRate/16000;this.a=0;this.s=0;this.c=0;this.b=new Int16Array(1600);this.i=0}' +
+    'process(inp){var ch=inp[0]&&inp[0][0];if(!ch)return true;for(var k=0;k<ch.length;k++){this.s+=ch[k];this.c++;this.a+=1;if(this.a>=this.r){this.a-=this.r;var v=this.s/this.c;this.s=0;this.c=0;v=v<-1?-1:v>1?1:v;this.b[this.i++]=v<0?v*32768:v*32767;' +
+    'if(this.i===1600){this.port.postMessage(this.b.buffer,[this.b.buffer]);this.b=new Int16Array(1600);this.i=0}}}return true}}registerProcessor("pcm16k",P);';
+  function startClova() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    try { audioCtx.resume(); } catch (e) {}
+    var mod = cv.mod ? Promise.resolve() : audioCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([PCM_WORKLET], { type: 'application/javascript' }))).then(function () { cv.mod = true; });
+    mod.then(function () { return navigator.mediaDevices.getUserMedia({ audio: true }); })
+      .then(function (stream) {
+        if (!sttActive) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+        cv.stream = stream;
+        cv.src = audioCtx.createMediaStreamSource(stream);
+        cv.node = new AudioWorkletNode(audioCtx, 'pcm16k', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+        cv.sink = audioCtx.createGain(); cv.sink.gain.value = 0;   // 소리는 내지 않고 처리만 돌게 한다
+        cv.src.connect(cv.node); cv.node.connect(cv.sink); cv.sink.connect(audioCtx.destination);
+        cv.node.port.onmessage = function (e) { var ws = cv.ws; if (ws && cv.ready && ws.readyState === 1 && ws.bufferedAmount < 256000) ws.send(e.data); };
+        clovaOpen();
+      })
+      .catch(function (err) {
+        if (!sttActive) return;
+        if (err && err.name === 'NotAllowedError') { sttActive = false; setRecState('마이크 꺼짐 · 동료 호출 버튼으로', '마이크 권한이 꺼져 있어요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); return; }
+        clovaFail(false);   // 이 기기에서 클로바용 소리 받기가 안 됨 → 크롬으로만
+      });
+  }
+  function clovaOpen() {
+    var ws;
+    try { ws = new WebSocket(CLOVA_URL); } catch (e) { clovaFail(true); return; }
+    ws.binaryType = 'arraybuffer';
+    cv.ws = ws; cv.ready = false;
+    clearTimeout(cv.readyT);
+    cv.readyT = setTimeout(function () { if (cv.ws === ws && !cv.ready) { try { ws.close(); } catch (e) {} } }, 6000);
+    ws.onmessage = function (e) {
+      if (cv.ws !== ws) return;
+      var m = null; try { m = JSON.parse(e.data); } catch (er) { return; }
+      if (m.type === 'ready') { cv.ready = true; clearTimeout(cv.readyT); clovaUp(); }
+      else if (m.type === 'result') { var x = String(m.text || '').trim(); if (x && inSession()) { cv.n += 1; addLine(x, null, 'cv:' + cv.n); } }
+    };
+    ws.onerror = function () {};   // 뒤따르는 onclose에서 처리
+    ws.onclose = function () { if (cv.ws !== ws) return; cv.ws = null; cv.ready = false; clearTimeout(cv.readyT); if (sttActive) clovaFail(true); };
+  }
+  function clovaUp() {
+    clearTimeout(cv.retryT);
+    if (sttMode === 'fallback') { stopChrome(); sttFlush(); }
+    sttMode = 'clova';
+    setRecState('기록 중 · 클로바');
+  }
+  function clovaFail(retry) {
+    if (!sttActive) return;
+    if (sttMode !== 'fallback') { sttMode = 'fallback'; startChrome(); setRecState('클로바 끊김 → 크롬으로 기록 중'); }
+    clearTimeout(cv.retryT);
+    if (retry) cv.retryT = setTimeout(function () { if (sttActive && sttMode === 'fallback' && !cv.ws) clovaOpen(); }, 30000);
+  }
+  function stopClova() {
+    clearTimeout(cv.retryT); clearTimeout(cv.readyT);
+    var ws = cv.ws; cv.ws = null; cv.ready = false;
+    if (ws) { try { ws.close(1000); } catch (e) {} }
+    if (cv.node) { try { cv.node.port.onmessage = null; cv.node.disconnect(); } catch (e) {} cv.node = null; }
+    if (cv.src) { try { cv.src.disconnect(); } catch (e) {} cv.src = null; }
+    if (cv.sink) { try { cv.sink.disconnect(); } catch (e) {} cv.sink = null; }
+    if (cv.stream) { cv.stream.getTracks().forEach(function (t) { t.stop(); }); cv.stream = null; }
+  }
+  function stopSTT() { sttActive = false; stopChrome(); stopClova(); sttMode = ''; }
+  window.__sttInfo = function () { return { mode: sttMode, chrome: chromeOn, ws: !!cv.ws, ready: cv.ready, lines: cv.n }; };   // 시험용
+  window.__clovaUrl = function (u) { if (u) CLOVA_URL = u; return CLOVA_URL; };   // 시험용
   // v0.10.4: 쉬지 않고 길게 말하면 크롬은 말이 멈출 때까지 문장을 확정하지 않고, 너무 길면 확정 없이 끊고 다시 연결한다(그 말이 통째로 사라짐).
   // 그래서 중간 글을 받아 ① 자막에 흐리게 보여주고 ② 즉시 층(위협·심한 말·성희롱·상담자 문구·암호)만 바로 감지하고 ③ 끊길 때 남은 중간 글을 한 줄로 확정한다.
   // 점수 층(요구·되풀이·큰 목소리)은 두 번 세지 않도록 확정된 줄에서만 센다.
@@ -2042,7 +2138,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.10';
+  var APP_VER = '0.10.11';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
