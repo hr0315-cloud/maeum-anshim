@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.9)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.10)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -29,6 +29,8 @@ window.onerror = function (msg) {
     threat: '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 조심해라, 조심하라고, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오',
     demand: '해줘, 해달라, 해주라고, 달라고, 주라고, 왜 안 되, 왜 안 돼, 안 되냐, 안되냐, 안 돼냐, 언제 줘, 해결해 내, 내놔, 내놓으라, 약속했잖, 해준다며, 해준다고, 해주기로, 해 줘야',
     score: 3,
+    // v0.10.10 B층 돈 요구: 상담자에게 직접 돈을 요구하는 꼴만. 이 상담 첫 번째 2점, 두 번째는 바로 유예
+    money: '빌려 줘, 빌려 줘요, 빌려 주세요, 빌려 주라, 빌려 주면 안, 빌려 줄 수 있, 빌려 줄래, 빌려 주실 수, 빌려 주시면, 빌려 달라니까, 빌려 달라고요, 빌려 달란 말, 돈 좀 줘, 돈 줘요, 돈 좀 주세요, 돈 좀 달라, 돈 내놔, 돈 좀 꿔, 꿔 줘, 꿔 주세요, 꿔 달라니까',
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹어, 엿 먹으, 꺼져라, 꺼지라고, 꺼져 버려, 꺼져버려, 당장 꺼져, 꺼져 이, 닥쳐라, 닥치라고, 닥쳐요, 입 닥, 그냥 닥쳐, 좀 닥쳐, 닥쳐 이, 등신, 또라이, 개같은, 좆',
     // A층(즉시) 성희롱 표현. 신체 부위 단독(가슴·다리·엉덩이)은 "아파요"에 걸리므로 넣지 않고, 만져·좀·크·예쁘와 붙은 꼴만
     sexual: '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘',
@@ -93,7 +95,8 @@ window.onerror = function (msg) {
     m = RX_SEXUAL && RX_SEXUAL.exec(t); if (m) { r.imm = { kind: 'sexual', hit: m[1] }; return r; }
     m = RX_LOSE && RX_LOSE.exec(t); if (m) r.pts.push({ k: 'lose', p: 2, hit: m[1] });
     m = RX_META && RX_META.exec(t); if (m) r.pts.push({ k: 'meta', p: 1, hit: m[1] });
-    m = RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
+    m = RX_MONEY && RX_MONEY.exec(t); if (m && !(RX_MONEY_NOT && RX_MONEY_NOT.test(t))) r.money = { hit: m[1] };
+    m = !r.money && RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
     m = RX_CALM && RX_CALM.exec(t); if (m) r.pts.push({ k: 'calm', p: 1, hit: m[1] });
     m = RX_REFUSAL && RX_REFUSAL.exec(t); if (m) { r.refusal = true; r.refusalHit = m[1]; }
     return r;
@@ -110,15 +113,16 @@ window.onerror = function (msg) {
     }
     return false;
   }
+  var RX_MONEY = null, RX_MONEY_NOT = listToRx('빌렸, 빌려줬, 빌려준, 빌린, 빌려주더, 빌려주던, 달라고했, 달라고해서, 달래, 달라길래, 달라는데, 달라더라, 달라했, 달라고하더, 주라고했, 줘라고, 줬어, 줬는데, 줬다, 꿨, 꿔줬, 꿔준');
   var RX_THREAT = null, RX_ABUSE = null, RX_SEXUAL = null, RX_DEMAND = null, RX_COUNSELOR = null, RX_CODE = null, RX_LOSE = null, RX_META = null, RX_CALM = null, RX_REFUSAL = null;
   function buildRx(c) {
-    RX_THREAT = listToRx(c.threat); RX_ABUSE = listToRx(c.abuse); RX_SEXUAL = listToRx(c.sexual); RX_DEMAND = listToRx(c.demand);
+    RX_THREAT = listToRx(c.threat); RX_ABUSE = listToRx(c.abuse); RX_SEXUAL = listToRx(c.sexual); RX_DEMAND = listToRx(c.demand); RX_MONEY = listToRx(c.money);
     RX_COUNSELOR = listToRx(c.counselor); RX_CODE = listToRx(c.code); RX_LOSE = listToRx(c.lose); RX_META = listToRx(c.meta); RX_CALM = listToRx(c.calm); RX_REFUSAL = listToRx(c.refusal);
   }
   window.testThreat = function () {
     var x = ($('cfgTest').value || '').trim(), out = $('cfgTestOut');
     if (!x) { out.textContent = '문장을 적고 눌러 주세요'; return; }
-    buildRx({ threat: $('cfgThreat').value, abuse: $('cfgAbuse').value, sexual: $('cfgSexual').value, demand: $('cfgDemand').value, counselor: $('cfgCounselor').value, code: $('cfgCode').value, lose: $('cfgLose').value, meta: $('cfgMeta').value, calm: $('cfgCalm').value, refusal: $('cfgRefusal').value });
+    buildRx({ threat: $('cfgThreat').value, abuse: $('cfgAbuse').value, sexual: $('cfgSexual').value, demand: $('cfgDemand').value, money: $('cfgMoney').value, counselor: $('cfgCounselor').value, code: $('cfgCode').value, lose: $('cfgLose').value, meta: $('cfgMeta').value, calm: $('cfgCalm').value, refusal: $('cfgRefusal').value });
     var r = matchAll(x);
     buildRx(CFG);
     var thEl = document.querySelector('#s-settings [data-score].on'), th = thEl ? parseInt(thEl.getAttribute('data-score'), 10) : CFG.score;
@@ -127,10 +131,11 @@ window.onerror = function (msg) {
       out.textContent = 'A · 즉시 — ' + SIG[r.imm.kind] + ' "' + r.imm.hit + '" · 한 번이면 바로 유예가 시작돼요'; out.style.color = '#B3403A'; return;
     }
     var parts = r.pts.map(function (e) { return SIG[e.k] + ' "' + e.hit + '" ' + (e.k === 'calm' ? '(2분 안 두 번째부터 +1)' : '+' + e.p); });
+    if (r.money) parts.unshift('돈 요구 "' + r.money.hit + '" +2 (이 상담에서 두 번째면 바로 유예)');
     var s = '';
     if (parts.length) s += 'B · 점수 — ' + parts.join(' · ') + ' · 2분 안에 ' + th + '점이 되면 유예 (매우 큰 목소리 +1)';
     if (r.refusal) s += (s ? '  /  ' : '') + 'C · 문턱 — 거절·제한 통보 "' + r.refusalHit + '" · 울리지 않고 뒤 2분 동안 기준이 ' + Math.max(1, th - 1) + '점으로 내려가요';
-    if (!s) { out.textContent = '해당 없음 · 어느 목록에도 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#6E5A48'; return; }
+    if (!s) { out.textContent = (RX_MONEY_NOT && RX_MONEY_NOT.test(x.replace(/\s+/g, '')) && listToRx($('cfgMoney').value) && listToRx($('cfgMoney').value).test(x.replace(/\s+/g, ''))) ? '해당 없음 · 돈 이야기지만 과거 일이나 남의 말을 옮기는 꼴이라 세지 않아요' : '해당 없음 · 어느 목록에도 없어요 (같은 말 반복은 상담 중에만 셀 수 있어요)'; out.style.color = '#6E5A48'; return; }
     out.textContent = s; out.style.color = r.pts.length ? '#8A5F14' : '#3C5A78';
   };
   function applyCfg() {
@@ -151,7 +156,7 @@ window.onerror = function (msg) {
   var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
     $('cfgN1').value = CFG.n1; $('cfgN2').value = CFG.n2; $('cfgN3').value = CFG.n3; $('cfgRefuse').value = CFG.refuse;
-    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgSexual').value = CFG.sexual; $('cfgDemand').value = CFG.demand;
+    $('cfgThreat').value = CFG.threat; $('cfgAbuse').value = CFG.abuse; $('cfgSexual').value = CFG.sexual; $('cfgDemand').value = CFG.demand; $('cfgMoney').value = CFG.money;
     $('cfgCounselor').value = CFG.counselor; $('cfgCode').value = CFG.code; $('cfgLose').value = CFG.lose; $('cfgMeta').value = CFG.meta; $('cfgCalm').value = CFG.calm; $('cfgRefusal').value = CFG.refusal;
     document.querySelectorAll('#s-settings [data-score]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-score'), 10) === CFG.score); }); $('cfgWarn').value = CFG.warn; $('cfgPromise').value = CFG.promise;
     document.querySelectorAll('#s-settings [data-esc]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-esc'), 10) === CFG.escalate); });
@@ -202,7 +207,7 @@ window.onerror = function (msg) {
   window.listCounts = function () {
     var total = 0;
     document.querySelectorAll('#foldLists .cnt').forEach(function (c) { var t = $(c.getAttribute('data-for')); var n = t ? t.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean).length : 0; total += n; c.textContent = n + '개'; });
-    var s = $('sumLists'); if (s) s.textContent = '10묶음 · ' + total + '개';
+    var s = $('sumLists'); if (s) s.textContent = '11묶음 · ' + total + '개';
   };
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
@@ -221,7 +226,7 @@ window.onerror = function (msg) {
       approved: $('swApproved').classList.contains('on'),
       grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
-      threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), sexual: $('cfgSexual').value.trim(), demand: $('cfgDemand').value.trim(),
+      threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), sexual: $('cfgSexual').value.trim(), demand: $('cfgDemand').value.trim(), money: $('cfgMoney').value.trim(),
       counselor: $('cfgCounselor').value.trim(), code: $('cfgCode').value.trim(), lose: $('cfgLose').value.trim(), meta: $('cfgMeta').value.trim(), calm: $('cfgCalm').value.trim(), refusal: $('cfgRefusal').value.trim(),
       score: (function () { var e = document.querySelector('#s-settings [data-score].on'); return e ? parseInt(e.getAttribute('data-score'), 10) : DEF.score; })(),
       provider: formProvider,
@@ -353,7 +358,7 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = S.acc.name + (withRecord ? ' · 마이크 준비 중' : ' · 기록 없음');   // v0.10.2: 음성인식이 실제로 시작되면 "기록 중"으로
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.moneyN = 0; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -577,7 +582,7 @@ window.onerror = function (msg) {
   // 위협 표현·심한 말 목록은 설정(②)에서 온다 → applyCfg()가 RX_THREAT / RX_ABUSE를 만든다
   // 말 감지: 시작 직후 대기 없이 바로 잡는다. 한 번 감지된 뒤 45초(S.cooldownUntil)만 쉰다.
   // 점수 누적 (2분 창): 요구 표현 1점 · 같은 말 반복 1점 · 매우 큰 목소리 +1점 → 기준 점수면 유예. 위협 표현·심한 말은 점수와 무관하게 1회 즉시.
-  var SCORE_WIN = 120000, SIG = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', counselor: '상담자 문구', code: '암호 문구', demand: '요구 표현', repeat: '같은 말 반복', loud: '매우 큰 목소리', lose: '통제 상실 예고', meta: '반복 자각', calm: '완화 표현 반복' };
+  var SCORE_WIN = 120000, SIG = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', counselor: '상담자 문구', code: '암호 문구', demand: '요구 표현', money: '돈 요구', repeat: '같은 말 반복', loud: '매우 큰 목소리', lose: '통제 상실 예고', meta: '반복 자각', calm: '완화 표현 반복' };
   // C층: 거절·제한 통보 뒤 2분은 기준 점수가 1 낮다
   function winOn() { return Date.now() < (S.winUntil || 0); }
   function threshold() { return Math.max(1, (CFG.score || 3) - (winOn() ? 1 : 0)); }
@@ -585,7 +590,7 @@ window.onerror = function (msg) {
   function scoreTotal() { return pruneScore().reduce(function (s, e) { return s + e.p; }, 0); }
   function scoreParts() {
     var c = {}; pruneScore().forEach(function (e) { c[e.k] = (c[e.k] || 0) + 1; });
-    return ['demand', 'repeat', 'loud', 'lose', 'meta', 'calm'].filter(function (k) { return c[k]; }).map(function (k) { return SIG[k] + ' ' + c[k] + '회'; }).join(' · ');
+    return ['money', 'demand', 'repeat', 'loud', 'lose', 'meta', 'calm'].filter(function (k) { return c[k]; }).map(function (k) { return SIG[k] + ' ' + c[k] + '회'; }).join(' · ');
   }
   function renderAcc() {
     var chip = $('accChip'); if (!chip) return;
@@ -621,6 +626,16 @@ window.onerror = function (msg) {
     // v0.10.1 규칙 1: 음성인식이 같은 문장을 5초 안에 두 번 확정하면 두 번째는 세지 않는다
     var dupe = !!(S.lastLine && S.lastLine.x === x && now - S.lastLine.at < 5000); S.lastLine = { x: x, at: now };
     if (dupe) { renderAcc(); return; }
+    // v0.10.10 돈 요구: 이 상담에서 두 번째면 시간과 무관하게 바로 유예, 첫 번째는 2점
+    if (r.money) {
+      S.moneyN = (S.moneyN || 0) + 1;
+      if (S.moneyN >= 2) {
+        S.lastHit = { kind: 'money', hit: r.money.hit, x: x, at: now };
+        triggerCountdown('돈을 요구하는 말("' + r.money.hit + '")이 이 상담에서 ' + S.moneyN + '번째');
+        return;
+      }
+      r.pts.unshift({ k: 'money', p: 2, hit: r.money.hit });
+    }
     var added = [], prev = (S.tr || []).slice(0, -1).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).slice(-12);
     r.pts.forEach(function (e) {
       if (e.k === 'calm') {
@@ -739,10 +754,10 @@ window.onerror = function (msg) {
   window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
 
   // ---------- 감지 근거 카드 ----------
-  var KIND = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', demand: '요구 표현', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호', counselor: '상담자가 중단 의사를 밝혔어요', code: '상담자가 조용히 불렀어요' };
+  var KIND = { threat: '위협 표현', abuse: '심한 말', sexual: '성희롱 표현', demand: '요구 표현', money: '돈 요구(이 상담 두 번째)', loud: '계속되는 큰 소리', manual: '상담자가 직접 호출', score: '쌓인 신호', counselor: '상담자가 중단 의사를 밝혔어요', code: '상담자가 조용히 불렀어요' };
   // 기록·되짚기·TXT에 같이 쓰는 한 줄 라벨
   function kindText(x) {
-    if (x.kind === 'threat' || x.kind === 'abuse' || x.kind === 'sexual') return KIND[x.kind] + ' “' + (x.hit || '') + '”';
+    if (x.kind === 'threat' || x.kind === 'abuse' || x.kind === 'sexual' || x.kind === 'money') return KIND[x.kind] + ' “' + (x.hit || '') + '”';
     if (x.kind === 'counselor') return '상담자 문구 “' + (x.hit || '') + '”';
     if (x.kind === 'code') return '암호 문구 (조용한 호출)';
     if (x.kind === 'score') return '쌓인 신호' + (x.hit ? ' “' + x.hit + '”' : '');
@@ -761,7 +776,7 @@ window.onerror = function (msg) {
   }
   function buildEv(kind, how) {
     var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; });
-    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'sexual' || kind === 'score' || kind === 'counselor') ? S.lastHit : null;
+    var hit = (kind === 'threat' || kind === 'abuse' || kind === 'sexual' || kind === 'score' || kind === 'counselor' || kind === 'money') ? S.lastHit : null;
     if (kind === 'code') { S.hitN = (S.hitN || 0) + 1; return { kind: 'code', how: how || '', hit: '', line: '', v: 0, n: S.hitN, t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ctx: '', around: [], parts: '' }; }
     var idx = lines.length - 1;
     S.hitN = (S.hitN || 0) + 1;
@@ -774,7 +789,7 @@ window.onerror = function (msg) {
     opts = opts || {};
     var head, meta = [];
     if (ev.kind === 'score') { head = KIND.score; meta.push((ev.parts || '') + ' · 2분 안'); }
-    else if (ev.kind === 'threat' || ev.kind === 'abuse' || ev.kind === 'sexual') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
+    else if (ev.kind === 'threat' || ev.kind === 'abuse' || ev.kind === 'sexual' || ev.kind === 'money') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
     else if (ev.kind === 'loud') { head = KIND.loud; meta.push('1.5초 이상'); }
     else if (ev.kind === 'counselor') { head = KIND.counselor; meta.push('“' + esc(ev.hit) + '”'); }
     else if (ev.kind === 'code') { head = KIND.code; meta.push('암호 문구 · 내용 없음'); }
@@ -2027,7 +2042,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.9';
+  var APP_VER = '0.10.10';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2145,7 +2160,7 @@ window.onerror = function (msg) {
     else hideGuide();
   };
   window.__S = S; window.__match = matchAll;   // 시험용
-  window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; renderAcc(); };   // 시험용
+  window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; S.moneyN = 0; renderAcc(); };   // 시험용
   // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
   (function () {
     var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
