@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.13)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.14)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -20,7 +20,7 @@ window.onerror = function (msg) {
   // ---------- 설정 (기기 안에만 저장) ----------
   var DEF = {
     n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
-    n2: '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
+    n2: '글로 바꾸기 위해 음성이 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
     n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
     refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않는 대신, 동료가 함께 앉거나 사무실 가까운 곳으로 옮겨서 진행해요. 필요하면 상담자가 직접 동료를 부릅니다.',
     approved: false,
@@ -76,6 +76,7 @@ window.onerror = function (msg) {
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
+    if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.14: v0.10.5 기본 고지 2번 → 음성 전송처(CLOVA Speech 등)를 적은 새 문구
     if (out.sexual === '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘') out.sexual = DEF.sexual;   // v0.10.13: v0.10.1~0.10.12 기본 성희롱 목록 → "손 한번 잡아 보자" 꼴 추가한 새 목록
     return out;
   }
@@ -2150,7 +2151,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.13';
+  var APP_VER = '0.10.14';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
