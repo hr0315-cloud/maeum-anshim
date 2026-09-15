@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>마음안심</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=0.10.15">
+<link rel="stylesheet" href="style.css?v=0.10.16">
 </head>
 <body>
 <div id="updBar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99; background:#B07A1E; color:#FFF9F0; padding:10px 16px; font-size:14px; align-items:center; justify-content:center; gap:14px"><span id="updTxt">새 버전이 있어요</span><button class="mid" style="padding:6px 14px; font-size:13px; background:#FFF9F0; border-color:#FFF9F0; color:#8A5F14" onclick="reloadFresh()">새로고침</button></div>
 
 <!-- 1 시작 -->
 <div class="screen on" id="s-start">
-  <div class="brand"><b>마음안심</b><span>v0.10.15</span></div>
+  <div class="brand"><b>마음안심</b><span>v0.10.16</span></div>
   <div class="chips"><div class="chip warn demoChip"><span class="dot"></span>DEMO · 기관 승인 전</div></div>
   <h1 class="serif">오늘도 곁에 있을게요</h1>
   <div class="sub">시작 전 30초 안전 확인부터 함께합니다</div>
@@ -123,18 +123,20 @@
   </details>
 
   <details class="sec fold" id="foldAI">
-    <summary><span>AI 맥락 분석 <span class="note">선택</span></span><span class="sum"><span class="pill" id="aiStat">꺼짐 · 키 없음</span></span></summary>
+    <summary><span>AI 맥락 분석 <span class="note">선택</span></span><span class="sum"><span class="pill" id="aiStat">꺼짐</span></span></summary>
+    <div class="mrow"><div><b>AI 맥락 정리</b><div class="note">켜면 자막 일부가 아래 AI 회사 서버로 가요 · 기본 꺼짐 · 사실만 정리하고 위험 판단은 하지 않아요</div></div>
+      <span class="switch" id="swAI" onclick="toggleAI()"><span class="knob"></span><span id="swAITxt">꺼짐</span></span></div>
     <div class="row"><label style="width:110px">AI 회사</label><span class="pill" data-provider="gemini" onclick="pickProvider(this)">Google Gemini (무료 등급)</span><span class="pill" data-provider="anthropic" onclick="pickProvider(this)">Anthropic Claude (유료)</span></div>
     <div class="row">
-      <input class="txt" id="cfgKey" type="password" placeholder="API 키" autocomplete="off" style="flex:1; min-width:220px">
+      <input class="txt" id="cfgKey" type="password" placeholder="API 키" autocomplete="off" style="flex:1; min-width:220px" oninput="foldSums()">
       <button class="mid" id="keyCheck" onclick="checkKey()">연결 확인</button>
     </div>
-    <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-3.6-flash" onclick="pickModel(this)">Gemini 3.6 Flash</span><span class="pill" data-model="gemini-3.6-flash-lite" onclick="pickModel(this)">3.6 Flash-Lite</span><span class="pill" data-model="custom" onclick="pickModel(this)">직접 입력</span><input class="txt" id="cfgGModel" placeholder="모델 이름 (예: gemini-3.6-flash)" autocomplete="off" style="display:none; width:260px; padding:8px 12px; font-size:13px"></div>
+    <div class="row" id="modelRowG"><label style="width:110px">모델</label><span class="pill" data-model="gemini-3.6-flash" onclick="pickModel(this)">Gemini 3.6 Flash</span><span class="pill" data-model="gemini-3.5-flash-lite" onclick="pickModel(this)">3.5 Flash-Lite</span><span class="pill" data-model="custom" onclick="pickModel(this)">직접 입력</span><input class="txt" id="cfgGModel" placeholder="모델 이름 (예: gemini-3.6-flash)" autocomplete="off" style="display:none; width:260px; padding:8px 12px; font-size:13px"></div>
     <div class="row" id="modelRowA"><label style="width:110px">모델</label><span class="pill" data-model="claude-opus-5" onclick="pickModel(this)">Opus 5</span><span class="pill" data-model="claude-sonnet-5" onclick="pickModel(this)">Sonnet 5</span><span class="pill" data-model="claude-haiku-4-5" onclick="pickModel(this)">Haiku 4.5</span></div>
     <div class="row"><label style="width:110px">호출 간격</label><span class="pill" data-every="20" onclick="pickEvery(this)">20초</span><span class="pill" data-every="45" onclick="pickEvery(this)">45초</span><span class="pill" data-every="90" onclick="pickEvery(this)">90초</span><span class="pill" data-every="0" onclick="pickEvery(this)">감지 때만</span></div>
     <div class="note">무료 등급은 하루 호출 횟수에 한도가 있어요(모델마다 다름). "감지 때만"은 위험 신호가 잡힐 때만 불러요.</div>
     <div class="note" id="keyHelp">Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.</div>
-    <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석만 꺼지고 나머지는 그대로 동작해요.</div>
+    <div class="note" id="keyMsg">키는 이 기기 안에만 저장돼요. 꺼져 있거나 키가 없으면 맥락 정리만 빠지고 나머지는 그대로 동작해요.</div>
   </details>
 
   <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; padding-bottom:40px">
@@ -235,7 +237,7 @@
   <div class="brand"><b>마음안심</b><span>상담기록</span></div>
   <h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)">상담기록</h1>
   <div class="stat" id="recStat"></div>
-  <div class="note">기록을 누르면 전체 대화 내용을 볼 수 있어요 · 보존 기간(설정 ⑥)이 지난 기록은 한 줄만 남아요</div>
+  <div class="note">기록을 누르면 전체 대화 내용을 볼 수 있어요 · 보존 기간(설정 > 기록 보존)이 지난 기록은 한 줄만 남아요</div>
   <div id="recList" style="width:min(760px,94vw); max-height:46vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px"></div>
   <input class="txt" id="clearWhy" placeholder="전체 원문 삭제 사유를 적어주세요 (필수)" style="display:none; width:min(640px,90vw)">
   <div style="display:flex; gap:12px">
@@ -389,7 +391,7 @@
     <canvas id="wave"></canvas>
   </div>
   <div class="tl" id="tl"><div class="note" id="tlEmpty">말씀이 시작되면 여기에 글로 나타나요 · 음성은 글로 바뀐 뒤 바로 지워져요</div></div>
-  <div class="ai off" id="aiLine">AI 맥락 분석 꺼짐 · 설정 ③에 키를 넣으면 켜져요</div>
+  <div class="ai off" id="aiLine">AI 맥락 정리 꺼짐 · 설정 > AI 맥락 분석에서 켤 수 있어요</div>
   <button class="corner" style="left:24px" onclick="manualAlert()">동료 호출</button>
   <button class="corner" style="right:24px" onclick="endSession()">상담 종료</button>
 </div>
@@ -422,6 +424,7 @@
     <div style="text-align:left; flex:1; min-width:0"><h1 class="serif" style="font-size:clamp(22px,3.2vw,32px)" id="cdTitle">잠시 후 동료에게 알려요</h1><div class="sub"><span id="cdReason">계속되는 큰 소리가</span> 감지됐어요. <b>괜찮으시면 아래를 눌러주세요.</b> 아무것도 누르지 못하는 상황이라면 저희가 대신 알릴게요.</div></div>
   </div>
   <div class="ev" id="cdEv">-</div>
+  <div class="ai ctx" id="cdCtx" style="display:none"></div>
   <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
     <button class="big" style="border:2px solid #C05A2A; color:#A34A1E" onclick="cancelAlert()">괜찮아요 — 보내지 않기</button>
     <button class="big" style="background:#B07A1E; border-color:#B07A1E; color:#FFF9F0" onclick="playWarning(this)">경고 음성</button>
@@ -436,6 +439,7 @@
   <h1 class="serif" id="alertTitle" style="font-size:clamp(24px,3.6vw,38px)">동료에게 알렸어요</h1>
   <div class="ackcard wait" id="ackCard"><div class="ackmark" id="ackMark">…</div><div><div class="ackname" id="ackName">-</div><div class="acksub" id="ackSub">-</div></div></div>
   <div class="ev" id="alertEv">-</div>
+  <div class="ai ctx" id="alertCtx" style="display:none"></div>
   <div class="note" id="ackLine">-</div>
   <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
     <button class="big" onclick="cancelFromAlert()">괜찮아요 — 상담 계속</button>
@@ -464,7 +468,7 @@
   </div>
   <div class="sec">
     <h2 style="cursor:pointer" onclick="toggleBox('memoBox', this)">상담 메모 <span class="note">원할 때만 · 펼치기 ▾</span></h2>
-    <div id="memoBox" style="display:none"><textarea class="txt" id="wrapMemo" rows="3" placeholder="주요 내용 · 조치 · 후속. 앱이 못 잡은 순간이 있었다면 여기에 적어 주세요."></textarea><div class="note" id="memoAiNote"></div></div>
+    <div id="memoBox" style="display:none"><textarea class="txt" id="wrapMemo" rows="3" placeholder="주요 내용 · 조치 · 후속. 앱이 못 잡은 순간이 있었다면 여기에 적어 주세요."></textarea></div>
   </div>
   <div class="sec">
     <h2 style="cursor:pointer" onclick="toggleBox('basicBox', this)">기본정보 보완 <span class="note">처음 오신 분이면 · 이 기기 안에만 · 펼치기 ▾</span></h2>
@@ -482,6 +486,6 @@
 
 <div id="demoBar" style="display:none"><span>체험 모드 · 신호는 밖으로 나가지 않고 기록도 남지 않아요</span><button onclick="exitDemo(false)">나가기 ✕</button></div>
 <div id="demoGuide" style="display:none" onclick="hideGuide()"></div>
-<script src="app.js?v=0.10.15"></script>
+<script src="app.js?v=0.10.16"></script>
 </body>
 </html>
