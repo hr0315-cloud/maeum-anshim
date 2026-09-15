@@ -17,7 +17,7 @@
   .danger { background: #B3403A !important; border-color: #B3403A !important; color: #FFF6F4 !important; }
   .off { background: #E8DFD2 !important; border-color: #E8DFD2 !important; color: #9C8B77 !important; box-shadow: none !important; cursor: default; }
   .off:active { transform: none; }
-  #s-session { justify-content: flex-start; padding-top: 66px; padding-bottom: 64px; gap: 12px; }
+  #s-session { justify-content: flex-start; padding-top: 66px; padding-bottom: 104px; gap: 12px; }   /* v0.10.15: 아래 버튼이 최신 자막을 가리지 않게 */
   .toprow { display: flex; align-items: center; justify-content: space-between; width: min(760px, 92vw); gap: 16px; }
   #s-session #wave { width: min(420px, 50vw); height: clamp(40px, 7vh, 60px); }
   .tl { width: min(760px, 92vw); flex: 1; min-height: 120px; background: #FFF; border: 1px solid #EADFCE; border-radius: 14px; padding: 12px 18px; text-align: left; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; }
@@ -114,6 +114,7 @@
     .screen { justify-content: flex-start; padding: 78px 4vw 24px; gap: 2.4vh; overflow-y: auto; }
     .screen > div, .screen > h1 { max-width: 100%; }
     .screen > div { flex-wrap: wrap; justify-content: center; }
+    #detList, #recList, #tl, #fbList { flex-wrap: nowrap; }   /* v0.10.15: 휴대폰 폭에서 대화록이 옆으로 밀리던 것 */
     h1 { font-size: clamp(22px, 6.6vw, 30px); }
     .big { font-size: 17px; padding: 15px 26px; }
     .banner { font-size: 13.5px; padding: 13px 16px; }

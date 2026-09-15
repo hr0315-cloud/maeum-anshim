@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.14)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.15)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -20,13 +20,13 @@ window.onerror = function (msg) {
   // ---------- 설정 (기기 안에만 저장) ----------
   var DEF = {
     n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
-    n2: '글로 바꾸기 위해 음성이 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
+    n2: '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
     n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
     refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않는 대신, 동료가 함께 앉거나 사무실 가까운 곳으로 옮겨서 진행해요. 필요하면 상담자가 직접 동료를 부릅니다.',
     approved: false,
     grace: 10,
     sens: 'mid',
-    threat: '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 조심해라, 조심하라고, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오',
+    threat: '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오',
     demand: '해줘, 해달라, 해주라고, 달라고, 주라고, 왜 안 되, 왜 안 돼, 안 되냐, 안되냐, 안 돼냐, 언제 줘, 해결해 내, 내놔, 내놓으라, 약속했잖, 해준다며, 해준다고, 해주기로, 해 줘야',
     score: 3,
     // v0.10.10 B층 돈 요구: 상담자에게 직접 돈을 요구하는 꼴만. 이 상담 첫 번째 2점, 두 번째는 바로 유예
@@ -76,6 +76,8 @@ window.onerror = function (msg) {
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
+    if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.15: v0.10.14 기본 고지 2번 → 중계 서버를 거친다는 말 추가
+    if (out.threat === '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 조심해라, 조심하라고, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오') out.threat = DEF.threat;   // v0.10.15: "조심해라" 단독("계단 조심해라"도 걸림) 뺀 새 목록
     if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.14: v0.10.5 기본 고지 2번 → 음성 전송처(CLOVA Speech 등)를 적은 새 문구
     if (out.sexual === '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘') out.sexual = DEF.sexual;   // v0.10.13: v0.10.1~0.10.12 기본 성희롱 목록 → "손 한번 잡아 보자" 꼴 추가한 새 목록
     return out;
@@ -91,7 +93,7 @@ window.onerror = function (msg) {
   // 한 문장을 세 층으로 분류한다. imm = A층(즉시) 하나 · pts = B층(점수) 여러 개 · refusal = C층(문턱)
   function matchAll(x) {
     var t = String(x || '').replace(/\s+/g, ''), r = { imm: null, pts: [], refusal: false }, m;
-    m = RX_CODE && RX_CODE.exec(t); if (m) { r.imm = { kind: 'code', hit: m[1] }; return r; }
+    m = RX_CODE && RX_CODE.exec(t); if (m) r.code = { kind: 'code', hit: m[1] };   // v0.10.15: 암호 문구가 있어도 같은 줄의 즉시 층은 계속 본다
     m = RX_COUNSELOR && RX_COUNSELOR.exec(t); if (m) { r.imm = { kind: 'counselor', hit: m[1] }; return r; }
     m = RX_THREAT && RX_THREAT.exec(t); if (m) { r.imm = { kind: 'threat', hit: m[1] }; return r; }
     m = RX_ABUSE && RX_ABUSE.exec(t); if (m) { r.imm = { kind: 'abuse', hit: m[1] }; return r; }
@@ -102,6 +104,7 @@ window.onerror = function (msg) {
     m = !r.money && RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
     m = RX_CALM && RX_CALM.exec(t); if (m) r.pts.push({ k: 'calm', p: 1, hit: m[1] });
     m = RX_REFUSAL && RX_REFUSAL.exec(t); if (m) { r.refusal = true; r.refusalHit = m[1]; }
+    if (!r.imm && r.code) r.imm = r.code;
     return r;
   }
   // 같은 말 되풀이: 낱말(2자 이상)이 절반 이상 겹치면 반복으로 본다
@@ -211,7 +214,7 @@ window.onerror = function (msg) {
   window.listCounts = function () {
     var total = 0;
     document.querySelectorAll('#foldLists .cnt').forEach(function (c) { var t = $(c.getAttribute('data-for')); var n = t ? t.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean).length : 0; total += n; c.textContent = n + '개'; });
-    var s = $('sumLists'); if (s) s.textContent = '11묶음 · ' + total + '개';
+    var s = $('sumLists'); if (s) s.textContent = '10묶음 · ' + total + '개';
   };
   window.pickGrace = function (el) { pickOne(el, 'data-grace'); };
   window.pickSens = function (el) { pickOne(el, 'data-sens'); };
@@ -264,9 +267,9 @@ window.onerror = function (msg) {
   window.resetSettings = function () {
     formKeys[formProvider] = $('cfgKey').value.trim();
     var keep = { gkey: formKeys.gemini, key: formKeys.anthropic, provider: formProvider };
-    CFG = loadCfg(); Object.keys(DEF).forEach(function (k) { CFG[k] = DEF[k]; });
-    CFG.gkey = keep.gkey; CFG.key = keep.key; CFG.provider = keep.provider;
-    openSettings();
+    var saved = CFG, d = {}; Object.keys(DEF).forEach(function (k) { d[k] = DEF[k]; });
+    d.gkey = keep.gkey; d.key = keep.key; d.provider = keep.provider;
+    CFG = d; openSettings(); CFG = saved;   // v0.10.15: 화면만 기본값으로 채우고 실제 설정은 "저장" 전까지 그대로
     $('cfgMsg').textContent = '기본값으로 되돌렸어요 — "저장"을 눌러야 적용돼요 (키는 그대로)';
   };
   // AI 연결 확인: 브라우저에서 직접 호출 (시연용). 키는 요청 헤더로만 나가고 어디에도 기록되지 않는다.
@@ -369,13 +372,13 @@ window.onerror = function (msg) {
     S.tr = [];
     S.counselor = ($('counselorName').value || '').trim() || '-';
     S.client = ($('clientName').value || '').trim() || '-';
-    try { localStorage.setItem('ma_counselor', S.counselor); } catch (e) {}
+    try { if (!S.demo) localStorage.setItem('ma_counselor', S.counselor === '-' ? '' : S.counselor); } catch (e) {}
     S.cooldownUntil = 0; loudUntil = Date.now() + 20000;   // 큰 소리 감지만 시작 뒤 20초 대기 (마이크 기준 잡는 시간)
     $('stateChip').className = 'chip calm';
     $('stateTxt').textContent = S.acc.name + (withRecord ? ' · 마이크 준비 중' : ' · 기록 없음');   // v0.10.2: 음성인식이 실제로 시작되면 "기록 중"으로
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.moneyN = 0; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.moneyN = 0; S.same = {}; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
@@ -402,7 +405,7 @@ window.onerror = function (msg) {
     clearInterval(timerId);
     timerId = setInterval(tick, 400);
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
-    draw();
+    startDraw();
   };
 
   function tick() {
@@ -422,6 +425,13 @@ window.onerror = function (msg) {
   var sttMode = '';   // 'clova' | 'chrome' | 'fallback'(클로바 끊겨 크롬으로 받는 중)
   // v0.10.2: 음성인식 상태를 그대로 보여준다. 준비 중 → 기록 중 / 마이크 꺼짐(권한 거부·미지원) / 다시 연결 중
   function setRecState(label, note) {
+    // v0.10.15: 받아쓰기 상태는 기록 칩에도 늘 보인다(감지 뒤에는 상태 칩을 감지 표시로 쓰므로)
+    var rl = $('recLabel'), rc = $('recChip');
+    if (rl && S.acc && !S.noRecord) {
+      var stopped = /마이크|안 됨|멈춤/.test(label);
+      rl.textContent = stopped ? '받아쓰기 멈춤' : /크롬/.test(label) ? '기록 중 · 크롬' : /다시 연결|연결 중/.test(label) ? '연결 중' : /클로바/.test(label) ? '기록 중 · 클로바' : '기록 중';
+      if (rc) rc.className = stopped ? 'chip off' : 'chip rec';
+    }
     var st = $('stateTxt'); if (!st || !S.acc) return;
     if (S.alerts > 0 || /✓|✗/.test(st.textContent)) return;   // 감지 뒤에는 칩을 감지 표시로 쓴다
     st.textContent = S.acc.name + ' · ' + label;
@@ -451,7 +461,7 @@ window.onerror = function (msg) {
     chromeOn = true;
     try { stt.start(); } catch (e) {}
   }
-  function stopChrome() { chromeOn = false; if (stt) { var s0 = stt; stt = null; try { s0.stop(); } catch (e) {} } }
+  function stopChrome() { chromeOn = false; if (stt) { var s0 = stt; stt = null; s0.onresult = null; s0.onend = null; s0.onerror = null; s0.onstart = null; try { s0.stop(); } catch (e) {} } }   // v0.10.15: 끈 뒤 늦은 결과가 같은 말로 또 들어가지 않게
 
   // ---- 클로바: 마이크 → 16kHz mono 16bit PCM 100ms 조각 → 중계 서버(wss) → 문장 결과 ----
   var cv = { ws: null, ready: false, node: null, src: null, sink: null, stream: null, mod: false, n: 0, readyT: 0, retryT: 0 };
@@ -473,9 +483,9 @@ window.onerror = function (msg) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     try { audioCtx.resume(); } catch (e) {}
     var mod = cv.mod ? Promise.resolve() : audioCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([PCM_WORKLET], { type: 'application/javascript' }))).then(function () { cv.mod = true; });
-    mod.then(function () { return navigator.mediaDevices.getUserMedia({ audio: true }); })
+    mod.then(function () { return getMic(); })
       .then(function (stream) {
-        if (!sttActive) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+        if (!sttActive) return;
         cv.stream = stream;
         cv.src = audioCtx.createMediaStreamSource(stream);
         cv.node = new AudioWorkletNode(audioCtx, 'pcm16k', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
@@ -515,7 +525,11 @@ window.onerror = function (msg) {
   }
   function clovaFail(retry) {
     if (!sttActive) return;
-    if (sttMode !== 'fallback') { sttMode = 'fallback'; startChrome(); setRecState('클로바 끊김 → 크롬으로 기록 중'); }
+    if (sttMode !== 'fallback') {
+      sttMode = 'fallback'; startChrome();
+      if (chromeOn) setRecState('클로바 끊김 → 크롬으로 기록 중');
+      else setRecState('받아쓰기 멈춤 · 동료 호출 버튼으로', '클로바 연결이 끊겼고 이 브라우저는 크롬 음성인식이 안 돼요 · 자동 감지 없이 진행 중 · 30초마다 다시 연결해요');   // v0.10.15
+    }
     clearTimeout(cv.retryT);
     if (retry) cv.retryT = setTimeout(function () { if (sttActive && sttMode === 'fallback' && !cv.ws) clovaOpen(); }, 30000);
   }
@@ -526,7 +540,7 @@ window.onerror = function (msg) {
     if (cv.node) { try { cv.node.port.onmessage = null; cv.node.disconnect(); } catch (e) {} cv.node = null; }
     if (cv.src) { try { cv.src.disconnect(); } catch (e) {} cv.src = null; }
     if (cv.sink) { try { cv.sink.disconnect(); } catch (e) {} cv.sink = null; }
-    if (cv.stream) { cv.stream.getTracks().forEach(function (t) { t.stop(); }); cv.stream = null; }
+    cv.stream = null;   // v0.10.15: 마이크는 소리 분석기와 같이 쓰므로 여기서 끄지 않는다(상담 종료 때 끔)
   }
   function stopSTT() { sttActive = false; stopChrome(); stopClova(); sttMode = ''; }
   window.__sttInfo = function () { return { mode: sttMode, chrome: chromeOn, ws: !!cv.ws, ready: cv.ready, lines: cv.n }; };   // 시험용
@@ -557,18 +571,18 @@ window.onerror = function (msg) {
     return r >= 2.2 ? 2 : r >= 1.5 ? 1 : 0;
   }
   function checkInterim(x, key) {
-    if (!detectOn() || (S.immDone && S.immDone.key === key)) return;
+    if (!detectOn() || (S.immDone && S.immDone.key === key && S.immDone.kind !== 'code')) return;
     var r = matchAll(x);
     if (!r.imm) { immStable = null; return; }
     // 중간 글은 계속 고쳐지므로 같은 구절이 연달아 두 번 보일 때만 믿는다 (한 번만 보이면 확정된 줄에서 잡힌다)
     if (!(immStable && immStable.key === key && immStable.hit === r.imm.hit)) { immStable = { key: key, hit: r.imm.hit }; return; }
     var now = Date.now();
-    if (r.imm.kind === 'code') {
-      if (now - (S.lastCodeAt || 0) > 10000) { S.immDone = { key: key }; S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.imm.hit, x: x, at: now }; fireSilent(); }
-      return;
+    if (r.code && !(S.immDone && S.immDone.key === key)) {
+      if (now - (S.lastCodeAt || 0) > 10000) { S.immDone = { key: key, kind: 'code' }; S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.code.hit, x: x, at: now }; fireSilent(); }
     }
+    if (r.imm.kind === 'code') return;
     if (now <= S.cooldownUntil) return;
-    S.immDone = { key: key };
+    S.immDone = { key: key, kind: r.imm.kind };
     S.lastHit = { kind: r.imm.kind, hit: r.imm.hit, x: x, at: now, v: volPeek() };
     triggerCountdown(IMM_REASON[r.imm.kind].replace('%', r.imm.hit));
   }
@@ -715,26 +729,29 @@ window.onerror = function (msg) {
     if (!detectOn()) return;
     var r = matchAll(x), now = Date.now();
     // v0.10.4: 중간 글에서 이미 즉시 층으로 처리한 말이 확정되면 다시 울리지 않는다
-    var done = !!(key && S.immDone && S.immDone.key === key);
+    var doneKind = (key && S.immDone && S.immDone.key === key) ? (S.immDone.kind || 'x') : '';
     // C층: 거절·제한 통보는 쉬는 시간과 무관하게 창을 연다 (울리지 않음)
     if (r.refusal) { S.winUntil = now + SCORE_WIN; renderAcc(); clearTimeout(winTid); winTid = setTimeout(renderAcc, SCORE_WIN + 300); }
     // v0.10.2: 암호 문구는 쉬는 시간과 무관하게 언제나 통한다 (같은 문구 10초 안 중복만 막음)
-    if (r.imm && r.imm.kind === 'code') {
-      if (done) return;
-      if (now - (S.lastCodeAt || 0) > 10000) { S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.imm.hit, x: x, at: now }; fireSilent(); }
-      return;
+    if (r.code) {
+      if (doneKind !== 'code' && now - (S.lastCodeAt || 0) > 10000) { S.lastCodeAt = now; S.lastHit = { kind: 'code', hit: r.code.hit, x: x, at: now }; fireSilent(); }
+      if (r.imm.kind === 'code') return;   // v0.10.15: 같은 줄에 위협 등이 함께 있으면 아래에서 계속 처리
     }
     if (now <= S.cooldownUntil) return;
     if (r.imm) {
-      if (done) return;
+      if (doneKind && doneKind !== 'code') return;
       S.lastHit = { kind: r.imm.kind, hit: r.imm.hit, x: x, at: now };
       triggerCountdown(IMM_REASON[r.imm.kind].replace('%', r.imm.hit));
       return;
     }
     // B층
     // v0.10.1 규칙 1: 음성인식이 같은 문장을 5초 안에 두 번 확정하면 두 번째는 세지 않는다
-    var dupe = !!(S.lastLine && S.lastLine.x === x && now - S.lastLine.at < 5000); S.lastLine = { x: x, at: now };
-    if (dupe) { renderAcc(); return; }
+    // v0.10.15: 띄어쓰기만 다른 똑같은 문장이 2분 안에 두 번째면 세지 않는다(받아쓰기가 같은 말을 두 번 보내는 경우 포함).
+    // 세 번째부터는 목소리 크기·다른 신호와 상관없이 "같은 말 반복" 1점(창 안 최대 1점)
+    var sk = x.replace(/\s+/g, ''); S.same = S.same || {};
+    var seen = (S.same[sk] || []).filter(function (t) { return now - t < SCORE_WIN; }); seen.push(now); S.same[sk] = seen;
+    if (seen.length === 2) { renderAcc(); return; }
+    var sameN = seen.length;
     // v0.10.10 돈 요구: 이 상담에서 두 번째면 시간과 무관하게 바로 유예, 첫 번째는 2점
     if (r.money) {
       S.moneyN = (S.moneyN || 0) + 1;
@@ -756,7 +773,7 @@ window.onerror = function (msg) {
     });
     var cur = pruneScore(), has = function (k) { return cur.some(function (e) { return e.k === k; }); }, calmHit = added.some(function (e) { return e.k === 'calm'; });
     // 규칙 2·3: 같은 말 되풀이는 큰 목소리이거나 다른 신호와 같이 있을 때만, 창 안 최대 1점. 완화 표현이 걸린 줄은 되풀이로 세지 않는다
-    if (!calmHit && !has('repeat') && (v >= 1 || added.length) && isRepeat(x, prev)) added.push({ k: 'repeat', p: 1, hit: '' });
+    if (!has('repeat') && (sameN >= 3 || (!calmHit && (v >= 1 || added.length) && isRepeat(x, prev)))) added.push({ k: 'repeat', p: 1, hit: '' });
     // 규칙 4: 매우 큰 목소리 점수는 창 안 최대 1점 (1.5초 이상 계속되는 큰 소리는 즉시 층이 따로 본다)
     if (v === 2 && !has('loud')) added.push({ k: 'loud', p: 1, hit: '' });
     if (!added.length) { renderAcc(); return; }
@@ -791,14 +808,21 @@ window.onerror = function (msg) {
     } catch (e) {}
   };
 
+  var micPromise = null;
+  function getMic() {
+    if (!micPromise) micPromise = navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+      if (!S.acc || !inSession()) { s.getTracks().forEach(function (t) { t.stop(); }); micPromise = null; throw new Error('상담이 끝난 뒤 마이크 허용됨'); }   // v0.10.15: 허용 창이 떠 있는 동안 끝냈으면 끈다
+      micStream = s; return s;
+    }, function (e) { micPromise = null; throw e; });
+    return micPromise;
+  }
   function initMic() {
     if (analyser || S.noRecord || S.demo) return;
     if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
     // 안드로이드 크롬은 버튼을 누른 직후에만 소리 분석기를 깨울 수 있다 → 마이크 허용을 기다리기 전에 먼저 만들고 깨운다
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     try { audioCtx.resume(); } catch (e) {}
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      micStream = stream;
+    getMic().then(function (stream) {
       try { audioCtx.resume(); } catch (e) {}
       var src = audioCtx.createMediaStreamSource(stream);
       analyser = audioCtx.createAnalyser();
@@ -822,6 +846,8 @@ window.onerror = function (msg) {
     return Math.sqrt(sum / d.length);
   }
 
+  var drawOn = false;
+  function startDraw() { if (drawOn) return; drawOn = true; draw(); }   // v0.10.15: 상담을 여러 번 해도 한 번만 돈다(겹치면 큰 소리 기준이 빨리 변함)
   function draw() {
     requestAnimationFrame(draw);
     if (S.screen !== 'session') return;
@@ -858,7 +884,7 @@ window.onerror = function (msg) {
     var now = Date.now();
     if (now - S.tapT > 1200) S.taps = [];
     S.tapT = now; S.taps.push(now);
-    if (S.taps.length >= 3 && S.screen === 'session') { S.taps = []; triggerCountdown(); }
+    if (S.taps.length >= 3 && S.screen === 'session') { S.taps = []; S.lastHit = { kind: 'manual', hit: '', x: '', at: now }; triggerCountdown('상담자의 숨은 호출(칩 세 번 누르기)이'); }
   };
   window.manualAlert = function () { if (S.screen === 'session') fireAlert('manual'); };
 
@@ -949,7 +975,7 @@ window.onerror = function (msg) {
   }
   function fireSilent() {
     clearTimeout(escId); clearInterval(ackTick);
-    S.cooldownUntil = Date.now() + 45000; S.alerts += 1; S.ackBy = ''; S.silent = true;
+    S.alerts += 1; S.ackBy = ''; S.silent = true;   // v0.10.15: 조용한 호출 뒤에도 자동 감지는 쉬지 않는다
     var aid = S.alerts;   // v0.10.2: 이 상담에서 몇 번째 경보인지. 확인 신호는 이 번호가 맞아야 받는다
     var elapsed = fmt(Math.floor((Date.now() - S.startedAt) / 1000)), ev = buildEv('code', 'auto'); ev.t = elapsed;
     S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: 'code', hit: '', v: 0, n: ev.n, aid: aid, how: 'code', ack: null, esc: false, ts: Date.now() }; S.alertLog.push(logItem);
@@ -1035,9 +1061,30 @@ window.onerror = function (msg) {
     var log = S.alertLog && S.alertLog[S.alertLog.length - 1]; if (log && !log.ack) log.ack = { by: S.ackBy, t: hhmm(), ts: Date.now() };
     if (S.silent) { var st = $('stateTxt'); if (st && S.acc) st.textContent = S.acc.name + ' ✓ ' + hhmm(); return; }   // 조용한 호출: 작은 칩으로만
     setAck('ok', S.ackBy === '팀 상황판' ? '팀 상황판에서 확인했어요' : S.ackBy + ' 선생님이 확인했어요', hhmm() + ' · 오고 있어요');
+    if (S.stopPending) setTimeout(function () { if (S.stopPending && S.screen === 'alert') endSession(); }, 3000);   // v0.10.15: 중단을 누른 뒤 확인이 오면 3초 뒤 기록 화면으로
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
   }
-  window.cancelFromAlert = function () { var c = linkCfg(); clearTimeout(escId); clearInterval(ackTick); postSig({ type: 'cancel', rid: S.acc ? S.acc.rid : '', place: (c && c.place) || '' }); go('session'); };
+  window.cancelFromAlert = function () {
+    var c = linkCfg(); clearTimeout(escId); clearInterval(ackTick); postSig({ type: 'cancel', rid: S.acc ? S.acc.rid : '', place: (c && c.place) || '' });
+    var wasStop = S.stopPending; resetStopUi();
+    go('session');
+    if (wasStop && !S.noRecord && !S.demo) startSTT();   // 중단을 눌렀다가 상담을 이어가면 받아쓰기를 다시 켠다
+  };
+  // v0.10.15: 알림 화면 [상담 중단] — 동료가 아직 확인하지 않았으면 업무폰 알림·상황판 확산을 끄지 않는다.
+  // 받아쓰기만 멈추고, 확인이 오면 기록 화면으로 넘어간다. 한 번 더 누르면(지금 끝내기) 알림도 멈추고 끝낸다.
+  window.stopFromAlert = function () {
+    var c = linkCfg();
+    if (S.stopPending || S.ackBy || S.demo || !(c && c.role === 'host')) { endSession(); return; }
+    S.stopPending = true; stopSTT(); aiStop();
+    $('alertTitle').textContent = '상담을 중단했어요';
+    $('stopBtn').textContent = '지금 끝내기 (알림도 멈춰요)';
+    $('stopNote').textContent = '동료가 확인하면 기록 화면으로 넘어가요 · "지금 끝내기"를 누르면 업무폰·상황판 알림도 멈춰요';
+  };
+  function resetStopUi() {
+    S.stopPending = false;
+    var b = $('stopBtn'); if (b) b.textContent = '상담 중단';
+    var n = $('stopNote'); if (n) n.textContent = '상담 중단은 기관이 정한 절차에 따라 할 수 있어요 · 동료가 확인할 때까지 알림은 계속돼요';
+  }
 
   // ---------- 확인 전화 ----------
   function startRing() {
@@ -1077,6 +1124,8 @@ window.onerror = function (msg) {
 
   // ---------- 종료 · 관찰 ----------
   window.endSession = function () {
+    resetStopUi();
+    if (S.interim && S.interim.x && S.startedAt) { S.tr.push({ t: fmt(Math.floor((Date.now() - S.startedAt) / 1000)), x: S.interim.x, v: 0 }); S.interim = null; }   // v0.10.15: 끝나는 순간 말하던 글도 남긴다(감지는 하지 않음)
     clearInterval(timerId); playRing(false); clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick); stopSTT(); aiStop();
     var cE = linkCfg();
     if (cE && cE.role === 'host') postSig({ type: 'end', rid: S.acc ? S.acc.rid : '', place: cE.place, who: S.counselor });
@@ -1087,6 +1136,7 @@ window.onerror = function (msg) {
     S.endedAt = Date.now();
     if (S.noRecord && !S.demo) saveNoRecordLine(); else openWrap(null);   // v0.10.8: 기록 없이 한 상담은 기록 화면 없이 한 줄만
     if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; analyser = null; }
+    micPromise = null;
     if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
   };
   window.ans = function (el, q, v) {
@@ -1376,7 +1426,7 @@ window.onerror = function (msg) {
       var arr = getObs();
       if (arr[curIdx] && !arr[curIdx].del) {
         arr[curIdx].del = { when: iso(Date.now()), why: why };
-        arr[curIdx].tr = [];
+        arr[curIdx].tr = []; arr[curIdx].ctx = [];
         localStorage.setItem('ma_obs', JSON.stringify(arr));
       }
     } catch (e) {}
@@ -1456,7 +1506,7 @@ window.onerror = function (msg) {
     try {
       var arr = getObs();
       var when = iso(Date.now());
-      arr.forEach(function (r) { if (!r.del && !r.gone) { r.del = { when: when, why: why }; r.tr = []; } });
+      arr.forEach(function (r) { if (!r.del && !r.gone) { r.del = { when: when, why: why }; r.tr = []; r.ctx = []; } });
       localStorage.setItem('ma_obs', JSON.stringify(arr));
     } catch (e) {}
     updateObsCount();
@@ -1623,7 +1673,7 @@ window.onerror = function (msg) {
     if (!(c && c.role === 'host') || !name) { updateReqBtn(); return; }
     S.counselor = ($('counselorName').value || '').trim() || '-';
     S.client = ($('clientName').value || '').trim() || '-';
-    try { localStorage.setItem('ma_counselor', S.counselor); } catch (e) {}
+    try { if (!S.demo) localStorage.setItem('ma_counselor', S.counselor === '-' ? '' : S.counselor); } catch (e) {}
     S.rid = newId(); S.acc = null; S.reqTo = name; S.reqAt = Date.now();
     var rid = S.rid;
     hostSubscribe();
@@ -1677,7 +1727,7 @@ window.onerror = function (msg) {
     S.acc = null; S.rid = '';
   }
   window.backFromNotice = function () { releaseLink(); go('checkin'); renderBuddies(false); };
-  window.abandonSession = function () { releaseLink(); go('start'); };
+  window.abandonSession = function () { if (S.demo) { exitDemo(false); return; } releaseLink(); go('start'); };   // v0.10.15: 체험 중이면 체험을 끝낸다
 
   // ---------- 업무폰: 이름 등록 · 대기 · 수락 · 연결 ----------
   var phoneEs = null, pTick = 0, pRingId = 0, pendId = 0, P = { name: '', req: null, conn: null, alerts: 0 };
@@ -2151,7 +2201,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.14';
+  var APP_VER = '0.10.15';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2262,14 +2312,14 @@ window.onerror = function (msg) {
     clearInterval(timerId); clearInterval(cdId); clearTimeout(escId); clearInterval(ackTick); clearInterval(hbId); playRing(false); aiStop(); stopSTT();
     if (demoOrig) { postSig = demoOrig.p; notifyHuman = demoOrig.n; demoOrig = null; }
     S.demo = false; S.acc = null; S.rid = ''; S.callMin = 15; S.wrapRec = null; S.tr = []; S.alertLog = []; S.alerts = 0;
-    $('demoBar').style.display = 'none'; $('clientName').value = '';
+    $('demoBar').style.display = 'none'; $('clientName').value = ''; if ($('counselorName').value === '체험 상담자') $('counselorName').value = '';
     go('start');
     var g = $('demoGuide');
     if (done) guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결 설정"에서 팀 코드로 시작합니다.', 9000);
     else hideGuide();
   };
   window.__S = S; window.__match = matchAll;   // 시험용
-  window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; S.moneyN = 0; renderAcc(); };   // 시험용
+  window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; S.moneyN = 0; S.same = {}; renderAcc(); };   // 시험용
   // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
   (function () {
     var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
