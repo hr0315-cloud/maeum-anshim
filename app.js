@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.12)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.13)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -33,7 +33,7 @@ window.onerror = function (msg) {
     money: '빌려 줘, 빌려 줘요, 빌려 주세요, 빌려 주라, 빌려 주면 안, 빌려 줄 수 있, 빌려 줄래, 빌려 주실 수, 빌려 주시면, 빌려 달라니까, 빌려 달라고요, 빌려 달란 말, 돈 좀 줘, 돈 줘요, 돈 좀 주세요, 돈 좀 달라, 돈 내놔, 돈 좀 꿔, 꿔 줘, 꿔 주세요, 꿔 달라니까',
     abuse: '씨발, 시발, 씨팔, 개새끼, 새끼야, 이런 새끼, 이 새끼, 저 새끼, 병신, 미친놈, 미친년, 지랄, 엿 먹어, 엿 먹으, 꺼져라, 꺼지라고, 꺼져 버려, 꺼져버려, 당장 꺼져, 꺼져 이, 닥쳐라, 닥치라고, 닥쳐요, 입 닥, 그냥 닥쳐, 좀 닥쳐, 닥쳐 이, 등신, 또라이, 개같은, 좆',
     // A층(즉시) 성희롱 표현. 신체 부위 단독(가슴·다리·엉덩이)은 "아파요"에 걸리므로 넣지 않고, 만져·좀·크·예쁘와 붙은 꼴만
-    sexual: '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘',
+    sexual: '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 손 한번 잡아 보자, 손 한번 잡아 볼래, 손 한번만 잡아 보자, 손 한번만 잡자, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘',
     // A층(즉시) 상담자가 중단 의사를 밝히는 말 — 화자 분리 없이도 내담자가 할 리 없는 문장
     counselor: '그런 말씀은 그만하세요, 그런 말씀 그만하세요, 그런 말씀은 그만하셨으면, 그렇게 말씀하시면 상담을, 그렇게 하시면 상담을, 이러시면 상담을, 상담을 계속할 수 없습니다, 상담을 계속할 수 없어요, 상담을 중단하겠습니다, 상담을 중단하겠어요, 상담을 중단할게요, 동료를 부르겠습니다, 동료를 부를게요, 위협적인 말씀',
     // A층 암호 문구: 말하면 유예·화면 변화 없이 바로 동료 호출 (내담자 앞에서 손 안 대고 부르는 길)
@@ -76,6 +76,7 @@ window.onerror = function (msg) {
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
+    if (out.sexual === '뽀뽀해 줘, 뽀뽀해 봐, 뽀뽀하자, 뽀뽀 한번, 뽀뽀 좀, 키스해 줘, 키스하자, 키스 한번, 키스하고 싶, 사귀자, 사귈래, 사귀어 줘, 애인 하자, 애인 해 줘, 애인 해 달, 애인 할래, 애인 삼, 내 애인 해, 몸매 좋, 몸매가 좋, 가슴이 크네, 가슴이 크다, 가슴이 커서, 가슴 크네, 가슴 만져, 가슴 좀 만, 엉덩이 만져, 엉덩이 좀 만, 허벅지 만져, 손 잡아 보자, 손 좀 잡아 보자, 손 좀 잡아 봐, 손잡아 보자, 손 잡아 볼래, 손 좀 잡자, 손 한번 잡자, 손 한번 잡아 봐, 안아 보자, 안아 봐도, 안아 줄래, 안아 볼래, 같이 자자, 같이 잘래, 같이 자고 싶, 나랑 같이 자, 자고 갈래, 모텔 가자, 모텔 갈래, 모텔에 가자, 야한 영상, 야한 사진, 옷 벗어 봐, 옷 벗어 보자, 벗어 볼래, 데이트 하자, 데이트 할래, 밤에 만나자, 둘이서 만나자, 둘이 만나자, 따로 만나자, 만져 봐도, 만져 보자, 만져 볼래, 만지게 해 줘') out.sexual = DEF.sexual;   // v0.10.13: v0.10.1~0.10.12 기본 성희롱 목록 → "손 한번 잡아 보자" 꼴 추가한 새 목록
     return out;
   }
   function saveCfg() { try { localStorage.setItem('ma_cfg', JSON.stringify(CFG)); } catch (e) {} }
@@ -2149,7 +2150,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.12';
+  var APP_VER = '0.10.13';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
