@@ -5,7 +5,7 @@ window.onerror = function (msg) {
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.15)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.16)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -45,6 +45,7 @@ window.onerror = function (msg) {
     // C층(문턱) 거절·제한 통보: 울리지 않고 뒤 2분 동안 기준 점수를 1 낮춘다 (폭력 선행요인 1위)
     refusal: '규정상 어렵, 도와드릴 수 없, 지원이 안 되, 지원이 어렵, 대상이 아니, 이번에는 어렵, 해드릴 수 없, 불가능합니다',
     stt: 'clova',   // v0.10.11 받아쓰기: 'clova'(네이버 CLOVA Speech 실시간, 중계 서버 경유) | 'chrome'(크롬 내장 음성인식)
+    aiOn: false,   // v0.10.16 AI 맥락 정리 스위치. 기본 꺼짐 — 켜야 자막 일부가 AI 회사 서버로 간다 (키만 있어서는 안 켜짐)
     provider: 'gemini',
     gkey: '', gmodel: 'gemini-3.6-flash',
     key: '', model: 'claude-opus-5',
@@ -76,6 +77,7 @@ window.onerror = function (msg) {
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
+    if (out.gmodel === 'gemini-3.6-flash-lite') out.gmodel = 'gemini-3.5-flash-lite';   // v0.10.16: "3.6 Flash-Lite"는 구글 공식 모델 목록에 없는 이름(9/15 확인) → 3.5 Flash-Lite
     if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.15: v0.10.14 기본 고지 2번 → 중계 서버를 거친다는 말 추가
     if (out.threat === '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 조심해라, 조심하라고, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오') out.threat = DEF.threat;   // v0.10.15: "조심해라" 단독("계단 조심해라"도 걸림) 뺀 새 목록
     if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.14: v0.10.5 기본 고지 2번 → 음성 전송처(CLOVA Speech 등)를 적은 새 문구
@@ -150,14 +152,16 @@ window.onerror = function (msg) {
     t.forEach(function (id, i) { var el = $(id); if (el) el.textContent = v[i]; });
     var nr = $('norecTxt'); if (nr) nr.textContent = CFG.refuse;
     document.querySelectorAll('.demoChip, .demoNote').forEach(function (el) { el.style.display = CFG.approved ? 'none' : ''; });
-    var ai = $('aiStat'); if (ai) ai.textContent = aiKey() ? '켜짐 · ' + modelLabel(aiModel()) : '꺼짐 · 키 없음';
+    var ai = $('aiStat'); if (ai) ai.textContent = aiStatTxt(CFG.aiOn, aiKey(), aiModel());
   }
-  // 현재 고른 AI 회사의 키·모델
+  // 현재 고른 AI 회사의 키·모델. aiOn(): 스위치가 켜져 있고 키도 있어야 실제로 동작한다
   function aiKey() { return CFG.provider === 'anthropic' ? CFG.key : CFG.gkey; }
+  function aiOn() { return !!(CFG.aiOn && aiKey()); }
+  function aiStatTxt(on, key, model) { return !on ? '꺼짐' : !key ? '켜짐 · 키가 없어 동작 안 함' : '켜짐 · ' + modelLabel(model); }
   function aiModel() { return CFG.provider === 'anthropic' ? CFG.model : CFG.gmodel; }
   function modelLabel(m) {
     return m === 'claude-haiku-4-5' ? 'Claude Haiku 4.5' : m === 'claude-sonnet-5' ? 'Claude Sonnet 5' : m === 'claude-opus-5' ? 'Claude Opus 5'
-      : m === 'gemini-3.6-flash-lite' ? 'Gemini 3.6 Flash-Lite' : m === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : m;
+      : m === 'gemini-3.5-flash-lite' ? 'Gemini 3.5 Flash-Lite' : m === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : m;
   }
   var formKeys = { gemini: '', anthropic: '' }, formProvider = 'gemini';
   window.openSettings = function () {
@@ -173,13 +177,14 @@ window.onerror = function (msg) {
     document.querySelectorAll('#s-settings [data-grace]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-grace'), 10) === CFG.grace); });
     document.querySelectorAll('#s-settings [data-sens]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-sens') === CFG.sens); });
     document.querySelectorAll('#s-settings [data-every]').forEach(function (p) { p.classList.toggle('on', parseInt(p.getAttribute('data-every'), 10) === CFG.aiEvery); });
-    var known = ['gemini-3.6-flash', 'gemini-3.6-flash-lite'].indexOf(CFG.gmodel) >= 0;
+    var known = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'].indexOf(CFG.gmodel) >= 0;
     document.querySelectorAll('#modelRowG [data-model]').forEach(function (p) { var v = p.getAttribute('data-model'); p.classList.toggle('on', known ? v === CFG.gmodel : v === 'custom'); });
     $('cfgGModel').value = known ? '' : (CFG.gmodel || ''); $('cfgGModel').style.display = known ? 'none' : 'inline-block';
     document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
     showProvider(CFG.provider || 'gemini');
     document.querySelectorAll('#s-settings [data-stt]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-stt') === (CFG.stt || 'clova')); }); $('sttMsg').textContent = '';
-    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 키가 없으면 맥락 분석과 기록 초안만 꺼지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
+    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 꺼져 있거나 키가 없으면 맥락 정리만 빠지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
+    $('swAI').classList.toggle('on', !!CFG.aiOn); $('swAITxt').textContent = CFG.aiOn ? '켜짐' : '꺼짐';
     foldSums(); listCounts();
     go('settings');
     $('s-settings').scrollTop = 0;
@@ -194,6 +199,7 @@ window.onerror = function (msg) {
     $('keyHelp').textContent = p === 'gemini'
       ? 'Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.'
       : 'Anthropic 키: console.anthropic.com에서 발급, 소액 충전 필요. API로 보낸 내용은 학습에 쓰지 않아요.';
+    foldSums();
   }
   window.pickProvider = function (el) {
     formKeys[formProvider] = $('cfgKey').value.trim();
@@ -204,13 +210,31 @@ window.onerror = function (msg) {
     $('swApproved').classList.toggle('on', on);
     $('swApprovedTxt').textContent = on ? '기관 승인 완료' : '기관 승인 전';
   };
+  // v0.10.16 AI 맥락 정리 스위치. 켜는 순간 어디로 자막이 가는지 한 번 더 알린다 (Gemini 무료 등급은 구글이 입력을 서비스 개선에 쓸 수 있음)
+  window.toggleAI = function () {
+    var on = !$('swAI').classList.contains('on'), msg = $('keyMsg');
+    $('swAI').classList.toggle('on', on);
+    $('swAITxt').textContent = on ? '켜짐' : '꺼짐';
+    if (on && formProvider === 'gemini') { msg.textContent = '켜면 자막 일부가 구글 서버로 가요. 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요. 저장을 눌러야 적용돼요.'; msg.style.color = '#A34A1E'; }
+    else if (on) { msg.textContent = '켜면 자막 일부가 Anthropic 서버로 가요(API로 보낸 내용은 학습에 쓰지 않아요). 저장을 눌러야 적용돼요.'; msg.style.color = '#A34A1E'; }
+    else { msg.textContent = '꺼짐 — 자막이 AI 회사로 가지 않아요. 저장을 눌러야 적용돼요.'; msg.style.color = ''; }
+    foldSums();
+  };
+  // 설정 화면에서 지금 고른 모델(저장 전)
+  function formModel() {
+    var mg = document.querySelector('#modelRowG [data-model].on'), ma = document.querySelector('#modelRowA [data-model].on');
+    if (formProvider === 'anthropic') return ma ? ma.getAttribute('data-model') : DEF.model;
+    return (mg && mg.getAttribute('data-model') === 'custom') ? ($('cfgGModel').value.trim() || DEF.gmodel) : (mg ? mg.getAttribute('data-model') : DEF.gmodel);
+  }
   function pickOne(el, attr) { el.parentElement.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('on'); }); el.classList.add('on'); foldSums(); return el.getAttribute(attr); }
   // 접힌 묶음의 한 줄 요약과 목록 개수
   function onTxt(attr) { var e = document.querySelector('#s-settings [' + attr + '].on'); return e ? e.textContent : '-'; }
   function foldSums() {
     var r = $('sumRules'); if (r) r.textContent = '유예 ' + onTxt('data-grace') + ' · 큰 소리 ' + onTxt('data-sens') + ' · ' + onTxt('data-score');
     var al = $('sumAlert'); if (al) al.textContent = '확산 ' + onTxt('data-esc');
+    var a = $('aiStat'), sw = $('swAI'); if (a && sw && S.screen === 'settings') a.textContent = aiStatTxt(sw.classList.contains('on'), $('cfgKey').value.trim(), formModel());
   }
+  window.foldSums = foldSums;   // v0.10.16 키 입력칸 oninput에서 부른다
   window.listCounts = function () {
     var total = 0;
     document.querySelectorAll('#foldLists .cnt').forEach(function (c) { var t = $(c.getAttribute('data-for')); var n = t ? t.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean).length : 0; total += n; c.textContent = n + '개'; });
@@ -243,6 +267,7 @@ window.onerror = function (msg) {
       n1: $('cfgN1').value.trim() || DEF.n1, n2: $('cfgN2').value.trim() || DEF.n2, n3: $('cfgN3').value.trim() || DEF.n3,
       refuse: $('cfgRefuse').value.trim() || DEF.refuse,
       approved: $('swApproved').classList.contains('on'),
+      aiOn: $('swAI').classList.contains('on'),
       grace: g ? parseInt(g.getAttribute('data-grace'), 10) : DEF.grace,
       sens: s ? s.getAttribute('data-sens') : DEF.sens,
       threat: $('cfgThreat').value.trim(), abuse: $('cfgAbuse').value.trim(), sexual: $('cfgSexual').value.trim(), demand: $('cfgDemand').value.trim(), money: $('cfgMoney').value.trim(),
@@ -635,12 +660,26 @@ window.onerror = function (msg) {
   function aiReset() {
     clearTimeout(aiTimer); aiDirty = false; aiLastAt = 0; aiBusy = false; aiFails = 0;
     var chip = $('aiChip'), line = $('aiLine');
-    if (!aiKey() || S.noRecord || S.demo) { chip.style.display = 'none'; line.style.display = 'none'; return; }
+    S.lastCtx = null; renderCtx();
+    if (!aiOn() || S.noRecord || S.demo) { chip.style.display = 'none'; line.style.display = 'none'; return; }
     chip.style.display = ''; line.style.display = '';
-    chip.className = 'chip calm'; chip.textContent = 'AI 맥락 분석 중'; line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 여기에 흐름이 정리돼요';
+    aiChip('wait'); line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 여기에 흐름이 정리돼요';
+  }
+  // v0.10.16 상태 칩: 대기(다음 호출까지) · 분석 중(응답 기다림) · 정리됨 mm:ss · 한도/오류
+  function aiChip(state, txt) {
+    var chip = $('aiChip'); if (!chip) return;
+    if (state === 'wait') { chip.className = 'chip calm'; chip.textContent = 'AI 대기'; }
+    else if (state === 'busy') { chip.className = 'chip calm busy'; chip.innerHTML = '<span class="dot"></span>AI 분석 중'; }
+    else if (state === 'done') { chip.className = 'chip calm'; chip.textContent = 'AI 정리됨 ' + (txt || ''); }
+    else { chip.className = 'chip off'; chip.textContent = txt || 'AI 오류'; }
+  }
+  // v0.10.16 유예·알림 화면에도 마지막 AI 정리 한 줄. 정리가 없거나 꺼져 있으면 숨김
+  function renderCtx() {
+    var c = S.lastCtx, on = !!c && aiOn() && !S.noRecord && !S.demo;
+    ['cdCtx', 'alertCtx'].forEach(function (id) { var el = $(id); if (!el) return; el.style.display = on ? '' : 'none'; if (on) el.innerHTML = '<b>AI 맥락 ' + esc(c.t) + '</b>' + esc(c.x); });
   }
   function scheduleAI(force) {
-    if (!aiKey() || S.noRecord || S.demo) return;
+    if (!aiOn() || S.noRecord || S.demo) return;
     if (!force && CFG.aiEvery === 0) return;   // '감지 때만' 모드
     var wait = Math.max(0, aiLastAt + (force ? 5000 : aiGap()) - Date.now(), aiCoolUntil - Date.now());
     clearTimeout(aiTimer);
@@ -648,12 +687,12 @@ window.onerror = function (msg) {
   }
   function inSession() { return S.screen === 'session' || S.screen === 'countdown' || S.screen === 'alert' || S.screen === 'call' || S.screen === 'incall'; }
   function runAI(force) {
-    if (!aiKey() || aiBusy || !inSession()) return;
+    if (!aiOn() || aiBusy || !inSession()) return;
     if (!aiDirty && !force) return;
     var nowSec = Math.floor((Date.now() - S.startedAt) / 1000);
     var lines = (S.tr || []).filter(function (l) { return l.x && l.x.charAt(0) !== '['; }).filter(function (l) { var p = l.t.split(':'); return nowSec - (parseInt(p[0], 10) * 60 + parseInt(p[1], 10)) <= AI_WINDOW; }).slice(-30);
     if (!lines.length) return;
-    aiDirty = false; aiBusy = true; aiLastAt = Date.now();
+    aiDirty = false; aiBusy = true; aiLastAt = Date.now(); aiChip('busy');
     var text = lines.map(function (l) { return '[' + l.t + '] (' + VOL[l.v || 0] + ') ' + l.x; }).join('\n');
     var system = '너는 사회복지 상담실의 안전 보조 도구다. 입력은 음성인식(클로바 또는 크롬)이 만든 자막이며 화자 구분이 없고 오타·오인식이 섞여 있을 수 있다. 각 줄의 괄호는 그 문장의 목소리 크기다.\n'
       + '할 일: 최근 대화의 흐름을 한국어로 사실만 정리한다. 한두 문장, 60자 안팎. 예: "지원 대상이 아니라는 안내 직후 큰 목소리로 불만을 말함. 상담자는 다른 지원을 설명하는 중."\n'
@@ -666,31 +705,33 @@ window.onerror = function (msg) {
         out = ''; // 판단·제안이 섞인 답은 쓰지 않는다
       }
       aiFails = 0;
-      var chip = $('aiChip'); chip.className = 'chip calm'; chip.textContent = 'AI 맥락 분석 중';
       if (out) {
         var t = fmt(Math.floor((Date.now() - S.startedAt) / 1000));
         S.ctx.push({ t: t, x: out });
         S.lastCtx = { t: t, x: out };
+        aiChip('done', t);
         var line = $('aiLine'); line.className = 'ai'; line.innerHTML = '<b>AI 맥락 ' + esc(t) + '</b>' + esc(out);
       } else {
+        aiChip('wait');
         var l2 = $('aiLine'); l2.className = 'ai off'; l2.textContent = 'AI 맥락 · 이번 답은 판단이 섞여 있어 표시하지 않았어요';
       }
+      renderCtx();
     }).catch(function (e) {
       aiFails += 1;
       var msg = String((e && e.message) || e);
       var quota = /quota|429|RESOURCE_EXHAUSTED|rate/i.test(msg);
-      var chip = $('aiChip'), line = $('aiLine');
+      var line = $('aiLine');
       if (quota && /free_tier_requests|per_day|PerDay|daily/i.test(msg)) {
         aiCoolUntil = Date.now() + 6 * 3600000;
         var lim = (msg.match(/limit:\s*(\d+)/) || [])[1];
-        chip.className = 'chip off'; chip.textContent = 'AI 오늘 한도 소진';
-        line.className = 'ai off'; line.textContent = 'AI 맥락 · 이 모델의 무료 하루 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요. 설정 ③에서 다른 모델(Flash-Lite)로 바꾸거나 내일 다시 열려요. 자막·감지·알림은 그대로예요.';
+        aiChip('off', 'AI 오늘 한도 소진');
+        line.className = 'ai off'; line.textContent = 'AI 맥락 · 이 모델의 무료 하루 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요. 설정 > AI 맥락 분석에서 다른 모델로 바꾸거나 내일 다시 열려요. 자막·감지·알림은 그대로예요.';
       } else if (quota) {
         aiCoolUntil = Date.now() + 65000;
-        chip.className = 'chip off'; chip.textContent = 'AI 한도 대기';
+        aiChip('off', 'AI 한도 대기');
         line.className = 'ai off'; line.textContent = 'AI 맥락 · 무료 등급 분당 한도에 걸려 1분 쉬었다 이어가요 (자막·감지·알림은 그대로)';
       } else {
-        chip.className = 'chip off'; chip.textContent = 'AI 오류';
+        aiChip('off', 'AI 오류');
         line.className = 'ai off'; line.textContent = 'AI 맥락 분석 실패: ' + msg + (aiFails >= 3 ? ' · 잠시 뒤 다시 시도' : '');
       }
       aiDirty = true;
@@ -950,7 +991,7 @@ window.onerror = function (msg) {
     var kind = (S.lastHit && Date.now() - S.lastHit.at < 3000) ? S.lastHit.kind : 'loud';
     S.sc = []; renderAcc();
     S.curEv = buildEv(kind, 'auto');
-    $('cdEv').innerHTML = evHtml(S.curEv);
+    $('cdEv').innerHTML = evHtml(S.curEv); renderCtx();
     $('cdTitle').textContent = S.acc ? '잠시 후 ' + S.acc.name + ' 선생님에게 알려요' : '잠시 후 동료에게 알려요';
     go('countdown');
     aiDirty = true; scheduleAI(true);
@@ -1014,7 +1055,7 @@ window.onerror = function (msg) {
     S.alertLog = S.alertLog || []; var logItem = { t: elapsed, kind: ev.kind, hit: ev.hit, v: ev.v, n: ev.n, aid: aid, how: how, ack: null, esc: false, ts: Date.now() }; S.alertLog.push(logItem);
     var name = S.acc ? S.acc.name : '';
     $('alertTitle').textContent = name ? (how === 'manual' ? name + ' 선생님을 호출했어요' : name + ' 선생님에게 알렸어요') : (how === 'manual' ? '동료를 호출했어요' : '동료에게 알렸어요');
-    $('alertEv').innerHTML = evHtml(ev, { time: true });
+    $('alertEv').innerHTML = evHtml(ev, { time: true }); renderCtx();
     var c = linkCfg(), sentAt = Date.now();
     if (c && c.role === 'host') {
       var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', aid: aid, to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: sentAt, ev: ev, promise: CFG.promise };
@@ -1203,7 +1244,6 @@ window.onerror = function (msg) {
     document.querySelectorAll('#s-wrap .qrow .pill').forEach(function (p, k) { p.classList.toggle('on', r.a && r.a.q3 === k); });
     S.answers = { q3: r.a && r.a.q3 };
     $('wrapMemo').value = r.memo || ''; $('memoBox').style.display = r.memo ? 'block' : 'none';
-    $('memoAiNote').textContent = aiKey() ? 'AI 초안은 다음 단계에서 붙어요' : '';
     var b = r.basic || {}; $('wrapDob').value = b.dob || ''; $('wrapAddr').value = b.addr || ''; $('wrapTel').value = b.tel || '';
     $('basicBox').style.display = (b.dob || b.addr || b.tel) ? 'flex' : 'none';
     $('wrapSkip').textContent = idx == null ? '건너뛰기 (초안으로 저장)' : '← 저장 안 하고 나가기';
@@ -1272,7 +1312,7 @@ window.onerror = function (msg) {
     openCheckin();
   };
   function getObs() { try { return JSON.parse(localStorage.getItem('ma_obs') || '[]'); } catch (e) { return []; } }
-  // 보존 기간(설정 ⑥)이 지난 기록은 내용을 지우고 날짜·건수만 남긴다. 앱을 열 때와 기록을 볼 때 실행
+  // 보존 기간(설정 > 기록 보존)이 지난 기록은 내용을 지우고 날짜·건수만 남긴다. 앱을 열 때와 기록을 볼 때 실행
   function purgeOld() {
     var days = CFG.keep || 0; if (!days) return 0;
     var arr = getObs(), n = 0, limit = Date.now() - days * 86400000;
@@ -2201,7 +2241,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.15';
+  var APP_VER = '0.10.16';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2354,7 +2394,7 @@ window.onerror = function (msg) {
       wait: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('waiting'); go('wait'); M = [['#waitTitle', '기다리는 중'], ['#waitCard', '수락 전엔 시작 안 됨'], ['#waitCancel', '요청 취소']]; },
       wait2: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('declined'); go('wait'); M = [['#waitTitle', '받을 수 없음'], ['#waitPick', '다른 동료 고르기'], ['#waitRetry', '다시 요청']]; },
       notice: function () { S.acc = { name: '김서연', rid: 'x' }; go('notice'); M = [['#noticeN1', '고지 문구 3줄'], ['#s-notice .chips', '승인 전 표시'], ['#s-notice .primary', '확인'], ['#s-notice button[onclick="go(\'norec\')"]', '기록 거부']]; },
-      session: function () { session(); M = [['#stateChip', '연결됨 · 동료 이름'], ['#recChip', '기록 중'], ['#callChip', '확인 전화'], ['#tl', '자막 · 큰 소리는 크게'], ['#aiLine', 'AI 맥락(꺼짐)'], ['#s-session .corner:first-of-type', '동료 호출'], ['#s-session .corner:last-of-type', '상담 종료']]; },
+      session: function () { session(); M = [['#stateChip', '연결됨 · 동료 이름'], ['#recChip', '기록 중'], ['#callChip', '확인 전화'], ['#tl', '자막 · 큰 소리는 크게'], ['#s-session .corner:first-of-type', '동료 호출'], ['#s-session .corner:last-of-type', '상담 종료']]; },
       accum: function () { S.acc = { name: '김서연', rid: 'x', at: NOW }; startSession(true); S.startedAt = NOW - 8 * 60000 - 14000; S.cooldownUntil = 0; __addLine('지난번에 말씀드린 대로 이번 지원은 기준이 안 맞아요', 0); __addLine('돈 좀 해주세요 저 진짜 급해요', 0); __addLine('그거 언제 해줄 건데요', 0); M = [['#accChip', '쌓이는 신호 (점)'], ['#tl', '요구 표현이 쌓임']]; },
       countdown: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; triggerCountdown('위협하는 말("퇴근길조심")이'); clearInterval(cdId); $('cdNum').textContent = '7'; M = [['.cd', '남은 초'], ['#cdEv', '근거 카드'], ['#s-countdown button:first-of-type', '괜찮아요'], ['#s-countdown .danger', '지금 바로 알리기']]; },
       alert: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); $('ackSub').textContent = '업무폰으로 보냈어요 · 12초'; M = [['#ackCard', '확인 기다리는 중'], ['#alertEv', '보낸 근거'], ['#s-alert button:first-of-type', '괜찮아요 · 상담 계속'], ['#s-alert .danger', '상담 중단']]; },

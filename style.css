@@ -31,6 +31,8 @@
   .ai { width: min(760px, 92vw); text-align: left; font-size: clamp(13px, 1.6vw, 14.5px); color: #55483A; background: #F7EFE4; border-radius: 12px; padding: 10px 16px; line-height: 1.55; }
   .ai b { color: #6E4326; font-weight: 700; margin-right: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
   .ai.off { color: #9C8B77; background: #EEE6DA; }
+  .ai.ctx { width: min(720px, 92vw); font-size: clamp(12.5px, 1.5vw, 14px); padding: 8px 14px; }   /* v0.10.16 유예·알림 화면의 AI 정리 한 줄 */
+  .chip.calm.busy .dot { animation: pulse 1.6s ease-in-out infinite; }   /* v0.10.16 AI 분석 중 */
   .chip.rec { background: #F7E6D8; color: #A34A1E; } .chip.rec .dot { background: #C05A2A; animation: pulse 1.6s ease-in-out infinite; }
   .chip.off { background: #EEE6DA; color: #9C8B77; }
   @media (max-width: 540px) { #s-session { padding-top: 96px; } .tl .l .t { display: none; } }
@@ -190,7 +192,7 @@
   #s-settings .mrow b { font-size: 15.5px; }
   #s-settings .mrow .note { font-size: 13px; margin-top: 2px; }
   #s-settings .mrow.col { gap: 8px; }
-  #s-settings .switch { font-size: 14px; padding: 6px 0; }
+  #s-settings .switch { font-size: 14px; padding: 6px 0; flex: none; white-space: nowrap; }   /* v0.10.16 좁은 화면에서 "꺼짐"이 두 줄로 갈라지지 않게 */
   #s-settings .switch .knob { width: 46px; height: 26px; } #s-settings .switch .knob::after { width: 20px; height: 20px; } #s-settings .switch.on .knob::after { left: 23px; }
   #s-settings details.fold > summary { font-size: clamp(15.5px, 1.9vw, 17.5px); min-height: 44px; padding: 4px 0; }
   #s-settings details.fold > summary .sum { font-size: 13.5px; }
