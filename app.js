@@ -1,11 +1,11 @@
 window.onerror = function (msg) {
   var el = document.getElementById('jsAlive');
-  if (el) { el.style.color = '#B3403A'; el.textContent = '오류: ' + msg + ' — 이 문구를 그대로 전달해 주세요'; }
+  if (el) { el.style.display = ''; el.style.color = '#B3403A'; el.textContent = '오류: ' + msg + ' — 이 문구를 그대로 전달해 주세요'; }
 };
 (function () {
   'use strict';
   var alive = document.getElementById('jsAlive');
-  if (alive) { alive.style.color = '#3E7A52'; alive.textContent = '✓ 준비 완료 — 버튼이 동작합니다 (v0.10.16)'; setTimeout(function () { if (/^✓/.test(alive.textContent)) alive.style.display = 'none'; }, 3000); }
+  if (alive) alive.style.display = 'none';   // v0.10.17: "준비 완료" 문구 없이 경고만 숨긴다 (오류가 나면 onerror가 다시 보여줌)
   var S = { screen: 'start', recording: false, noRecord: false, startedAt: 0, alerts: 0, answers: {}, callMin: 15, callAt: 0, snoozed: false, cooldownUntil: 0, taps: [], tapT: 0,
             buddy: '', buddyManual: false, rid: '', reqTo: '', reqAt: 0, acc: null, demo: false, cancels: 0 };
   var analyser = null, audioCtx = null, micStream = null;
@@ -183,7 +183,7 @@ window.onerror = function (msg) {
     document.querySelectorAll('#modelRowA [data-model]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-model') === CFG.model); });
     showProvider(CFG.provider || 'gemini');
     document.querySelectorAll('#s-settings [data-stt]').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-stt') === (CFG.stt || 'clova')); }); $('sttMsg').textContent = '';
-    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요. 꺼져 있거나 키가 없으면 맥락 정리만 빠지고 나머지는 그대로 동작해요.'; $('keyMsg').style.color = '';
+    $('cfgMsg').textContent = ''; $('keyMsg').textContent = '키는 이 기기 안에만 저장돼요'; $('keyMsg').style.color = '';
     $('swAI').classList.toggle('on', !!CFG.aiOn); $('swAITxt').textContent = CFG.aiOn ? '켜짐' : '꺼짐';
     foldSums(); listCounts();
     go('settings');
@@ -197,8 +197,8 @@ window.onerror = function (msg) {
     $('cfgKey').value = formKeys[p] || '';
     $('cfgKey').placeholder = p === 'gemini' ? 'Gemini API 키 (AIza…)' : 'Anthropic API 키 (sk-ant-…)';
     $('keyHelp').textContent = p === 'gemini'
-      ? 'Gemini 키: aistudio.google.com → "Get API key" (카드 없이 무료). 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어요 — 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요.'
-      : 'Anthropic 키: console.anthropic.com에서 발급, 소액 충전 필요. API로 보낸 내용은 학습에 쓰지 않아요.';
+      ? '키는 aistudio.google.com에서 · 무료 등급은 입력 내용이 서비스 개선에 쓰일 수 있어요'
+      : '키는 console.anthropic.com에서 · 소액 충전 필요 · 학습에 쓰지 않아요';
     foldSums();
   }
   window.pickProvider = function (el) {
@@ -215,9 +215,9 @@ window.onerror = function (msg) {
     var on = !$('swAI').classList.contains('on'), msg = $('keyMsg');
     $('swAI').classList.toggle('on', on);
     $('swAITxt').textContent = on ? '켜짐' : '꺼짐';
-    if (on && formProvider === 'gemini') { msg.textContent = '켜면 자막 일부가 구글 서버로 가요. 무료 등급은 구글이 입력 내용을 서비스 개선에 쓸 수 있어 시연·연습용으로만 쓰고, 파일럿 전에 유료 등급이나 기관 방침 확인이 필요해요. 저장을 눌러야 적용돼요.'; msg.style.color = '#A34A1E'; }
-    else if (on) { msg.textContent = '켜면 자막 일부가 Anthropic 서버로 가요(API로 보낸 내용은 학습에 쓰지 않아요). 저장을 눌러야 적용돼요.'; msg.style.color = '#A34A1E'; }
-    else { msg.textContent = '꺼짐 — 자막이 AI 회사로 가지 않아요. 저장을 눌러야 적용돼요.'; msg.style.color = ''; }
+    if (on && formProvider === 'gemini') { msg.textContent = '자막 일부가 구글로 가요 · 무료 등급은 서비스 개선에 쓰일 수 있어요'; msg.style.color = '#A34A1E'; }
+    else if (on) { msg.textContent = '자막 일부가 Anthropic으로 가요 · 학습에 쓰지 않아요'; msg.style.color = '#A34A1E'; }
+    else { msg.textContent = '꺼짐 · 자막이 AI 회사로 가지 않아요'; msg.style.color = ''; }
     foldSums();
   };
   // 설정 화면에서 지금 고른 모델(저장 전)
@@ -295,7 +295,7 @@ window.onerror = function (msg) {
     var saved = CFG, d = {}; Object.keys(DEF).forEach(function (k) { d[k] = DEF[k]; });
     d.gkey = keep.gkey; d.key = keep.key; d.provider = keep.provider;
     CFG = d; openSettings(); CFG = saved;   // v0.10.15: 화면만 기본값으로 채우고 실제 설정은 "저장" 전까지 그대로
-    $('cfgMsg').textContent = '기본값으로 되돌렸어요 — "저장"을 눌러야 적용돼요 (키는 그대로)';
+    $('cfgMsg').textContent = '기본값으로 돌렸어요 · 저장을 눌러야 적용돼요';
   };
   // AI 연결 확인: 브라우저에서 직접 호출 (시연용). 키는 요청 헤더로만 나가고 어디에도 기록되지 않는다.
   window.checkKey = function () {
@@ -304,7 +304,7 @@ window.onerror = function (msg) {
     if (!key) { msg.textContent = '키를 먼저 넣어 주세요'; msg.style.color = '#B3403A'; return; }
     b.textContent = '확인 중…'; b.disabled = true;
     askAI(f.provider, key, model, '연결 확인입니다. "확인"이라고만 답하세요.', 16).then(function (r) {
-      msg.textContent = '✓ 연결됐어요 · ' + modelLabel(model) + ' · 응답: ' + (r.text || '').slice(0, 20) + ' · 저장을 눌러 주세요';
+      msg.textContent = '연결됐어요 · ' + modelLabel(model);
       msg.style.color = '#3E7A52';
     }).catch(function (e) {
       msg.textContent = '연결 실패: ' + (e && e.message ? e.message : e);
@@ -376,7 +376,7 @@ window.onerror = function (msg) {
   window.openNoRecOk = function () {
     S.noRecWhy = '';
     document.querySelectorAll('#s-norecok .check').forEach(function (c) { c.classList.remove('ok'); });
-    var m = $('norecOkMsg'); m.textContent = '둘 중 하나를 고르면 시작할 수 있어요'; m.style.color = '';
+    var m = $('norecOkMsg'); m.textContent = '하나를 고르세요'; m.style.color = '';
     go('norecok');
   };
   window.pickNoRec = function (el) {
@@ -411,7 +411,7 @@ window.onerror = function (msg) {
       startSTT();
     } else {
       $('recLabel').textContent = '기록 없음'; $('recChip').className = 'chip off';
-      $('tlEmpty').textContent = '기록 없이 진행 중이에요 · ' + (S.noRecWhy || '동석') + ' 상태 · 자막과 자동 감지는 꺼져 있어요';
+      $('tlEmpty').textContent = '기록 없이 진행 중 · ' + (S.noRecWhy || '동석');
     }
     aiReset();
     go('session');
@@ -641,7 +641,7 @@ window.onerror = function (msg) {
     if (ing) lines = lines.slice(-4);
     if (!lines.length && !ing) {
       var e = document.createElement('div'); e.className = 'note'; e.id = 'tlEmpty';
-      e.textContent = '말씀이 시작되면 여기에 글로 나타나요 · 음성은 글로 바뀐 뒤 바로 지워져요';
+      e.textContent = '말씀이 시작되면 여기에 글로 나타나요';
       box.appendChild(e); return;
     }
     lines.forEach(function (l) {
@@ -663,7 +663,7 @@ window.onerror = function (msg) {
     S.lastCtx = null; renderCtx();
     if (!aiOn() || S.noRecord || S.demo) { chip.style.display = 'none'; line.style.display = 'none'; return; }
     chip.style.display = ''; line.style.display = '';
-    aiChip('wait'); line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 여기에 흐름이 정리돼요';
+    aiChip('wait'); line.className = 'ai off'; line.textContent = 'AI 맥락 · 대화가 쌓이면 정리돼요';
   }
   // v0.10.16 상태 칩: 대기(다음 호출까지) · 분석 중(응답 기다림) · 정리됨 mm:ss · 한도/오류
   function aiChip(state, txt) {
@@ -713,7 +713,7 @@ window.onerror = function (msg) {
         var line = $('aiLine'); line.className = 'ai'; line.innerHTML = '<b>AI 맥락 ' + esc(t) + '</b>' + esc(out);
       } else {
         aiChip('wait');
-        var l2 = $('aiLine'); l2.className = 'ai off'; l2.textContent = 'AI 맥락 · 이번 답은 판단이 섞여 있어 표시하지 않았어요';
+        var l2 = $('aiLine'); l2.className = 'ai off'; l2.textContent = 'AI 맥락 · 이번 답은 표시하지 않았어요';
       }
       renderCtx();
     }).catch(function (e) {
@@ -725,11 +725,11 @@ window.onerror = function (msg) {
         aiCoolUntil = Date.now() + 6 * 3600000;
         var lim = (msg.match(/limit:\s*(\d+)/) || [])[1];
         aiChip('off', 'AI 오늘 한도 소진');
-        line.className = 'ai off'; line.textContent = 'AI 맥락 · 이 모델의 무료 하루 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요. 설정 > AI 맥락 분석에서 다른 모델로 바꾸거나 내일 다시 열려요. 자막·감지·알림은 그대로예요.';
+        line.className = 'ai off'; line.textContent = 'AI 맥락 · 오늘 무료 한도' + (lim ? '(' + lim + '회)' : '') + '를 다 썼어요 · 자막·감지·알림은 그대로예요';
       } else if (quota) {
         aiCoolUntil = Date.now() + 65000;
         aiChip('off', 'AI 한도 대기');
-        line.className = 'ai off'; line.textContent = 'AI 맥락 · 무료 등급 분당 한도에 걸려 1분 쉬었다 이어가요 (자막·감지·알림은 그대로)';
+        line.className = 'ai off'; line.textContent = 'AI 맥락 · 1분 뒤 이어가요';
       } else {
         aiChip('off', 'AI 오류');
         line.className = 'ai off'; line.textContent = 'AI 맥락 분석 실패: ' + msg + (aiFails >= 3 ? ' · 잠시 뒤 다시 시도' : '');
@@ -1090,7 +1090,7 @@ window.onerror = function (msg) {
         });
       }, (CFG.escalate || 60) * 1000);
     } else {
-      setAck('miss', '동료 연결이 없어요', '이 기기에만 표시돼요 · 시작 화면 → 동료 연결 설정');
+      setAck('miss', '동료 연결이 없어요', '이 기기에만 표시돼요 · 시작 화면 → 동료 연결');
     }
     go('alert');
     if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
@@ -1118,13 +1118,13 @@ window.onerror = function (msg) {
     if (S.stopPending || S.ackBy || S.demo || !(c && c.role === 'host')) { endSession(); return; }
     S.stopPending = true; stopSTT(); aiStop();
     $('alertTitle').textContent = '상담을 중단했어요';
-    $('stopBtn').textContent = '지금 끝내기 (알림도 멈춰요)';
-    $('stopNote').textContent = '동료가 확인하면 기록 화면으로 넘어가요 · "지금 끝내기"를 누르면 업무폰·상황판 알림도 멈춰요';
+    $('stopBtn').textContent = '지금 끝내기';
+    $('stopNote').textContent = '지금 끝내기를 누르면 알림도 멈춰요';
   };
   function resetStopUi() {
     S.stopPending = false;
     var b = $('stopBtn'); if (b) b.textContent = '상담 중단';
-    var n = $('stopNote'); if (n) n.textContent = '상담 중단은 기관이 정한 절차에 따라 할 수 있어요 · 동료가 확인할 때까지 알림은 계속돼요';
+    var n = $('stopNote'); if (n) n.textContent = '동료가 확인할 때까지 알림은 계속돼요';
   }
 
   // ---------- 확인 전화 ----------
@@ -1199,7 +1199,7 @@ window.onerror = function (msg) {
     updateObsCount();
     go('start');
     var n = $('endNote');
-    if (n) { n.textContent = '기록 없이 진행한 상담이 끝났어요 · 내담자 이름과 대화는 남기지 않았어요'; n.style.display = 'block'; setTimeout(function () { n.style.display = 'none'; }, 10000); }
+    if (n) { n.textContent = '기록 없이 진행한 상담이 끝났어요'; n.style.display = 'block'; setTimeout(function () { n.style.display = 'none'; }, 10000); }
   }
   function draftFromSession() {
     return { d: iso(S.startedAt || Date.now()), min: Math.max(0, Math.round(((S.endedAt || Date.now()) - S.startedAt) / 60000)), alerts: S.alerts, noRec: S.noRecord, a: {},
@@ -1246,8 +1246,8 @@ window.onerror = function (msg) {
     $('wrapMemo').value = r.memo || ''; $('memoBox').style.display = r.memo ? 'block' : 'none';
     var b = r.basic || {}; $('wrapDob').value = b.dob || ''; $('wrapAddr').value = b.addr || ''; $('wrapTel').value = b.tel || '';
     $('basicBox').style.display = (b.dob || b.addr || b.tel) ? 'flex' : 'none';
-    $('wrapSkip').textContent = idx == null ? '건너뛰기 (초안으로 저장)' : '← 저장 안 하고 나가기';
-    $('wrapFinal').textContent = idx == null ? '검토 후 확정' : '고친 내용 저장';
+    $('wrapSkip').textContent = idx == null ? '나중에' : '← 뒤로';
+    $('wrapFinal').textContent = idx == null ? '확정' : '저장';
     go('wrap'); $('s-wrap').scrollTop = 0;
   }
   window.editRecord = function () { openWrap(curIdx); };
@@ -1385,7 +1385,7 @@ window.onerror = function (msg) {
     renderStat();
     var arr = getObs();
     if (arr.length === 0) {
-      list.innerHTML = '<div class="banner" style="max-width:none">아직 기록이 없어요 — 상담을 마치면 여기에 쌓여요</div>';
+      list.innerHTML = '<div class="banner" style="max-width:none">아직 기록이 없어요</div>';
     } else {
       for (var i = arr.length - 1; i >= 0; i--) {
         (function (idx) {
@@ -1406,7 +1406,7 @@ window.onerror = function (msg) {
         })(i);
       }
     }
-    $('copyBtn').textContent = '목록 복사하기';
+    $('copyBtn').textContent = '목록 복사';
     $('clearBtn').textContent = '전체 원문 삭제';
     $('clearWhy').style.display = 'none';
     $('clearWhy').value = '';
@@ -1428,7 +1428,7 @@ window.onerror = function (msg) {
     } else if (!r.tr || r.tr.length === 0) {
       list.innerHTML = '<div style="color:#6E5A48">저장된 대화 기록이 없어요 — 음성 인식이 꺼져 있었거나 이전 버전의 기록이에요</div>';
     } else {
-      list.innerHTML = '<div style="color:#7A6553; font-size:12.5px">화자 구분 없이, 인식된 순서대로 기록돼요 · 큰 목소리는 굵게 · AI 맥락은 색 상자</div>';
+      list.innerHTML = '';
       var merged = r.tr.map(function (l) { return { t: l.t, x: l.x, v: l.v || 0, ai: false }; })
         .concat((r.ctx || []).map(function (c) { return { t: c.t, x: c.x, v: 0, ai: true }; }))
         .sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : (a.ai ? 1 : -1); });
@@ -1439,13 +1439,13 @@ window.onerror = function (msg) {
         list.appendChild(div);
       });
     }
-    $('dCopy1').textContent = '텍스트 복사'; $('dTxt').textContent = 'TXT 내보내기';
+    $('dCopy1').textContent = '복사'; $('dTxt').textContent = 'TXT 저장';
     var extra = '';
     (r.al || []).forEach(function (x) { extra += '<div style="background:#FFF6F0; border:1px solid #E0A57E; border-radius:8px; padding:6px 10px; font-size:13px"><b style="color:#97302B">위험 신호 ' + esc(x.t) + '</b> · ' + esc(kindText(x)) + (x.ack ? ' · ' + esc(x.ack.by) + ' 확인 ' + esc(x.ack.t) : '') + (x.fb != null ? ' · 피드백: ' + FB[x.fb] : '') + '</div>'; });
     if (r.memo) extra += '<div style="background:#F7EFE4; border-radius:8px; padding:6px 10px; font-size:13px"><b style="color:#6E4326">상담 메모</b> ' + esc(r.memo) + '</div>';
     var bb = r.basic || {}; if (bb.dob || bb.addr || bb.tel) extra += '<div style="font-size:12.5px; color:#55483A"><b>기본정보</b> ' + esc([bb.dob, bb.addr, bb.tel].filter(Boolean).join(' · ')) + '</div>';
     if (extra) { var ex = document.createElement('div'); ex.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-bottom:6px'; ex.innerHTML = extra; list.insertBefore(ex, list.firstChild); }
-    $('dCopy2').textContent = 'AI 요약용 복사';
+    $('dCopy2').textContent = 'AI용 복사';
     $('dCopy2').style.display = (r.del || !r.tr || r.tr.length === 0) ? 'none' : 'inline-block';
     $('delBtn').style.display = r.del ? 'none' : 'inline-block';
     $('delWhy').style.display = 'none';
@@ -1619,8 +1619,8 @@ window.onerror = function (msg) {
     hostUnsubscribe();
     updateLinkStat();
     if (linkRole === 'board') { startBuddy(); }
-    else if (linkRole === 'phone') { $('phoneName').value = phoneName(); $('pnameMsg').textContent = '폰을 다른 사람에게 건네면 이름만 바꾸면 돼요'; $('pnameMsg').style.color = ''; go('pname'); }
-    else { $('linkMsg').textContent = '저장됐어요 · 다음: 업무폰에 같은 코드를 넣고 이름을 저장하면, 시작 화면의 "첫 연결 확인" 카드로 테스트할 수 있어요'; }
+    else if (linkRole === 'phone') { $('phoneName').value = phoneName(); $('pnameMsg').textContent = '폰을 건네면 이름만 바꿔요'; $('pnameMsg').style.color = ''; go('pname'); }
+    else { $('linkMsg').textContent = '저장됐어요'; }
   };
   window.openLink = function () {
     var c = linkCfg();
@@ -1643,7 +1643,7 @@ window.onerror = function (msg) {
     var c = linkCfg(), el = $('linkStat'), b = $('linkBtn'), e2 = $('linkEdit');
     if (c && c.role === 'buddy') { c.role = 'board'; try { localStorage.setItem('ma_link', JSON.stringify(c)); } catch (e) {} }
     // 상담용이면 큰 버튼 없이 아래 작은 줄("연결 설정")로, 업무폰·상황판이면 대기 시작 버튼
-    if (!c) { el.textContent = ''; b.style.display = ''; b.textContent = '동료 연결 설정'; e2.textContent = '연결 설정'; return; }
+    if (!c) { el.textContent = ''; b.style.display = ''; b.textContent = '동료 연결'; e2.textContent = '연결 설정'; return; }
     e2.textContent = '연결 설정';
     if (c.role === 'board') { el.textContent = '팀 상황판 · 팀 코드 ' + c.code; b.style.display = ''; b.textContent = '상황판 대기 시작'; }
     else if (c.role === 'phone') { var n = phoneName(); el.textContent = '업무폰 · ' + (n || '이름 미등록') + ' · 팀 코드 ' + c.code; b.style.display = ''; b.textContent = n ? '업무폰 대기 시작' : '업무폰 이름 등록'; }
@@ -1658,7 +1658,7 @@ window.onerror = function (msg) {
     go('checkin');
     if (!(c && c.role === 'host')) {
       $('buddyPills').innerHTML = '';
-      $('buddyNote').innerHTML = '동료 연결 설정이 아직 없어요 — <a href="#" onclick="openLink();return false" style="color:#C05A2A; font-weight:700">동료 연결 설정</a>에서 이 기기를 상담용으로 저장해 주세요';
+      $('buddyNote').innerHTML = '동료 연결이 아직 없어요 — <a href="#" onclick="openLink();return false" style="color:#C05A2A; font-weight:700">동료 연결</a>에서 이 기기를 상담용으로 저장해 주세요';
       updateReqBtn();
       return;
     }
@@ -1745,8 +1745,8 @@ window.onerror = function (msg) {
       upd(); waitTick = setInterval(upd, 1000);
     }
     else if (st === 'fail') { $('waitTitle').textContent = '연결 요청을 보내지 못했어요'; $('waitSub').textContent = '인터넷 연결을 확인하고 다시 시도해 주세요'; $('waitRetry').textContent = '다시 시도'; }
-    else if (st === 'declined') { $('waitTitle').textContent = name + ' 선생님이 지금 받을 수 없다고 했어요'; $('waitSub').textContent = '업무폰을 다른 동료에게 건네고 다시 요청해 주세요 · 순서는 사무실 규칙대로'; $('waitRetry').textContent = '같은 사람에게 다시 요청'; }
-    else if (st === 'noanswer') { $('waitTitle').textContent = '응답이 없어요'; $('waitSub').textContent = '업무폰이 켜져 있고 대기 화면인지 확인해 주세요'; $('waitRetry').textContent = '같은 사람에게 다시 요청'; }
+    else if (st === 'declined') { $('waitTitle').textContent = name + ' 선생님이 지금 받을 수 없다고 했어요'; $('waitSub').textContent = '다른 동료에게 다시 요청해 주세요'; $('waitRetry').textContent = '다시 요청'; }
+    else if (st === 'noanswer') { $('waitTitle').textContent = '응답이 없어요'; $('waitSub').textContent = '업무폰이 켜져 있고 대기 화면인지 확인해 주세요'; $('waitRetry').textContent = '다시 요청'; }
   }
   window.withdrawReq = function () {
     clearTimeout(reqTimer); clearInterval(waitTick);
@@ -2064,13 +2064,13 @@ window.onerror = function (msg) {
       d.innerHTML = h;
       if (mode === 'esc') {
         var b = document.createElement('button');
-        b.textContent = '확인했어요 — 지금 볼게요';
+        b.textContent = '확인했어요';
         b.onclick = function () {
           // v0.10.2: 확인 신호에 상담 번호·경보 번호를 싣는다. 서버가 받았을 때만 칸을 되돌린다
           b.disabled = true; b.textContent = '확인 신호 보내는 중…';
           postSig({ type: 'ack', rid: a.rid || '', aid: a.aid, place: a.place, by: '팀 상황판', ts: Date.now() }).then(function (ok) {
             if (ok) { var s4 = sessions[k]; if (s4 && s4.hist && !s4.hist.res) s4.hist.res = { kind: 'ack', by: '팀 상황판', t: Date.now() }; delete alertsMap[k]; renderBoard(); return; }
-            b.disabled = false; b.textContent = '보내지 못했어요 — 다시 누르기 (인터넷 확인)';
+            b.disabled = false; b.textContent = '보내지 못했어요 · 다시 누르기';
           });
         };
         d.appendChild(b);
@@ -2125,7 +2125,7 @@ window.onerror = function (msg) {
       }
     } catch (e) {}
     updateNotifStat();
-    if (btn) { btn.textContent = '테스트 실행됨 ✓'; setTimeout(function () { btn.textContent = '소리·알림 테스트'; }, 2500); }
+    if (btn) { btn.textContent = '테스트 실행됨 ✓'; setTimeout(function () { btn.textContent = '알림 테스트'; }, 2500); }
   };
   function startBuddy() {
     var c = linkCfg(); if (!c) return;
@@ -2241,7 +2241,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.16';
+  var APP_VER = '0.10.17';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2278,7 +2278,7 @@ window.onerror = function (msg) {
     if (!show) return;
     card.className = 'fcard';
     $('firstCode').textContent = c.code; $('firstMsg').textContent = '';
-    $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 신호 보내기';
+    $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 보내기';
     hostSubscribe(); postSig({ type: 'ping', place: c.place || '' }); renderFirstNames();
   }
   window.sendTest = function () {
@@ -2287,7 +2287,7 @@ window.onerror = function (msg) {
     $('firstBtn').disabled = true; $('firstBtn').textContent = '보냈어요…'; $('firstMsg').textContent = '업무폰 응답을 기다리는 중 (최대 20초)';
     notifyHuman('마음안심 테스트 · ' + (c.place || '상담실'), '상담용 기기에서 보낸 테스트예요 · 이 알림이 잠금화면에 보이면 준비 완료', 'white_check_mark', 4);
     postSig({ type: 'test', place: c.place || '', who: ($('counselorName').value || '').trim(), ts: Date.now() }).then(function (ok) {
-      if (!ok) { $('firstMsg').textContent = '신호를 보내지 못했어요 — 인터넷 연결을 확인해 주세요'; $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 신호 보내기'; }
+      if (!ok) { $('firstMsg').textContent = '신호를 보내지 못했어요 — 인터넷 연결을 확인해 주세요'; $('firstBtn').disabled = false; $('firstBtn').textContent = '테스트 보내기'; }
     });
     clearTimeout(testTid);
     testTid = setTimeout(function () {
@@ -2355,7 +2355,7 @@ window.onerror = function (msg) {
     $('demoBar').style.display = 'none'; $('clientName').value = ''; if ($('counselorName').value === '체험 상담자') $('counselorName').value = '';
     go('start');
     var g = $('demoGuide');
-    if (done) guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결 설정"에서 팀 코드로 시작합니다.', 9000);
+    if (done) guide(6, '체험 끝. 기록은 저장하지 않았어요. 실제 연결은 "동료 연결"에서 팀 코드로 시작합니다.', 9000);
     else hideGuide();
   };
   window.__S = S; window.__match = matchAll;   // 시험용
