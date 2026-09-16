@@ -20,7 +20,7 @@ window.onerror = function (msg) {
   // ---------- 설정 (기기 안에만 저장) ----------
   var DEF = {
     n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
-    n2: '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
+    n2: '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 확인을 누르시면 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
     n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
     refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않는 대신, 동료가 함께 앉거나 사무실 가까운 곳으로 옮겨서 진행해요. 필요하면 상담자가 직접 동료를 부릅니다.',
     approved: false,
@@ -78,6 +78,7 @@ window.onerror = function (msg) {
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
     if (out.gmodel === 'gemini-3.6-flash-lite') out.gmodel = 'gemini-3.5-flash-lite';   // v0.10.16: "3.6 Flash-Lite"는 구글 공식 모델 목록에 없는 이름(9/15 확인) → 3.5 Flash-Lite
+    if (out.n2 === '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.19: 이름이 고지 확인 뒤에 전송되도록 바뀌어 "동료 연결 때 성함이" → "확인을 누르시면 성함이"
     if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.15: v0.10.14 기본 고지 2번 → 중계 서버를 거친다는 말 추가
     if (out.threat === '가만 안 둬, 가만 안 두, 가만히 안 둬, 가만히 안 둘, 가만 안 놔, 가만두지 않, 가만 두지 않, 가만히 두지 않, 죽여 버, 죽여버, 죽인다, 죽일 거, 죽일거, 죽일 테, 죽이겠, 죽여 줄까, 때려 버, 때린다, 때리겠, 패버리, 패 버릴, 패겠, 칼 들고, 칼들고, 칼 갖고, 칼 가지고, 찌르겠, 찌를 거, 찔러 버, 불 지르겠, 불 지른다, 불 지를 거, 불질러 버, 불 질러 버, 집에 찾아간다, 집으로 찾아간다, 집에 찾아갈, 집으로 찾아갈, 찾아갈 테니, 찾아갈테니, 찾아갈 거야, 찾아갈거야, 찾아올 거야, 찾아가서 가만, 찾아와서 가만, 퇴근길 조심해, 퇴근길 조심하라, 밤길 조심해, 밤길 조심하라, 조심해라, 조심하라고, 묻어버린다, 묻어버릴, 묻어버리겠, 없애버린다, 없애버릴, 없애버리겠, 부숴버린다, 부숴버릴, 부숴버리겠, 박살 낸다, 박살 낼, 박살 내 버, 박살내겠, 해코지할, 해코지 한다, 해코지하겠, 각오해라, 각오하라고, 각오해 둬, 너 각오') out.threat = DEF.threat;   // v0.10.15: "조심해라" 단독("계단 조심해라"도 걸림) 뺀 새 목록
     if (out.n2 === '글로 바꾸기 위해 음성이 외부 음성인식 서비스로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.14: v0.10.5 기본 고지 2번 → 음성 전송처(CLOVA Speech 등)를 적은 새 문구
@@ -419,7 +420,7 @@ window.onerror = function (msg) {
     hostSubscribe();
     var c0 = linkCfg();
     if (c0 && c0.role === 'host') {
-      postSig({ type: 'start', rid: S.acc.rid, to: S.acc.name, place: c0.place, who: S.counselor, at: S.startedAt });
+      postSig({ type: 'start', rid: S.acc.rid, to: S.acc.name, place: c0.place, who: S.counselor, at: S.startedAt, client: (withRecord && S.client !== '-') ? S.client : '' });   // v0.10.19: 내담자 이름은 고지 확인 뒤 여기서만 보낸다(기록 없이 상담은 안 보냄)
       clearInterval(hbId);
       hbId = setInterval(function () {
         var c1 = linkCfg();
@@ -1723,7 +1724,7 @@ window.onerror = function (msg) {
     setWait('sending');
     go('wait');
     notifyHuman(S.counselor + ' 선생님 · 연결 요청', (c.place || '상담실') + ' · ' + name + ' 선생님께 · 눌러서 수락', 'bell', 4);
-    postSig({ type: 'request', rid: rid, to: name, who: S.counselor, client: S.client, place: c.place || '상담실', ts: S.reqAt }).then(function (ok) {
+    postSig({ type: 'request', rid: rid, to: name, who: S.counselor, place: c.place || '상담실', ts: S.reqAt }).then(function (ok) {
       if (S.screen !== 'wait' || S.rid !== rid) return;
       if (!ok) { setWait('fail'); return; }
       setWait('waiting');
@@ -1796,7 +1797,7 @@ window.onerror = function (msg) {
       P.conn = saved;
       $('pconnWho').textContent = saved.who || '-';
       $('pconnState').textContent = saved.started ? '연결됨 · 상담 중' : '수락함 · 상담 시작 기다리는 중';
-      $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(saved.client || '-') + '<br><b>장소</b> ' + esc(saved.place || '-') + '<br><b>수락</b> ' + hhmm(saved.at);
+      showConnInfo();
       $('pAckNote').style.display = 'none';
       clearInterval(pTick); pTick = setInterval(function () { if (P.conn) $('pTimer').textContent = fmt(Math.max(0, Math.floor((Date.now() - P.conn.at) / 1000))); }, 1000);
       go('pconn');
@@ -1862,7 +1863,7 @@ window.onerror = function (msg) {
       P.req = m;
       $('preqWho').textContent = m.who || '-';
       $('preqTime').textContent = hhmm(m.ts);
-      $('preqInfo').innerHTML = '<b>내담자</b> ' + esc(m.client || '-') + '<br><b>장소</b> ' + esc(m.place || '-') + '<br><b>요청 시각</b> ' + hhmm(m.ts);
+      $('preqInfo').innerHTML = '<b>장소</b> ' + esc(m.place || '-') + '<br><b>요청 시각</b> ' + hhmm(m.ts);   // v0.10.19: 내담자 이름은 상담 시작 때 온다
       go('preq');
       phoneRing(true);
       notifyDesktop((m.who || '') + ' 선생님 · 연결 요청', (m.place || '') + ' · 눌러서 수락');
@@ -1885,12 +1886,12 @@ window.onerror = function (msg) {
     }
     if ((m.type === 'alert' || m.type === 'start') && m.to === P.name && (!P.conn || m.rid !== P.conn.rid) && m.rid) {
       // 연결 정보를 잃었어도 내 이름으로 온 신호면 이어받는다
-      P.conn = { rid: m.rid, who: m.who, client: '', place: m.place, at: m.at || Date.now(), started: m.type === 'start' }; saveConn();
-      $('pconnWho').textContent = m.who || '-'; $('pconnInfo').innerHTML = '<b>장소</b> ' + esc(m.place || '-'); $('pconnState').textContent = '연결됨 · 상담 중';
+      P.conn = { rid: m.rid, who: m.who, client: m.client || '', place: m.place, at: m.at || Date.now(), started: m.type === 'start' }; saveConn();
+      $('pconnWho').textContent = m.who || '-'; showConnInfo(); $('pconnState').textContent = '연결됨 · 상담 중';
       clearInterval(pTick); pTick = setInterval(function () { if (P.conn) $('pTimer').textContent = fmt(Math.max(0, Math.floor((Date.now() - P.conn.at) / 1000))); }, 1000);
     }
     if (!P.conn || m.rid !== P.conn.rid) return;
-    if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; saveConn(); $('pconnState').textContent = '연결됨 · 상담 중'; }
+    if (m.type === 'start' || m.type === 'hb') { if (m.at) P.conn.at = m.at; P.conn.started = true; if (m.type === 'start' && 'client' in m) P.conn.client = m.client || ''; saveConn(); $('pconnState').textContent = '연결됨 · 상담 중'; showConnInfo(); }   // v0.10.19: 내담자 이름은 시작 신호로 받는다
     else if (m.type === 'alert') {
       if (m.ts && Date.now() - m.ts > 600000) return;
       P.alerts += 1; P.alert = m;
@@ -1923,11 +1924,11 @@ window.onerror = function (msg) {
     var r = P.req; if (!r) { startPhone(); return; }
     phoneRing(false);
     P.req = null; P.alerts = 0;
-    P.conn = { rid: r.rid, who: r.who, client: r.client, place: r.place, at: Date.now(), started: false };
+    P.conn = { rid: r.rid, who: r.who, client: r.client || '', place: r.place, at: Date.now(), accAt: Date.now(), started: false };   // v0.10.19: client는 옛 상담용(요청에 이름 포함)일 때만 채워짐
     saveConn();
     $('pconnWho').textContent = r.who || '-';
     $('pconnState').textContent = '수락함 · 상담 시작 기다리는 중';
-    $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(r.client || '-') + '<br><b>장소</b> ' + esc(r.place || '-') + '<br><b>수락</b> ' + hhmm();
+    showConnInfo();
     $('pAckNote').style.display = 'none'; P.alert = null;
     $('pTimer').textContent = '00:00';
     go('pconn');
@@ -1938,7 +1939,7 @@ window.onerror = function (msg) {
       if (P.conn.started) { $('pconnState').textContent = '수락 신호를 보내지 못했어요 — 인터넷 확인'; return; }   // 상담 시작 신호가 먼저 왔으면 연결은 살아 있다
       // v0.10.18: 수락 신호가 안 갔으면 요청 화면으로 되돌려 다시 수락할 수 있게 한다(연결 화면에는 버튼이 없어 막다른 화면이 됐음)
       P.conn = null; saveConn(); clearInterval(pTick); P.req = r;
-      $('preqInfo').innerHTML = '<b>내담자</b> ' + esc(r.client || '-') + '<br><b>장소</b> ' + esc(r.place || '-') + '<br><b style="color:#B3403A">수락 신호를 보내지 못했어요 · 인터넷을 확인하고 다시 눌러 주세요</b>';
+      $('preqInfo').innerHTML = '<b>장소</b> ' + esc(r.place || '-') + '<br><b style="color:#B3403A">수락 신호를 보내지 못했어요 · 인터넷을 확인하고 다시 눌러 주세요</b>';
       go('preq');
     });
   };
@@ -1948,6 +1949,8 @@ window.onerror = function (msg) {
     startPhone();
     $('pwaitMsg').textContent = '지금 받을 수 없다고 알렸어요 (' + hhmm() + ')';
   };
+  // v0.10.19: 내담자 이름은 고지 확인 뒤 시작 신호로 오므로 수락 직후에는 "시작하면 표시돼요"
+  function showConnInfo() { var c = P.conn; if (!c) return; $('pconnInfo').innerHTML = '<b>내담자</b> ' + esc(c.client || (c.started ? '-' : '시작하면 표시돼요')) + '<br><b>장소</b> ' + esc(c.place || '-') + '<br><b>수락</b> ' + hhmm(c.accAt || c.at); }
   function saveConn() { try { if (P.conn) localStorage.setItem('ma_pconn', JSON.stringify(P.conn)); else localStorage.removeItem('ma_pconn'); } catch (e) {} }
   function endConn(note) {
     var c = P.conn; P.conn = null; saveConn(); phoneRing(false); clearInterval(pTick);
@@ -2251,7 +2254,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.18';
+  var APP_VER = '0.10.19';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2418,7 +2421,7 @@ window.onerror = function (msg) {
       pname: function () { $('phoneName').value = '김서연'; go('pname'); M = [['#phoneName', '이름'], ['#s-pname .primary', '저장 · 대기 시작']]; },
       pwait: function () { startPhone(); $('pwaitMsg').textContent = '상담자 화면에 "김서연" 이름이 보여요 (14:00)'; M = [['#pwaitName', '내 이름'], ['#pwaitAlim', 'ntfy 구독 이름'], ['#s-pwait button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; },
       preq: function () { startPhone(); onPhoneMsg({ type: 'request', to: '김서연', rid: 'x', who: '박지우', client: '홍길동', place: '2층 상담실', ts: NOW }); phoneRing(false); M = [['#preqInfo', '누가 · 어디서'], ['#s-preq .primary', '연결 수락'], ['#s-preq button:last-of-type', '지금 받을 수 없음']]; },
-      pconn: function () { SC.preq(); acceptReq(); onPhoneMsg({ type: 'start', rid: 'x', at: NOW - 18 * 60000 - 4000, who: '박지우', place: '2층 상담실' }); M = [['#pconnState', '연결 상태'], ['#pconnInfo', '내담자 · 장소'], ['#pTimer', '경과 시간']]; },
+      pconn: function () { SC.preq(); acceptReq(); onPhoneMsg({ type: 'start', rid: 'x', at: NOW - 18 * 60000 - 4000, who: '박지우', place: '2층 상담실', client: '홍길동' }); M = [['#pconnState', '연결 상태'], ['#pconnInfo', '내담자 · 장소'], ['#pTimer', '경과 시간']]; },
       palert: function () { SC.pconn(); onPhoneMsg({ type: 'alert', rid: 'x', to: '김서연', who: '박지우', place: '2층 상담실', t: '18:04', ts: NOW, promise: CFG.promise, ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, t: '18:04', around: [{ t: '17:31', x: '지원 기준은 소득 조건이 있어서요', v: 0 }, { t: '17:38', x: '아니 왜 나만 안 되냐고', v: 1 }, { t: '18:04', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2, hit: true }], ctx: '' } }); phoneRing(false); M = [['#palertEv', '근거 · 앞뒤 대화'], ['#palertPromise', '기관 약속'], ['#s-palert .primary', '확인했어요']]; },
       pend: function () { SC.pconn(); P.alerts = 1; endConn(''); clearTimeout(pendId); M = [['#pendSum', '요약'], ['#s-pend button', '지금 대기로']]; },
       board: function () { startBuddy(); sessions['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', at: NOW - 18 * 60000, last: NOW, phone: '김서연', pending: false }; alertsMap['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', t: '18:04', esc: true, phone: '김서연', ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, around: [] } }; renderBoard(); buddyRing(false); M = [['#boardList .bt.esc', '미확인 확산 칸'], ['#boardList', '진행 중 상담'], ['#s-buddy button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; }
