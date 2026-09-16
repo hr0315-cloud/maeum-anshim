@@ -102,7 +102,7 @@ window.onerror = function (msg) {
     m = RX_SEXUAL && RX_SEXUAL.exec(t); if (m) { r.imm = { kind: 'sexual', hit: m[1] }; return r; }
     m = RX_LOSE && RX_LOSE.exec(t); if (m) r.pts.push({ k: 'lose', p: 2, hit: m[1] });
     m = RX_META && RX_META.exec(t); if (m) r.pts.push({ k: 'meta', p: 1, hit: m[1] });
-    m = RX_MONEY && RX_MONEY.exec(t); if (m && !(RX_MONEY_NOT && RX_MONEY_NOT.test(t))) r.money = { hit: m[1] };
+    m = RX_MONEY && RX_MONEY.exec(t); if (m && !(RX_MONEY_NOT && RX_MONEY_NOT.test(t.slice(m.index, m.index + m[1].length + 6)))) r.money = { hit: m[1] };   // v0.10.18: 제외 표현은 감지 구절부터 6자 안에서만 본다(앞부분의 과거 이야기가 뒤의 직접 요구를 지우지 않게)
     m = !r.money && RX_DEMAND && RX_DEMAND.exec(t); if (m) r.pts.push({ k: 'demand', p: 1, hit: m[1] });
     m = RX_CALM && RX_CALM.exec(t); if (m) r.pts.push({ k: 'calm', p: 1, hit: m[1] });
     m = RX_REFUSAL && RX_REFUSAL.exec(t); if (m) { r.refusal = true; r.refusalHit = m[1]; }
@@ -366,7 +366,7 @@ window.onerror = function (msg) {
   };
   window.tgl = function (el) { el.classList.toggle('ok'); };
   window.pickCall = function (el) {
-    document.querySelectorAll('#s-checkin .pill').forEach(function (p) { p.classList.remove('on'); });
+    document.querySelectorAll('#s-checkin .pill[data-min]').forEach(function (p) { p.classList.remove('on'); });   // v0.10.18: 동료 선택 알약은 건드리지 않는다
     el.classList.add('on');
     S.callMin = parseInt(el.getAttribute('data-min'), 10);
   };
@@ -403,8 +403,9 @@ window.onerror = function (msg) {
     $('stateTxt').textContent = S.acc.name + (withRecord ? ' · 마이크 준비 중' : ' · 기록 없음');   // v0.10.2: 음성인식이 실제로 시작되면 "기록 중"으로
     if (S.callMin > 0) { S.callAt = Date.now() + S.callMin * 60000; $('callChip').style.display = 'flex'; }
     else { S.callAt = 0; $('callChip').style.display = 'none'; }
-    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.moneyN = 0; S.same = {}; S.silent = false; S.cancels = 0; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
+    S.ctx = []; S.alertLog = []; S.hitN = 0; S.curEv = null; S.ackBy = ''; S.sc = []; S.winUntil = 0; S.calmAt = []; S.moneyN = 0; S.same = {}; S.silent = false; S.cancels = 0; S.callAnswered = ''; S.interim = null; S.immDone = null; immStable = null; renderAcc(); utterPeak = 0; speechRef = 0; speechN = 0;
     renderTL();
+    $('recChip').style.display = 'flex';   // v0.10.18: v0.9.6에 숨긴 칩을 다시 보인다(받아쓰기 상태는 이 칩에만 늘 남으므로)
     if (withRecord) {
       $('recLabel').textContent = '기록 중'; $('recChip').className = 'chip rec';
       initMic();
@@ -474,7 +475,7 @@ window.onerror = function (msg) {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (chromeOn) return;
     if (!SR) { if (sttMode === 'chrome') sttActive = false; setRecState('마이크 안 됨 · 동료 호출 버튼으로', '이 브라우저는 음성인식이 안 돼요 · 자동 감지 없이 진행 중 · 위험하면 "동료 호출"을 누르세요'); return; }
-    stt = new SR();
+    stt = new SR(); sttGen += 1; immStable = null;   // v0.10.18: 새 인식 객체의 결과 번호가 이전 객체와 겹치지 않게(겹치면 재시작 뒤 첫 위협을 이미 처리한 말로 봄)
     stt.lang = 'ko-KR'; stt.continuous = true; stt.interimResults = true;   // v0.10.4: 말하는 중간 글도 받는다
     stt.onstart = function () { setRecState(sttMode === 'fallback' ? '클로바 끊김 → 크롬으로 기록 중' : '기록 중'); };
     stt.onresult = sttResult;
@@ -1025,13 +1026,14 @@ window.onerror = function (msg) {
     var sig = { type: 'alert', rid: S.acc ? S.acc.rid : '', aid: aid, to: name, place: c.place || '상담실', who: S.counselor || '', t: elapsed, ts: Date.now(), ev: ev, promise: CFG.promise };
     notifyHuman((S.counselor || '상담자') + ' 선생님 · 위험 신호', sig.place + ' · 눌러서 확인하기', 'rotating_light', 5);
     // 전송 결과: 실패하면 상담자만 알아보는 표시(✗)와 10초 뒤 재전송 2회
+    var live = function () { return !!(S.acc && S.acc.rid === sig.rid && S.alerts === aid && !S.ackBy); };   // v0.10.18: 이 경보가 아직 유효한가(같은 상담·최신 경보·미확인)
     var sendSilent = function (attempt) {
       postSig(sig).then(function (ok) {
-        if (S.ackBy || !inSession()) return;
+        if (!live() || !inSession()) return;
         var st = $('stateTxt');
         if (ok) { if (st && S.acc && /✗/.test(st.textContent)) st.textContent = S.acc.name + ' · 기록 중'; return; }
         if (st && S.acc) st.textContent = S.acc.name + ' ✗' + (attempt < 3 ? '' : '✗');
-        if (attempt < 3) setTimeout(function () { sendSilent(attempt + 1); }, 10000);
+        if (attempt < 3) setTimeout(function () { if (live() && inSession()) sendSilent(attempt + 1); }, 10000);
       });
     };
     sendSilent(1);
@@ -1064,9 +1066,10 @@ window.onerror = function (msg) {
       var waitName = (name ? name + ' 선생님' : '동료') + ' 확인 기다리는 중';
       setAck('wait', waitName, '보내는 중…');
       $('ackLine').textContent = '';
+      var live = function () { return !!(S.acc && S.acc.rid === sig.rid && S.alerts === aid && !S.ackBy); };   // v0.10.18: 취소·종료·새 경보 뒤에는 옛 경보를 다시 보내지 않고 화면도 건드리지 않는다
       var trySend = function (attempt) {
         postSig(sig).then(function (ok) {
-          if (S.ackBy || S.screen !== 'alert') return;
+          if (!live() || S.screen !== 'alert') return;
           if (ok) {
             sentAt = Date.now();
             setAck('wait', waitName, '업무폰으로 보냈어요 · 0초');
@@ -1076,7 +1079,7 @@ window.onerror = function (msg) {
           }
           clearInterval(ackTick);
           setAck('miss', '신호를 보내지 못했어요', '인터넷 연결을 확인해 주세요 · ' + (attempt < 3 ? '10초 뒤 다시 보내요 (' + attempt + '/3)' : '자동 재전송 끝 — 전화나 직접 호출로'));
-          if (attempt < 3) setTimeout(function () { trySend(attempt + 1); }, 10000);
+          if (attempt < 3) setTimeout(function () { if (live() && S.screen === 'alert') trySend(attempt + 1); }, 10000);
         });
       };
       trySend(1);
@@ -1129,7 +1132,7 @@ window.onerror = function (msg) {
 
   // ---------- 확인 전화 ----------
   function startRing() {
-    S.callAt = 0;
+    S.callAt = 0; $('callChip').style.display = 'none';   // v0.10.18: 끝난 카운트다운 숫자가 남지 않게 (나중에를 누르면 다시 보인다)
     go('call');
     playRing(true);
   }
@@ -1194,12 +1197,12 @@ window.onerror = function (msg) {
     var r = draftFromSession();
     r.c2 = '(기록 없이 진행 · ' + (S.noRecWhy || '동석') + ')'; r.noRecWhy = S.noRecWhy || '';
     r.tr = []; r.ctx = []; r.memo = ''; r.basic = {}; r.status = 'final'; r.finalAt = iso(Date.now());
-    try { var arr = getObs(); arr.push(r); localStorage.setItem('ma_obs', JSON.stringify(arr)); } catch (e) {}
+    var saved = true; try { var arr = getObs(); arr.push(r); localStorage.setItem('ma_obs', JSON.stringify(arr)); } catch (e) { saved = false; }   // v0.10.18: 실패하면 아래 안내에 적는다
     S.noRecWhy = '';
     updateObsCount();
     go('start');
     var n = $('endNote');
-    if (n) { n.textContent = '기록 없이 진행한 상담이 끝났어요'; n.style.display = 'block'; setTimeout(function () { n.style.display = 'none'; }, 10000); }
+    if (n) { n.textContent = saved ? '기록 없이 진행한 상담이 끝났어요' : '상담은 끝났지만 한 줄 기록을 저장하지 못했어요 · 저장 공간을 확인해 주세요'; n.style.display = 'block'; setTimeout(function () { n.style.display = 'none'; }, 10000); }
   }
   function draftFromSession() {
     return { d: iso(S.startedAt || Date.now()), min: Math.max(0, Math.round(((S.endedAt || Date.now()) - S.startedAt) / 60000)), alerts: S.alerts, noRec: S.noRecord, a: {},
@@ -1219,7 +1222,7 @@ window.onerror = function (msg) {
   function fbRowHtml(x, i) {
     var head = esc(kindText(x));
     var pills = FB.map(function (l, v) { return '<span class="pill' + (x.fb === v ? ' on' : '') + '" onclick="pickFb(' + i + ',' + v + ',this)">' + l + '</span>'; }).join('');
-    return '<div class="fbrow"><div><b>' + esc(x.t) + ' ' + head + '</b> <span class="note">' + (x.ack ? x.ack.by + ' 확인 ' + x.ack.t : x.esc ? '상황판 확산' : '확인 없음') + '</span></div><div class="row">' + pills + '</div></div>';
+    return '<div class="fbrow"><div><b>' + esc(x.t) + ' ' + head + '</b> <span class="note">' + (x.ack ? esc(x.ack.by) + ' 확인 ' + esc(x.ack.t) : x.esc ? '상황판 확산' : '확인 없음') + '</span></div><div class="row">' + pills + '</div></div>';
   }
   window.pickFb = function (i, v, el) {
     var r = S.wrapRec; if (!r || !r.al || !r.al[i]) return;
@@ -1265,7 +1268,7 @@ window.onerror = function (msg) {
         var arr = getObs();
         if (editIdx >= 0) arr[editIdx] = r; else arr.push(r);
         localStorage.setItem('ma_obs', JSON.stringify(arr));
-      } catch (e) {}
+      } catch (e) { $('wrapTitle').textContent = '저장하지 못했어요 · 저장 공간을 확인하고 다시 확정해 주세요'; return; }   // v0.10.18: 실패를 숨기고 나가지 않는다(기록·입력·화면 유지, 다시 누르면 한 번만 저장)
     }
     updateObsCount();
     if (editIdx >= 0) { var k = editIdx; editIdx = -1; S.wrapRec = null; openDetail(k); return; }
@@ -1872,12 +1875,12 @@ window.onerror = function (msg) {
     }
     if (m.type === 'ack') {
       // 다른 곳(팀 상황판 등)이 먼저 확인한 경우: 벨을 멈추고 알려준다. 상황판 신호에는 요청 번호가 없어 장소로 맞춘다.
-      if (!P.alert || !m.by || m.by === P.name) return;
+      if (!P.alert || !m.by) return;   // v0.10.18: 자기 이름의 확인도 받는다(다시 열 때 3분 재생에서 이미 확인한 경보가 다시 울리지 않게)
       if (m.rid ? m.rid !== P.alert.rid : m.place !== P.alert.place) return;
       if (m.aid != null && P.alert.aid != null && m.aid !== P.alert.aid) return;   // v0.10.2: 다른 경보의 확인은 무시
       if (S.screen === 'palert') go(P.conn ? 'pconn' : 'pwait');
       P.alert = null; phoneRing(false);
-      var n1 = $('pAckNote'); n1.style.display = 'block'; n1.innerHTML = '<b>' + hhmm() + '</b> ' + esc(m.by) + '에서 먼저 확인했어요 · 그래도 상담실 상황을 살펴 주세요';
+      var n1 = $('pAckNote'); n1.style.display = 'block'; n1.innerHTML = '<b>' + hhmm() + '</b> ' + (m.by === P.name ? '이미 확인을 보낸 경보예요' : esc(m.by) + '에서 먼저 확인했어요 · 그래도 상담실 상황을 살펴 주세요');
       return;
     }
     if ((m.type === 'alert' || m.type === 'start') && m.to === P.name && (!P.conn || m.rid !== P.conn.rid) && m.rid) {
@@ -1900,7 +1903,7 @@ window.onerror = function (msg) {
       notifyDesktop('위험 신호 — ' + (m.place || '상담실'), (m.who || '') + ' 선생님 · ' + (m.ev && m.ev.hit ? '"' + m.ev.hit + '"' : '상담 ' + (m.t || '') + ' 경과'));
       if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
     }
-    else if (m.type === 'cancel') { if (S.screen === 'palert') go('pconn'); P.alert = null; phoneRing(false); var n0 = $('pAckNote'); n0.style.display = 'block'; n0.innerHTML = '<b>' + hhmm() + '</b> 상담자가 "괜찮아요"를 눌렀어요 · 위험 신호 취소'; }    else if (m.type === 'end') { endConn(''); }
+    else if (m.type === 'cancel') { if (S.screen === 'palert') go('pconn'); P.alert = null; phoneRing(false); var n0 = $('pAckNote'); n0.style.display = 'block'; n0.innerHTML = '<b>' + hhmm() + '</b> 상담자가 "상담 계속"을 눌렀어요 · 위험 신호 취소'; }    else if (m.type === 'end') { endConn(''); }
   }
   window.ackAlert = function () {
     var m = P.alert; phoneRing(false);
@@ -1908,6 +1911,7 @@ window.onerror = function (msg) {
     // v0.10.2: 확인 신호에 상담 번호·경보 번호를 되돌린다. 서버가 받았을 때만 화면을 닫는다
     $('palertPromise').textContent = '확인 신호 보내는 중…';
     postSig({ type: 'ack', rid: m.rid || (P.conn ? P.conn.rid : ''), aid: m.aid, place: m.place || '', by: P.name, ts: Date.now() }).then(function (ok) {
+      if (P.alert !== m) return;   // v0.10.18: 그사이 새 경보가 왔으면 옛 확인의 응답은 화면을 건드리지 않는다
       if (!ok) { $('palertPromise').textContent = '확인 신호를 보내지 못했어요 — 인터넷 연결을 확인하고 다시 눌러 주세요'; return; }
       P.alert = null;
       var n = $('pAckNote'); n.style.display = 'block';
@@ -1930,7 +1934,12 @@ window.onerror = function (msg) {
     clearInterval(pTick);
     pTick = setInterval(function () { if (P.conn) $('pTimer').textContent = fmt(Math.max(0, Math.floor((Date.now() - P.conn.at) / 1000))); }, 1000);
     postSig({ type: 'accept', rid: r.rid, by: P.name, place: r.place, ts: Date.now() }).then(function (ok) {
-      if (!ok && P.conn && P.conn.rid === r.rid) $('pconnState').textContent = '수락 신호를 보내지 못했어요 — 인터넷 확인';
+      if (ok || !P.conn || P.conn.rid !== r.rid) return;
+      if (P.conn.started) { $('pconnState').textContent = '수락 신호를 보내지 못했어요 — 인터넷 확인'; return; }   // 상담 시작 신호가 먼저 왔으면 연결은 살아 있다
+      // v0.10.18: 수락 신호가 안 갔으면 요청 화면으로 되돌려 다시 수락할 수 있게 한다(연결 화면에는 버튼이 없어 막다른 화면이 됐음)
+      P.conn = null; saveConn(); clearInterval(pTick); P.req = r;
+      $('preqInfo').innerHTML = '<b>내담자</b> ' + esc(r.client || '-') + '<br><b>장소</b> ' + esc(r.place || '-') + '<br><b style="color:#B3403A">수락 신호를 보내지 못했어요 · 인터넷을 확인하고 다시 눌러 주세요</b>';
+      go('preq');
     });
   };
   window.declineReq = function () {
@@ -2130,7 +2139,7 @@ window.onerror = function (msg) {
   function startBuddy() {
     var c = linkCfg(); if (!c) return;
     $('buddyCode').textContent = '팀 코드 ' + c.code;
-    sessions = {}; alertsMap = {};
+    sessions = {}; alertsMap = {}; var bSeen = {};   // v0.10.18: 중복 제거 목록은 상황판 전용으로 새로 만든다(전역 목록을 쓰면 재진입 때 6시간 재생이 전부 걸러져 미확인 경보가 사라짐)
     go('buddy');
     renderBoard();
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2147,7 +2156,7 @@ window.onerror = function (msg) {
       try {
         var d = JSON.parse(ev.data);
         if (!d.message) return;
-        if (seenBefore(d.id)) return;
+        if (d.id) { if (bSeen[d.id]) return; bSeen[d.id] = 1; }
         m = JSON.parse(d.message);
       } catch (e) { return; }
       var k = skey(m);
@@ -2180,8 +2189,9 @@ window.onerror = function (msg) {
       } else if (m.type === 'cancel' || m.type === 'ack') {
         // v0.10.2: 상담 번호가 있으면 번호로, 없으면(옛 기기) 장소로 맞춘다
         var same = function (o) { return m.rid ? o.rid === m.rid : (!m.place || o.place === m.place); };
-        Object.keys(sessions).forEach(function (k2) { var s3 = sessions[k2]; if (!same(s3)) return; s3.pending = false; if (s3.hist && !s3.hist.res) s3.hist.res = m.type === 'ack' ? { kind: 'ack', by: m.by || '동료', t: m.ts || Date.now() } : { kind: 'cancel', t: Date.now() }; });
-        Object.keys(alertsMap).forEach(function (k2) { if (same(alertsMap[k2])) delete alertsMap[k2]; });
+        var sameAid = function (a2) { return !(m.type === 'ack' && m.aid != null && a2 != null && String(m.aid) !== String(a2)); };   // v0.10.18: 경보 번호가 둘 다 있고 다르면 옛 경보의 확인 → 새 경보는 그대로
+        Object.keys(sessions).forEach(function (k2) { var s3 = sessions[k2]; if (!same(s3) || !sameAid(s3.lastAid)) return; s3.pending = false; if (s3.hist && !s3.hist.res) s3.hist.res = m.type === 'ack' ? { kind: 'ack', by: m.by || '동료', t: m.ts || Date.now() } : { kind: 'cancel', t: Date.now() }; });
+        Object.keys(alertsMap).forEach(function (k2) { if (same(alertsMap[k2]) && sameAid(alertsMap[k2].aid)) delete alertsMap[k2]; });
         renderBoard();
       }
     };
@@ -2241,7 +2251,7 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.17';
+  var APP_VER = '0.10.18';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
@@ -2363,6 +2373,8 @@ window.onerror = function (msg) {
   // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
   (function () {
     var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
+    // v0.10.18: 운영 설정·기록이 있는 브라우저에서는 들어가지 않는다(예시 값으로 덮어쓰지 않게). 빈 브라우저나 촬영용 코드가 저장된 브라우저에서만
+    try { var lk0 = JSON.parse(localStorage.getItem('ma_link') || 'null'); if ((lk0 && lk0.code !== 'h7k2m9pq') || (!lk0 && localStorage.getItem('ma_obs'))) return; } catch (e) { return; }
     var role = /^p/.test(s) ? 'phone' : s === 'board' ? 'board' : 'host';
     try {
       localStorage.setItem('ma_link', JSON.stringify({ code: 'h7k2m9pq', role: role, place: '2층 상담실' }));
