@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif" font-size="13">
+  <rect width="640" height="300" fill="#ffffff" rx="6"/>
+  <text x="16" y="24" font-weight="700" fill="#1e2a2a">폭력을 겪은 뒤 어떻게 했나 (2022 사회복지사 통계연감, 2,549명)</text>
+  <text x="16" y="58" fill="#5f6b6b">동료에게 푸념하고 넘김</text><rect x="230" y="44" width="380" height="18" fill="#2f6b4f"/><text x="604" y="58" text-anchor="end" font-weight="700" fill="#ffffff">42.2%</text>
+  <text x="16" y="86" fill="#5f6b6b">기관·고충처리위원회에 해결 요청</text><rect x="230" y="72" width="43" height="18" fill="#2f6b4f"/><text x="280" y="86" font-weight="700" fill="#1e2a2a">4.8%</text>
+  <line x1="16" y1="108" x2="624" y2="108" stroke="#d5dad3"/>
+  <text x="16" y="136" font-weight="700" fill="#1e2a2a">지난 1년 클라이언트 폭력 경험 (같은 조사, 4,633명)</text>
+  <text x="16" y="170" fill="#5f6b6b">정서적 폭력</text><rect x="230" y="156" width="271" height="18" fill="#2f6b4f"/><text x="508" y="170" font-weight="700" fill="#1e2a2a">30.1%</text>
+  <text x="16" y="198" fill="#5f6b6b">신체적 폭력</text><rect x="230" y="184" width="111" height="18" fill="#2f6b4f"/><text x="348" y="198" font-weight="700" fill="#1e2a2a">12.3%</text>
+  <line x1="16" y1="220" x2="624" y2="220" stroke="#d5dad3"/>
+  <text x="16" y="248" font-weight="700" fill="#1e2a2a">사후조치 (2014 경기도 사회복지담당공무원 조사, 242명)</text>
+  <text x="16" y="282" fill="#5f6b6b">"아무런 사후조치가 없었음"</text><rect x="230" y="268" width="380" height="18" fill="#b8741a"/><text x="604" y="282" text-anchor="end" font-weight="700" fill="#ffffff">67.8%</text>
+</svg>
