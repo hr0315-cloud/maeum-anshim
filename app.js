@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 함박종합사회복지관 마음안심 팀
 window.onerror = function (msg) {
   var el = document.getElementById('jsAlive');
   if (el) { el.style.display = ''; el.style.color = '#B3403A'; el.textContent = '오류: ' + msg + ' — 이 문구를 그대로 전달해 주세요'; }
@@ -17,10 +19,14 @@ window.onerror = function (msg) {
   function $(id) { return document.getElementById(id); }
   function fmt(s) { var m = Math.floor(s/60), r = Math.floor(s%60); return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
 
+  // v0.10.20: 서버 주소는 config.js에서 읽는다(기본값 비움). 비어 있으면 받아쓰기는 크롬, 동료 연결은 '서버 미설정'
+  var MAC = window.MA_CONFIG || {};
+  var NTFY_SERVER = String(MAC.ntfyServer || '').replace(/\/+$/, '');
+  var TOPIC_PREFIX = MAC.topicPrefix || 'maeum-anshim-';
   // ---------- 설정 (기기 안에만 저장) ----------
   var DEF = {
     n1: '상담 내용은 글로 기록되어 상담자와 기관이 보관합니다. 음성은 글로 바뀐 뒤 바로 지워집니다.',
-    n2: '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 확인을 누르시면 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.',
+    n2: '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 확인을 누르시면 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다. 외부 서비스에 따라 해외 서버로 전송될 수 있습니다.',
     n3: '기록은 상담 지원과 안전을 위해서만 쓰며, 원하시면 열람·정정·삭제를 요청할 수 있습니다.',
     refuse: '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않는 대신, 동료가 함께 앉거나 사무실 가까운 곳으로 옮겨서 진행해요. 필요하면 상담자가 직접 동료를 부릅니다.',
     approved: false,
@@ -44,7 +50,7 @@ window.onerror = function (msg) {
     calm: '진정하세요, 진정하시고, 소리 지르지, 목소리를 낮춰, 흥분하지 마, 화내지 마시고',
     // C층(문턱) 거절·제한 통보: 울리지 않고 뒤 2분 동안 기준 점수를 1 낮춘다 (폭력 선행요인 1위)
     refusal: '규정상 어렵, 도와드릴 수 없, 지원이 안 되, 지원이 어렵, 대상이 아니, 이번에는 어렵, 해드릴 수 없, 불가능합니다',
-    stt: 'clova',   // v0.10.11 받아쓰기: 'clova'(네이버 CLOVA Speech 실시간, 중계 서버 경유) | 'chrome'(크롬 내장 음성인식)
+    stt: MAC.sttRelayUrl ? 'clova' : 'chrome',   // v0.10.11 받아쓰기: 'clova'(네이버 CLOVA Speech 실시간, 중계 서버 경유) | 'chrome'(크롬 내장 음성인식)
     aiOn: false,   // v0.10.16 AI 맥락 정리 스위치. 기본 꺼짐 — 켜야 자막 일부가 AI 회사 서버로 간다 (키만 있어서는 안 켜짐)
     provider: 'gemini',
     gkey: '', gmodel: 'gemini-3.6-flash',
@@ -76,6 +82,7 @@ window.onerror = function (msg) {
     // v0.10.1: 옛 기본 목록(오탐 많던 판)을 그대로 쓰던 기기는 새 기본 목록으로 바꾼다. 기관이 직접 고친 목록은 그대로
     Object.keys(OLD_LISTS).forEach(function (k) { if (out[k] === OLD_LISTS[k]) out[k] = DEF[k]; });
     if (out.refuse === '기록 없이도 상담할 수 있어요. 대화를 듣거나 글로 남기지 않고, 필요하면 상담자가 직접 동료를 부릅니다. 기관이 정한 안전 절차(동석 등)와 함께 진행해요.') out.refuse = DEF.refuse;   // v0.10.8: v0.10.6 기본 안내 문구도 새 문구로
+    if (out.n2 === '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 확인을 누르시면 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.20: 국외 전송 한 줄 추가
     if (/^gemini-2.5/.test(out.gmodel || '')) out.gmodel = DEF.gmodel;
     if (out.gmodel === 'gemini-3.6-flash-lite') out.gmodel = 'gemini-3.5-flash-lite';   // v0.10.16: "3.6 Flash-Lite"는 구글 공식 모델 목록에 없는 이름(9/15 확인) → 3.5 Flash-Lite
     if (out.n2 === '글로 바꾸기 위해 음성이 음성인식 중계 서버를 거쳐 외부 음성인식 서비스(네이버 클라우드 CLOVA Speech, 연결이 끊기면 기기의 브라우저 음성인식: 크롬은 구글, 아이폰·아이패드는 애플)로 전송됩니다(AI 정리를 켜면 대화 일부가 AI 서비스로도 갑니다). 동료 연결 때 성함이, 위험한 말이 나오면 그 말의 앞뒤 일부가 알림 중계 서버를 거쳐 사무실 동료에게 전달됩니다.') out.n2 = DEF.n2;   // v0.10.19: 이름이 고지 확인 뒤에 전송되도록 바뀌어 "동료 연결 때 성함이" → "확인을 누르시면 성함이"
@@ -251,6 +258,7 @@ window.onerror = function (msg) {
   // 설정 화면: 중계 서버를 거쳐 클로바까지 실제로 붙는지 확인 (음성은 보내지 않음)
   window.testClova = function () {
     var m = $('sttMsg'), t0 = Date.now(), done = false, ws = null;
+    if (!CLOVA_URL) { m.textContent = '중계 서버 주소가 설정되지 않았어요(config.js의 sttRelayUrl) · 크롬 받아쓰기로 동작해요'; m.style.color = '#97302B'; return; }
     m.textContent = '클로바 연결 확인 중…'; m.style.color = '';
     function end(ok, txt) { if (done) return; done = true; m.textContent = txt; m.style.color = ok ? '#3E7A52' : '#97302B'; try { if (ws) ws.close(); } catch (e) {} }
     try { ws = new WebSocket(CLOVA_URL); } catch (e) { end(false, '연결 안 됨 · 상담 중에는 자동으로 크롬 받아쓰기로 넘어가요'); return; }
@@ -448,7 +456,7 @@ window.onerror = function (msg) {
   // v0.10.11: 받아쓰기 엔진 두 가지. 클로바(네이버 CLOVA Speech 실시간)가 기본이고, 브라우저는 키 없이 중계 서버에만 붙는다.
   // 클로바가 끊기거나 안 붙으면 멈추지 않고 크롬 받아쓰기로 이어 받고, 30초마다 클로바에 다시 붙어 본다.
   // 클로바는 문장이 끝난 뒤 한 줄씩 오므로 말하는 중간 글(흐린 자막·중간 즉시 감지)은 크롬일 때만 있다.
-  var CLOVA_URL = 'wss://211-233-207-215.sslip.io/stt';
+  var CLOVA_URL = MAC.sttRelayUrl || '';
   var sttMode = '';   // 'clova' | 'chrome' | 'fallback'(클로바 끊겨 크롬으로 받는 중)
   // v0.10.2: 음성인식 상태를 그대로 보여준다. 준비 중 → 기록 중 / 마이크 꺼짐(권한 거부·미지원) / 다시 연결 중
   function setRecState(label, note) {
@@ -467,7 +475,7 @@ window.onerror = function (msg) {
   function startSTT() {
     if (S.noRecord || S.demo) return;
     sttActive = true;
-    if (CFG.stt === 'chrome' || !clovaSupported()) { sttMode = 'chrome'; startChrome(); return; }
+    if (CFG.stt === 'chrome' || !CLOVA_URL || !clovaSupported()) { sttMode = 'chrome'; startChrome(); return; }
     sttMode = 'clova';
     setRecState('클로바 연결 중');
     startClova();
@@ -966,14 +974,14 @@ window.onerror = function (msg) {
   function evHtml(ev, opts) {
     opts = opts || {};
     var head, meta = [];
-    if (ev.kind === 'score') { head = KIND.score; meta.push((ev.parts || '') + ' · 2분 안'); }
+    if (ev.kind === 'score') { head = KIND.score; meta.push(esc(ev.parts || '') + ' · 2분 안'); }
     else if (ev.kind === 'threat' || ev.kind === 'abuse' || ev.kind === 'sexual' || ev.kind === 'money') { head = '“' + esc(ev.hit) + '”'; meta.push(KIND[ev.kind]); meta.push(['보통 목소리', '큰 목소리', '매우 큰 목소리'][ev.v || 0]); }
     else if (ev.kind === 'loud') { head = KIND.loud; meta.push('1.5초 이상'); }
     else if (ev.kind === 'counselor') { head = KIND.counselor; meta.push('“' + esc(ev.hit) + '”'); }
     else if (ev.kind === 'code') { head = KIND.code; meta.push('암호 문구 · 내용 없음'); }
     else { head = KIND.manual; }
-    if (ev.n) meta.push('이 상담에서 ' + ev.n + '번째');
-    if (opts.time && ev.t) meta.unshift(ev.t);
+    if (ev.n) meta.push('이 상담에서 ' + esc(ev.n) + '번째');
+    if (opts.time && ev.t) meta.unshift(esc(ev.t));
     var s = '<span class="hit">' + head + '</span> <span class="meta">' + (meta.length ? '· ' + meta.join(' · ') : '') + '</span>';
     // 예전 기기 v0.8이 보낸 신호에는 around가 있을 수 있다 — 그래도 감지 문장 한 줄만 보여준다
     var line = ev.line || (ev.around && ev.around.length ? (ev.around.filter(function (l) { return l.hit; })[0] || {}).x : '');
@@ -1560,7 +1568,7 @@ window.onerror = function (msg) {
   var esSig = null, buddyEs = null, bRingId = 0, linkRole = '', hbId = 0, ringingOn = false, liveAt = 0, pruneId = 0, pendTick = 0;
   var sessions = {}, alertsMap = {};
   function linkCfg() { try { return JSON.parse(localStorage.getItem('ma_link') || 'null'); } catch (e) { return null; } }
-  function topic() { var c = linkCfg(); return (c && c.code) ? 'https://ntfy.sh/maeum-anshim-' + c.code : null; }
+  function topic() { var c = linkCfg(); return (NTFY_SERVER && c && c.code) ? NTFY_SERVER + '/' + TOPIC_PREFIX + c.code : null; }
   // 보내기 결과를 돌려준다(true = 서버가 받음). 상대가 받았다는 뜻은 아니다.
   function postSig(o) {
     var t = topic(); if (!t) return Promise.resolve(false);
@@ -1571,7 +1579,7 @@ window.onerror = function (msg) {
   // 사람용 알림 채널: ntfy 앱이 구독하는 '팀코드-alim'. 기계 신호(JSON)는 여기로 보내지 않는다.
   function b64(s) { try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return ''; } }
   function alimTopic() { var t = topic(); return t ? t + '-alim' : null; }
-  function alimName() { var c = linkCfg(); return (c && c.code) ? 'maeum-anshim-' + c.code + '-alim' : ''; }
+  function alimName() { var c = linkCfg(); return (c && c.code) ? TOPIC_PREFIX + c.code + '-alim' : ''; }
   function appUrl() { return location.origin + location.pathname; }
   function notifyHuman(title, body, tags, prio) {
     var t = alimTopic(); if (!t) return Promise.resolve(false);
@@ -1611,13 +1619,15 @@ window.onerror = function (msg) {
   };
   window.genCode = function () {
     var s = '', a = 'abcdefghjkmnpqrstuvwxyz23456789';
-    for (var i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)];
+    var r = new Uint32Array(16); crypto.getRandomValues(r);   // v0.10.20: Math.random 대신 암호용 난수, 16글자
+    for (var i = 0; i < 16; i++) s += a[r[i] % a.length];
     $('teamCode').value = s;
   };
   window.saveLink = function () {
     var code = ($('teamCode').value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!linkRole) { $('linkMsg').textContent = '이 기기의 역할을 먼저 골라주세요'; return; }
-    if (code.length < 4) { $('linkMsg').textContent = '팀 코드를 입력하거나 새로 만들어주세요'; return; }
+    if (!NTFY_SERVER) { $('linkMsg').textContent = '알림 서버가 설정되지 않았어요 · config.js의 ntfyServer에 기관 알림 서버 주소를 넣어야 동료 연결을 쓸 수 있어요'; return; }
+    if (code.length < 12) { $('linkMsg').textContent = '팀 코드는 12글자 이상이어야 해요 · "새 코드 만들기"를 눌러 주세요'; return; }
     var cfg = { code: code, role: linkRole, place: ($('placeName').value || '').trim() || '상담실' };
     try { localStorage.setItem('ma_link', JSON.stringify(cfg)); } catch (e) {}
     hostUnsubscribe();
@@ -2254,11 +2264,11 @@ window.onerror = function (msg) {
   function hostUnsubscribe() { if (esSig) { try { esSig.close(); } catch (e) {} esSig = null; } }
 
   // 새 버전 확인: 아이패드·아이폰 크롬이 예전 파일을 붙들고 있으면 위에 띠를 띄워 새로고침을 안내한다
-  var APP_VER = '0.10.19';
+  var APP_VER = '0.10.20';
   setTimeout(function () {
     try {
       fetch('app.js?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
-        var m = /APP_VER = '([0-9.]+)'/.exec(t); if (!m || m[1] === APP_VER || window.__shot) return;   // 파일 안의 다른 '(v…)' 글자에 걸리지 않게 APP_VER 줄만 본다
+        var m = /APP_VER = '([0-9.]+)'/.exec(t); if (!m || m[1] === APP_VER) return;   // 파일 안의 다른 '(v…)' 글자에 걸리지 않게 APP_VER 줄만 본다
         var bar = $('updBar'); if (!bar) return;
         bar.style.display = 'flex'; $('updTxt').textContent = '새 버전 v' + m[1] + '이 있어요 (지금 v' + APP_VER + ')';
       }).catch(function () {});
@@ -2373,81 +2383,6 @@ window.onerror = function (msg) {
   };
   window.__S = S; window.__match = matchAll;   // 시험용
   window.__reset = function () { S.cooldownUntil = 0; S.winUntil = 0; S.sc = []; S.calmAt = []; S.moneyN = 0; S.same = {}; renderAcc(); };   // 시험용
-  // ---------- 촬영 모드 (?shot=이름) — 안내서 제작용. 실제 사용에는 영향 없음 ----------
-  (function () {
-    var q = new URLSearchParams(location.search), s = q.get('shot'); if (!s) return;
-    // v0.10.18: 운영 설정·기록이 있는 브라우저에서는 들어가지 않는다(예시 값으로 덮어쓰지 않게). 빈 브라우저나 촬영용 코드가 저장된 브라우저에서만
-    try { var lk0 = JSON.parse(localStorage.getItem('ma_link') || 'null'); if ((lk0 && lk0.code !== 'h7k2m9pq') || (!lk0 && localStorage.getItem('ma_obs'))) return; } catch (e) { return; }
-    var role = /^p/.test(s) ? 'phone' : s === 'board' ? 'board' : 'host';
-    try {
-      localStorage.setItem('ma_link', JSON.stringify({ code: 'h7k2m9pq', role: role, place: '2층 상담실' }));
-      localStorage.setItem('ma_counselor', '박지우'); localStorage.setItem('ma_stype', '정기상담'); localStorage.setItem('ma_phone_name', '김서연'); localStorage.setItem('ma_tested', '1');
-    } catch (e) {}
-    postSig = function () { return Promise.resolve(true); }; openES = function () { return null; };
-    notifyHuman = function () { return Promise.resolve(true); };
-    window.EventSource = function () { return { close: function () {} }; };
-    updateLinkStat(); $('counselorName').value = '박지우';
-    var ub = $('updBar'); if (ub) ub.style.display = 'none';
-    var NOW = Date.now();
-    function lines(noTail) { S.cooldownUntil = Date.now() + 60000; __addLine('지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', 0); __addLine('아니 왜 나만 안 되냐고 옆집은 받았잖아', 1); __addLine('퇴근길 조심해라 내가 가만 안 둔다', 2); if (!noTail) __addLine('선생님 잠시만요 다른 지원도 같이 볼게요', 0); var ts = ['17:31', '17:38', '17:52', '17:58']; S.tr.forEach(function (l, i) { if (ts[i]) l.t = ts[i]; }); renderTL(); S.cooldownUntil = 0; }
-    function session(noTail) { S.acc = { name: '김서연', rid: 'x', at: NOW }; S.buddyName = '김서연 (수락 14:02)'; S.callMin = 15; startSession(true); S.startedAt = NOW - 18 * 60000 - 4000; S.callAt = NOW + 4 * 60000 + 18000; tick(); S.cooldownUntil = 0; lines(noTail); }
-    function sampleRecord() {
-      var rec = { d: '2026-09-09T14:02', min: 41, alerts: 1, noRec: false, a: { q3: 1 }, c1: '박지우', c2: '홍길동', one: '정기상담', place: '2층 상담실', buddy: '김서연 (수락 14:02)', callAns: '14:22 받음',
-        tr: [{ t: '14:31', x: '지원 기준은 소득 조건이 있어서요 이번에는 대상이 아니세요', v: 0 }, { t: '14:32', x: '아니 왜 나만 안 되냐고 옆집은 받았잖아', v: 1 }, { t: '14:32', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2 }, { t: '14:33', x: '선생님 잠시만요 다른 지원도 같이 볼게요', v: 0 }],
-        ctx: [], al: [{ t: '14:32', kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, how: 'timeout', ack: { by: '김서연', t: '14:33' }, esc: false, fb: 0 }],
-        memo: '생계지원 소득 기준 안내, 신청 불가 통보. 타 지원 안내. 후속: 다음 주 연락.', basic: { dob: '1961-03-15', addr: '○○구 ○○동', tel: '' }, status: 'final', finalAt: '2026-09-09T14:50' };
-      try { localStorage.setItem('ma_obs', JSON.stringify([rec])); } catch (e) {}
-      updateObsCount();
-    }
-    var M = {};
-    var SC = {
-      start: function () { sampleRecord(); go('start'); M = [['#s-start .primary', '상담 시작'], ['#s-start .chips', 'DEMO 표시'], ['#recBtn', '상담기록'], ['#linkBtn', '동료 연결 설정'], ['#s-start button[onclick="openSettings()"]', '설정']]; },
-      link: function () { openLink(); M = [['#s-link [data-role="host"]', '역할 고르기'], ['#teamCode', '팀 코드'], ['#placeName', '장소'], ['#s-link .primary', '저장']]; },
-      settings: function () { openSettings(); M = [['#swApproved', '기관 승인 스위치'], ['#cfgN1', '고지 문구'], ['#cfgThreat', '위협 표현 목록'], ['#cfgTest', '감지 시험 칸']]; },
-      name: function () { openName(); $('clientName').value = '홍길동'; nameChanged(); M = [['#clientName', '내담자 이름'], ['#lastLine', '지난 값 · 바꾸기'], ['#nameNext', '다음']]; },
-      checkin: function () { openName(); $('clientName').value = '홍길동'; nameChanged(); nextFromName(); buddies['김서연'] = NOW; S.buddy = '김서연'; renderBuddies(false); M = [['#checkWho', '오늘 상담 한 줄'], ['#s-checkin .check', '체크 2개'], ['#buddyBox', '업무폰을 건넨 동료'], ['#s-checkin .pill[data-min="15"]', '확인 전화'], ['#reqBtn', '연결 요청']]; },
-      wait: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('waiting'); go('wait'); M = [['#waitTitle', '기다리는 중'], ['#waitCard', '수락 전엔 시작 안 됨'], ['#waitCancel', '요청 취소']]; },
-      wait2: function () { S.reqTo = '김서연'; S.reqAt = NOW - 18000; S.rid = 'x'; setWait('declined'); go('wait'); M = [['#waitTitle', '받을 수 없음'], ['#waitPick', '다른 동료 고르기'], ['#waitRetry', '다시 요청']]; },
-      notice: function () { S.acc = { name: '김서연', rid: 'x' }; go('notice'); M = [['#noticeN1', '고지 문구 3줄'], ['#s-notice .chips', '승인 전 표시'], ['#s-notice .primary', '확인'], ['#s-notice button[onclick="go(\'norec\')"]', '기록 거부']]; },
-      session: function () { session(); M = [['#stateChip', '연결됨 · 동료 이름'], ['#recChip', '기록 중'], ['#callChip', '확인 전화'], ['#tl', '자막 · 큰 소리는 크게'], ['#s-session .corner:first-of-type', '동료 호출'], ['#s-session .corner:last-of-type', '상담 종료']]; },
-      accum: function () { S.acc = { name: '김서연', rid: 'x', at: NOW }; startSession(true); S.startedAt = NOW - 8 * 60000 - 14000; S.cooldownUntil = 0; __addLine('지난번에 말씀드린 대로 이번 지원은 기준이 안 맞아요', 0); __addLine('돈 좀 해주세요 저 진짜 급해요', 0); __addLine('그거 언제 해줄 건데요', 0); M = [['#accChip', '쌓이는 신호 (점)'], ['#tl', '요구 표현이 쌓임']]; },
-      countdown: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; triggerCountdown('위협하는 말("퇴근길조심")이'); clearInterval(cdId); $('cdNum').textContent = '7'; M = [['.cd', '남은 초'], ['#cdEv', '근거 카드'], ['#s-countdown button:first-of-type', '괜찮아요'], ['#s-countdown .danger', '지금 바로 알리기']]; },
-      alert: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라 내가 가만 안 둔다', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); $('ackSub').textContent = '업무폰으로 보냈어요 · 12초'; M = [['#ackCard', '확인 기다리는 중'], ['#alertEv', '보낸 근거'], ['#s-alert button:first-of-type', '괜찮아요 · 상담 계속'], ['#s-alert .danger', '상담 중단']]; },
-      alert2: function () { SC.alert(); onAck({ by: '김서연' }); M = [['#ackCard', '확인 카드'], ['#alertChip', '확인됨 칩']]; },
-      wrap: function () { session(true); S.lastHit = { kind: 'threat', hit: '퇴근길조심', x: '퇴근길 조심해라', at: NOW }; S.curEv = buildEv('threat', 'auto'); fireAlert('timeout'); clearInterval(ackTick); clearTimeout(escId); onAck({ by: '김서연' }); cancelFromAlert(); endSession(); M = [['#wrapSummary', '한 줄 요약 (펼치기)'], ['#fbSec', '되짚기 버튼 하나'], ['#s-wrap .qrow', '선생님 마음'], ['#wrapSkip', '건너뛰기'], ['#wrapFinal', '검토 후 확정']]; },
-      records: function () { sampleRecord(); openRecords(); M = [['#recList', '기록 목록 · 확정/초안'], ['#copyBtn', '목록 복사'], ['#clearBtn', '전체 원문 삭제']]; },
-      recdetail: function () { sampleRecord(); openDetail(0); M = [['#detMeta', '확정 · 음성 삭제됨'], ['#detList', '대화록 · 위험 신호 · 메모'], ['#dTxt', 'TXT 내보내기'], ['#dEdit', '기록 고치기'], ['#delBtn', '원문 삭제']]; },
-      pstart: function () { go('start'); M = [['#linkBtn', '업무폰 대기 시작'], ['#linkEdit', '연결 설정 바꾸기']]; },
-      pname: function () { $('phoneName').value = '김서연'; go('pname'); M = [['#phoneName', '이름'], ['#s-pname .primary', '저장 · 대기 시작']]; },
-      pwait: function () { startPhone(); $('pwaitMsg').textContent = '상담자 화면에 "김서연" 이름이 보여요 (14:00)'; M = [['#pwaitName', '내 이름'], ['#pwaitAlim', 'ntfy 구독 이름'], ['#s-pwait button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; },
-      preq: function () { startPhone(); onPhoneMsg({ type: 'request', to: '김서연', rid: 'x', who: '박지우', client: '홍길동', place: '2층 상담실', ts: NOW }); phoneRing(false); M = [['#preqInfo', '누가 · 어디서'], ['#s-preq .primary', '연결 수락'], ['#s-preq button:last-of-type', '지금 받을 수 없음']]; },
-      pconn: function () { SC.preq(); acceptReq(); onPhoneMsg({ type: 'start', rid: 'x', at: NOW - 18 * 60000 - 4000, who: '박지우', place: '2층 상담실', client: '홍길동' }); M = [['#pconnState', '연결 상태'], ['#pconnInfo', '내담자 · 장소'], ['#pTimer', '경과 시간']]; },
-      palert: function () { SC.pconn(); onPhoneMsg({ type: 'alert', rid: 'x', to: '김서연', who: '박지우', place: '2층 상담실', t: '18:04', ts: NOW, promise: CFG.promise, ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, t: '18:04', around: [{ t: '17:31', x: '지원 기준은 소득 조건이 있어서요', v: 0 }, { t: '17:38', x: '아니 왜 나만 안 되냐고', v: 1 }, { t: '18:04', x: '퇴근길 조심해라 내가 가만 안 둔다', v: 2, hit: true }], ctx: '' } }); phoneRing(false); M = [['#palertEv', '근거 · 앞뒤 대화'], ['#palertPromise', '기관 약속'], ['#s-palert .primary', '확인했어요']]; },
-      pend: function () { SC.pconn(); P.alerts = 1; endConn(''); clearTimeout(pendId); M = [['#pendSum', '요약'], ['#s-pend button', '지금 대기로']]; },
-      board: function () { startBuddy(); sessions['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', at: NOW - 18 * 60000, last: NOW, phone: '김서연', pending: false }; alertsMap['2층 상담실|박지우'] = { place: '2층 상담실', who: '박지우', t: '18:04', esc: true, phone: '김서연', ev: { kind: 'threat', hit: '퇴근길조심', v: 2, n: 1, around: [] } }; renderBoard(); buddyRing(false); M = [['#boardList .bt.esc', '미확인 확산 칸'], ['#boardList', '진행 중 상담'], ['#s-buddy button[onclick="testAlarm(this)"]', '소리·알림 테스트']]; }
-    };
-    window.__shot = s; window.__shotReady = false;
-    setTimeout(function () {
-      try { (SC[s] || SC.start)(); } catch (e) { document.title = 'SHOT ERROR ' + e.message; }
-      var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-      fontsReady.then(function () { return new Promise(function (res) { setTimeout(res, 1500); }); }).then(function () {
-        if (q.get('marks') !== '0') {
-          var n = 0;
-          (M || []).forEach(function (m) {
-            var el = document.querySelector(m[0]); if (!el) return;
-            var r = el.getBoundingClientRect(); if (!r.width) return; n += 1;
-            var b = document.createElement('div');
-            b.textContent = String(n);
-            b.style.cssText = 'position:fixed; z-index:999; left:' + Math.max(4, r.left - 14) + 'px; top:' + Math.max(4, r.top - 14) + 'px; width:30px; height:30px; border-radius:50%; background:#1F5FBF; color:#FFF; font:700 16px/30px IBM Plex Sans KR, sans-serif; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.35); border:2px solid #FFF';
-            document.body.appendChild(b);
-            var o = document.createElement('div'); o.style.cssText = 'position:fixed; z-index:998; left:' + (r.left - 4) + 'px; top:' + (r.top - 4) + 'px; width:' + (r.width + 8) + 'px; height:' + (r.height + 8) + 'px; border:2.5px dashed #1F5FBF; border-radius:12px; pointer-events:none';
-            document.body.appendChild(o);
-          });
-        }
-        window.__shotReady = true; document.title = 'SHOT READY ' + s;
-      });
-    }, 400);
-  })();
 
   window.__hostSub = hostSubscribe; window.__hostUnsub = hostUnsubscribe;
   window.addEventListener('resize', sizeCanvas);
